@@ -12,6 +12,6 @@ jobs:
     - uses: actions/checkout@v2
     - uses: iffy/install-nim@v1.1
     - name: Build
-      run: nimble build -y
+      run: nimble install -y
     - name: Test
       run: nimble test -y
