@@ -9,9 +9,6 @@ in a usable state.
 Building and testing
 --------------------
 
-Requires [CMake](https://cmake.org/) to be installed, to compile the ngtcp2
-C-library that we currently depend on.
-
 Install dependencies:
 
 ```bash
