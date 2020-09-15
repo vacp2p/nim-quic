@@ -77,8 +77,8 @@ proc setupServer*(path: ptr ngtcp2_path): ptr ngtcp2_conn =
 
   assert 0 == ngtcp2_conn_server_new(
     addr result,
-    addr destinationId,
-    addr sourceId,
+    addr serverDestinationId,
+    addr serverSourceId,
     path,
     cast[uint32](NGTCP2_PROTO_VER),
     addr callbacks,
