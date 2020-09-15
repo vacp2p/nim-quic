@@ -9,4 +9,5 @@ proc dummyEncrypt*(dest: ptr uint8,
                    noncelen: uint,
                    ad: ptr uint8,
                    adlen: uint): cint{.cdecl.} =
+  echo "ENCRYPT"
   copyMem(dest, plaintext, plaintextlen)
