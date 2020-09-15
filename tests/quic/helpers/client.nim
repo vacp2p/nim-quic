@@ -69,8 +69,8 @@ proc setupClient*(path: ptr ngtcp2_path): ptr ngtcp2_conn =
 
   assert 0 == ngtcp2_conn_client_new(
     addr result,
-    addr randomId,
-    addr sourceId,
+    addr clientDestinationId,
+    addr clientSourceId,
     path,
     cast[uint32](NGTCP2_PROTO_VER),
     addr callbacks,
