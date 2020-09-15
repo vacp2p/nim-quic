@@ -4,13 +4,11 @@ import decrypt
 import hp
 import ids
 import log
-import path
 
 var cryptoData: array[4096, uint8]
 var aeadContext: ngtcp2_crypto_aead_ctx
 var hpContext: ngtcp2_crypto_cipher_ctx
 var iv: array[16, uint8]
-var nullpath = dummyPath()
 
 proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
   echo "SERVER: RECEIVE CLIENT INITIAL"
@@ -60,7 +58,7 @@ proc serverDefaultSettings: ngtcp2_settings =
 
   result.log_printf = log_printf
 
-proc setupServer*: ptr ngtcp2_conn =
+proc setupServer*(path: ptr ngtcp2_path): ptr ngtcp2_conn =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.recv_client_initial = receiveClientInitial
   callbacks.recv_crypto_data = receiveCryptoData
@@ -81,7 +79,7 @@ proc setupServer*: ptr ngtcp2_conn =
     addr result,
     addr destinationId,
     addr sourceId,
-    addr nullpath.path,
+    path,
     cast[uint32](NGTCP2_PROTO_VER),
     addr callbacks,
     addr settings,

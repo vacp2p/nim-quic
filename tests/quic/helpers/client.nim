@@ -4,14 +4,12 @@ import encrypt
 import decrypt
 import hp
 import log
-import path
 
 var cryptoData: array[4096, uint8]
 var retryAead: ngtcp2_crypto_aead
 var aeadContext: ngtcp2_crypto_aead_ctx
 var hpContext: ngtcp2_crypto_cipher_ctx
 var iv: array[16, uint8]
-var nullpath = dummyPath()
 
 proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdecl.} =
   echo "CLIENT: CLIENT INITIAL"
@@ -52,7 +50,7 @@ proc clientDefaultSettings: ngtcp2_settings =
 
   result.log_printf = log_printf
 
-proc setupClient*: ptr ngtcp2_conn =
+proc setupClient*(path: ptr ngtcp2_path): ptr ngtcp2_conn =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = clientInitial
   callbacks.recv_crypto_data = receiveCryptoData
@@ -73,7 +71,7 @@ proc setupClient*: ptr ngtcp2_conn =
     addr result,
     addr randomId,
     addr sourceId,
-    addr nullpath.path,
+    path,
     cast[uint32](NGTCP2_PROTO_VER),
     addr callbacks,
     addr settings,
