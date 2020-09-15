@@ -11,6 +11,7 @@ var randomId* = connectionId("\xdd\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x
 var nextConnectionId = 1'u8
 
 proc getNewConnectionId*(connection: ptr ngtcp2_conn, id: ptr ngtcp2_cid, token: ptr uint8, cidlen: uint, userData: pointer): cint {.cdecl.} =
+  echo "GET CONNECTION ID"
   zeroMem(addr id.data[0], cidlen)
   id.data[0] = nextConnectionId
   inc(nextConnectionId)

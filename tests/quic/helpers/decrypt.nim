@@ -9,5 +9,6 @@ proc dummyDecrypt*(dest: ptr uint8,
                    noncelen: uint,
                    ad: ptr uint8,
                    adlen: uint): cint {.cdecl.} =
+  echo "DECRYPT"
   copyMem(dest, ciphertext, ciphertextlen)
 
