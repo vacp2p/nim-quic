@@ -75,7 +75,7 @@ proc setupServer*(path: ptr ngtcp2_path): ptr ngtcp2_conn =
 
   var settings = serverDefaultSettings()
 
-  assert 0 == ngtcp2_conn_client_new(
+  assert 0 == ngtcp2_conn_server_new(
     addr result,
     addr destinationId,
     addr sourceId,
