@@ -1,13 +1,18 @@
 import ngtcp2
+import sysrandom
 
-proc connectionId*(id: string): ngtcp2_cid =
-  var bytes: seq[uint8] = cast[seq[uint8]](id)
+proc connectionId*(bytes: ptr uint8, length: uint): ngtcp2_cid =
+  ngtcp2_cid_init(addr result, bytes, length)
+
+proc randomConnectionId*(): ngtcp2_cid =
+  var bytes: array[18, uint8]
+  getRandomBytes(addr bytes[0], bytes.len)
   ngtcp2_cid_init(addr result, addr bytes[0], bytes.len.uint)
 
-var clientSourceId* = connectionId("\x11\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x11")
-var clientDestinationId* = connectionId("\x22\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x22")
-var serverSourceId* = clientDestinationId
-var serverDestinationId* = clientSourceId
+var clientSourceId* = randomConnectionId()
+var clientDestinationId* = randomConnectionId()
+var serverSourceId* = randomConnectionId()
+var serverDestinationId* = randomConnectionId()
 
 var nextConnectionId = 1'u8
 
