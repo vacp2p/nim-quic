@@ -1,3 +1,4 @@
+import std/monotimes
 import ngtcp2
 import encrypt
 import decrypt
@@ -56,6 +57,7 @@ proc serverDefaultSettings: ngtcp2_settings =
   for i in 0..<NGTCP2_STATELESS_RESET_TOKENLEN:
     result.transport_params.stateless_reset_token[i] = uint8(i)
 
+  result.initial_ts = getMonoTime().ticks.uint
   result.log_printf = log_printf
 
 proc setupServer*(path: ptr ngtcp2_path): ptr ngtcp2_conn =
