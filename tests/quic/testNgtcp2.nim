@@ -3,6 +3,7 @@ import std/monotimes
 import ngtcp2
 import helpers/server
 import helpers/client
+import helpers/ids
 
 suite "ngtcp2":
 
@@ -29,7 +30,31 @@ test "open connection":
     remote: ngtcp2_addr(`addr`: addr clientRemoteAddress.address, addrlen: sizeof(SocketAddress).uint)
   )
 
-  let server = setupServer(addr serverPath)
-  let client = setupClient(addr clientPath)
-  defer: ngtcp2_conn_del(server)
+  var clientId = randomConnectionId()
+  var randomId = randomConnectionId()
+  var serverId = randomConnectionId()
+
+  let client = setupClient(addr clientPath, addr clientId, addr randomId)
   defer: ngtcp2_conn_del(client)
+
+  var packet: array[4096, uint8]
+  var packetInfo: ngtcp2_pkt_info
+
+  # handshake client -> server
+  check packet.len == client.ngtcp2_conn_write_pkt(addr clientPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+
+  # extract version number, source and destination id
+  var packetVersion: uint32
+  var packetDestinationId: ptr uint8
+  var packetDestinationIdLen: uint
+  var packetSourceId: ptr uint8
+  var packetSourceIdLen: uint
+  assert 0 == ngtcp2_pkt_decode_version_cid(addr packetVersion, addr packetDestinationId, addr packetDestinationIdLen, addr packetSourceId, addr packetSourceIdLen, addr packet[0], packet.len.uint, 18)
+  var serverDestinationId = connectionId(packetSourceId, packetSourceIdLen)
+  check serverDestinationId == clientId
+
+  # setup server connection using received id
+  let server = setupServer(addr serverPath, addr serverId, addr serverDestinationId)
+  defer: ngtcp2_conn_del(server)
+
+  check 0 == server.ngtcp2_conn_read_pkt(addr serverPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)

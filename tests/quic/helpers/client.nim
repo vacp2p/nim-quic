@@ -52,7 +52,7 @@ proc clientDefaultSettings: ngtcp2_settings =
   result.initial_ts = getMonoTime().ticks.uint
   result.log_printf = log_printf
 
-proc setupClient*(path: ptr ngtcp2_path): ptr ngtcp2_conn =
+proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId: ptr ngtcp2_cid): ptr ngtcp2_conn =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = clientInitial
   callbacks.recv_crypto_data = receiveCryptoData
@@ -71,8 +71,8 @@ proc setupClient*(path: ptr ngtcp2_path): ptr ngtcp2_conn =
 
   assert 0 == ngtcp2_conn_client_new(
     addr result,
-    addr clientDestinationId,
-    addr clientSourceId,
+    destinationId,
+    sourceId,
     path,
     cast[uint32](NGTCP2_PROTO_VER),
     addr callbacks,
