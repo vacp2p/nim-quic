@@ -51,6 +51,10 @@ test "open connection":
   # handshake client -> server
   check packet.len == client.ngtcp2_conn_write_pkt(addr clientPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
 
+  # check that package is acceptable initial packet
+  var packetHeader: ngtcp2_pkt_hd
+  check 0 == ngtcp2_accept(addr packetHeader, addr packet[0], packet.len.uint)
+
   # extract version number, source and destination id
   var packetVersion: uint32
   var packetDestinationId: ptr uint8
