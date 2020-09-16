@@ -22,7 +22,7 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
     connection,
     if level == NGTCP2_CRYPTO_LEVEL_INITIAL: NGTCP2_CRYPTO_LEVEL_INITIAL else: NGTCP2_CRYPTO_LEVEL_HANDSHAKE,
     addr cryptoData[0],
-    218
+    sizeof(cryptoData).uint
   )
 
 proc receiveStreamData(connection: ptr ngtcp2_conn, flags: uint32, stream_id: int64, offset: uint64, data: ptr uint8, datalen: uint, user_data: pointer, stream_user_data: pointer): cint {.cdecl.} =

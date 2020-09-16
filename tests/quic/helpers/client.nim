@@ -16,7 +16,7 @@ var iv: array[16, uint8]
 proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdecl.} =
   echo "CLIENT: CLIENT INITIAL"
   assert 0 == ngtcp2_conn_submit_crypto_data(
-    connection, NGTCP2_CRYPTO_LEVEL_INITIAL, addr cryptoData[0], 217
+    connection, NGTCP2_CRYPTO_LEVEL_INITIAL, addr cryptoData[0], sizeof(cryptoData).uint
   )
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
