@@ -2,6 +2,7 @@ import std/monotimes
 import ngtcp2
 import encrypt
 import decrypt
+import aead
 import hp
 import ids
 import log
@@ -116,4 +117,4 @@ proc setupServer*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     addr hpContext
   )
 
-  ngtcp2_conn_set_aead_overhead(result, 0)
+  ngtcp2_conn_set_aead_overhead(result, NGTCP2_FAKE_AEAD_OVERHEAD)

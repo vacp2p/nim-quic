@@ -3,6 +3,7 @@ import ngtcp2
 import ids
 import encrypt
 import decrypt
+import aead
 import hp
 import log
 
@@ -93,3 +94,6 @@ proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
   )
 
   ngtcp2_conn_set_retry_aead(result, addr retryAead, addr aeadContext)
+
+  ngtcp2_conn_set_aead_overhead(result, NGTCP2_FAKE_AEAD_OVERHEAD)
+
