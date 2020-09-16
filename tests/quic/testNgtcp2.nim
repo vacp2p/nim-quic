@@ -16,7 +16,11 @@ suite "ngtcp2":
 test "open connection":
   var serverLocalAddress, serverRemoteAddress: SocketAddress
   serverLocalAddress.ipv4.sin_family = AF_INET
+  serverLocalAddress.ipv4.sin_addr.s_addr = 1
+  serverLocalAddress.ipv4.sin_port = Port(1000)
   serverRemoteAddress.ipv4.sin_family = AF_INET
+  serverRemoteAddress.ipv4.sin_addr.s_addr = 2
+  serverRemoteAddress.ipv4.sin_port = Port(2000)
   var serverPath = ngtcp2_path(
     local: ngtcp2_addr(`addr`: addr serverLocalAddress.address, addrlen: sizeof(SocketAddress).uint),
     remote: ngtcp2_addr(`addr`: addr serverRemoteAddress.address, addrlen: sizeof(SocketAddress).uint)
@@ -24,7 +28,11 @@ test "open connection":
 
   var clientLocalAddress, clientRemoteAddress: SocketAddress
   clientLocalAddress.ipv4.sin_family = AF_INET
+  clientLocalAddress.ipv4.sin_addr.s_addr = 2
+  clientLocalAddress.ipv4.sin_port = Port(2000)
   clientRemoteAddress.ipv4.sin_family = AF_INET
+  clientRemoteAddress.ipv4.sin_addr.s_addr = 1
+  clientRemoteAddress.ipv4.sin_port = Port(1000)
   var clientPath = ngtcp2_path(
     local: ngtcp2_addr(`addr`: addr clientLocalAddress.address, addrlen: sizeof(SocketAddress).uint),
     remote: ngtcp2_addr(`addr`: addr clientRemoteAddress.address, addrlen: sizeof(SocketAddress).uint)
