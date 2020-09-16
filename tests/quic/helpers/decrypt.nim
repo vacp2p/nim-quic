@@ -1,4 +1,5 @@
 import ngtcp2
+import aead
 
 proc dummyDecrypt*(dest: ptr uint8,
                    aead: ptr ngtcp2_crypto_aead,
@@ -10,5 +11,6 @@ proc dummyDecrypt*(dest: ptr uint8,
                    ad: ptr uint8,
                    adlen: uint): cint {.cdecl.} =
   echo "DECRYPT"
-  copyMem(dest, ciphertext, ciphertextlen)
+  assert ciphertextlen >= NGTCP2_FAKE_AEAD_OVERHEAD
+  moveMem(dest, ciphertext, ciphertextlen - NGTCP2_FAKE_AEAD_OVERHEAD)
 
