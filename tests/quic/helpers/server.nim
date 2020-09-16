@@ -24,6 +24,7 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
     addr cryptoData[0],
     sizeof(cryptoData).uint
   )
+  ngtcp2_conn_handshake_completed(connection)
 
 proc receiveStreamData(connection: ptr ngtcp2_conn, flags: uint32, stream_id: int64, offset: uint64, data: ptr uint8, datalen: uint, user_data: pointer, stream_user_data: pointer): cint {.cdecl.} =
   echo "SERVER: RECEIVE STREAM DATA"

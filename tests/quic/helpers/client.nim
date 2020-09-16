@@ -21,6 +21,7 @@ proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdec
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
   echo "CLIENT: RECEIVE CRYPTO DATA"
+  ngtcp2_conn_handshake_completed(connection)
 
 proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
   echo "CLIENT: RECEIVE CLIENT INITIAL"
