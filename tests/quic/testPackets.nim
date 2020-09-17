@@ -60,6 +60,11 @@ suite "packets":
     check header.bytes[0].bits[2] == 1
     check header.bytes[0].bits[3] == 0
 
+  test "destination connection id is encoded from byte 5 onwards":
+    let id = @[1'u8, 2'u8, 3'u8]
+    var header = newPacketHeader(@[0b11000000'u8, 0'u8, 0'u8, 0'u8, 1'u8] & id.len.uint8 & id)
+    check header.destination == id
+
   test "packet numbers are in the range 0 to 2^62-1":
     check PacketNumber.low == 0
     check PacketNumber.high == 2'u64 ^ 62 - 1
