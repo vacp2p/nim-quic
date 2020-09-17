@@ -1,4 +1,5 @@
 import math
+import strutils
 import strformat
 import bits
 
@@ -15,7 +16,7 @@ type
   PacketHeader* = object
     bytes: seq[byte]
   PacketNumber* = range[0'u64..2'u64^62-1]
-  ConnectionId* = seq[byte]
+  ConnectionId* = distinct seq[byte]
 
 proc newPacketHeader*(bytes: seq[byte]): PacketHeader =
   assert bytes[0].bits[1] == 1
@@ -57,14 +58,17 @@ proc `kind=`*(header: var PacketHeader, kind: PacketKind) =
 
 proc destination*(header: PacketHeader): ConnectionId =
   let length = header.bytes[5]
-  result = header.bytes[6..<6+length]
+  result = ConnectionId(header.bytes[6..<6+length])
 
 proc source*(header: PacketHeader): ConnectionId =
   let destinationLength = header.bytes[5]
   let destinationEnd = 6+destinationLength
   let sourceLength = header.bytes[destinationEnd]
   let sourceStart = destinationEnd + 1
-  result = header.bytes[sourceStart..<sourceStart+sourceLength]
+  result = ConnectionId(header.bytes[sourceStart..<sourceStart+sourceLength])
+
+proc `$`*(id: ConnectionId): string =
+  "0x" & cast[string](id).toHex
 
 proc `$`*(header: PacketHeader): string =
   case header.form:
@@ -75,3 +79,5 @@ proc `$`*(header: PacketHeader): string =
       fmt"destination: {header.destination}, " &
       fmt"source: {header.source}" &
     ")"
+
+proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}

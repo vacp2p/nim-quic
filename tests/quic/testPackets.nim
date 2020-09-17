@@ -47,8 +47,8 @@ suite "long headers":
   const type3 = @[0b11110000'u8]
   const version0 = @[0'u8, 0'u8, 0'u8, 0'u8]
   const version1 = @[0'u8, 0'u8, 0'u8, 1'u8]
-  const destination = @[1'u8, 2'u8, 3'u8]
-  const source = @[4'u8, 5'u8, 6'u8]
+  const destination = @[0xAA'u8, 0xBB'u8, 0xCC'u8]
+  const source = @[0xDD'u8, 0xEE'u8, 0xFF'u8]
 
   test "version negotiation packet is a packet with version 0":
     let header = newPacketHeader(type0 & version0)
@@ -79,7 +79,7 @@ suite "long headers":
   test "destination connection id is encoded from byte 5 onwards":
     let id = @[1'u8, 2'u8, 3'u8]
     var header = newPacketHeader(type0 & version1 & id.len.uint8 & id)
-    check header.destination == id
+    check header.destination == ConnectionId(id)
 
   test "source connection id follows the destination connection id":
     var header = newPacketHeader(
@@ -87,7 +87,7 @@ suite "long headers":
       destination.len.uint8 & destination &
       source.len.uint8 & source
     )
-    check header.source == source
+    check header.source == ConnectionId(source)
 
   test "conversion to string":
     let header = $newPacketHeader(
@@ -99,8 +99,8 @@ suite "long headers":
     check $header == "(" &
       "form: headerLong, " &
       "kind: packetVersionNegotiation, " &
-      "destination: @[1, 2, 3], " &
-      "source: @[4, 5, 6]" &
+      "destination: 0xAABBCC, " &
+      "source: 0xDDEEFF" &
     ")"
 
 suite "packet numbers":
