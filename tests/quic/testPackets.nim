@@ -74,6 +74,16 @@ suite "long packets":
     var header = newPacketHeader(type0 & version1 & id.len.uint8 & id)
     check header.destination == id
 
+  test "source connection id follows the destination connection id":
+    let destination = @[1'u8, 2'u8, 3'u8]
+    let source = @[4'u8, 5'u8, 6'u8]
+    var header = newPacketHeader(
+      type0 & version1 &
+      destination.len.uint8 & destination &
+      source.len.uint8 & source
+    )
+    check header.source == source
+
 suite "packet numbers":
 
   test "packet numbers are in the range 0 to 2^62-1":

@@ -57,3 +57,10 @@ proc `kind=`*(header: var PacketHeader, kind: PacketKind) =
 proc destination*(header: PacketHeader): ConnectionId =
   let length = header.bytes[5]
   result = header.bytes[6..<6+length]
+
+proc source*(header: PacketHeader): ConnectionId =
+  let destinationLength = header.bytes[5]
+  let destinationEnd = 6+destinationLength
+  let sourceLength = header.bytes[destinationEnd]
+  let sourceStart = destinationEnd + 1
+  result = header.bytes[sourceStart..<sourceStart+sourceLength]
