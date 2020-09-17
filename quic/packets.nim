@@ -5,6 +5,12 @@ type
   HeaderForm* = enum
     headerShort
     headerLong
+  PacketKind* = enum
+    packetInitial
+    packet0RTT
+    packetHandshake
+    packetRetry
+    packetVersionNegotiation
   PacketHeader* = object
     bytes: seq[byte]
   PacketNumber* = range[0'u64..2'u64^62-1]
@@ -33,3 +39,7 @@ proc `version=`*(header: var PacketHeader, version: uint32) =
   header.bytes[2] = version.bytes[1]
   header.bytes[3] = version.bytes[2]
   header.bytes[4] = version.bytes[3]
+
+proc kind*(header: PacketHeader): PacketKind =
+  if header.version == 0:
+    result = packetVersionNegotiation

@@ -34,6 +34,10 @@ suite "packets":
     header.version = 0xAABBCCDD'u32
     check header.bytes[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
+  test "version negotiation packet is a packet with version 0":
+    let header = newPacketHeader(@[0b01000000'u8, 0'u8, 0'u8, 0'u8, 0'u8])
+    check header.kind == packetVersionNegotiation
+
   test "packet numbers are in the range 0 to 2^62-1":
     check PacketNumber.low == 0
     check PacketNumber.high == 2'u64 ^ 62 - 1
