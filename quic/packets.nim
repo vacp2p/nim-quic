@@ -14,6 +14,7 @@ type
   PacketHeader* = object
     bytes: seq[byte]
   PacketNumber* = range[0'u64..2'u64^62-1]
+  ConnectionId* = seq[byte]
 
 proc newPacketHeader*(bytes: seq[byte]): PacketHeader =
   assert bytes[0].bits[1] == 1
@@ -52,3 +53,7 @@ proc kind*(header: PacketHeader): PacketKind =
 proc `kind=`*(header: var PacketHeader, kind: PacketKind) =
   header.bytes[0].bits[2] = kind.uint8.bits[6]
   header.bytes[0].bits[3] = kind.uint8.bits[7]
+
+proc destination*(header: PacketHeader): ConnectionId =
+  let length = header.bytes[5]
+  result = header.bytes[6..<6+length]
