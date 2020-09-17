@@ -38,6 +38,28 @@ suite "packets":
     let header = newPacketHeader(@[0b01000000'u8, 0'u8, 0'u8, 0'u8, 0'u8])
     check header.kind == packetVersionNegotiation
 
+  test "initial packet is a long packet of type 0":
+    let header = newPacketHeader(@[0b11000000'u8, 0'u8, 0'u8, 0'u8, 1'u8])
+    check header.kind == packetInitial
+
+  test "0-RTT packet is a long packet of type 1":
+    let header = newPacketHeader(@[0b11010000'u8, 0'u8, 0'u8, 0'u8, 1'u8])
+    check header.kind == packet0RTT
+
+  test "handshake packet is a long packet of type 2":
+    let header = newPacketHeader(@[0b11100000'u8, 0'u8, 0'u8, 0'u8, 1'u8])
+    check header.kind == packetHandshake
+
+  test "retry packet is a long packet of type 3":
+    let header = newPacketHeader(@[0b11110000'u8, 0'u8, 0'u8, 0'u8, 1'u8])
+    check header.kind == packetRetry
+
+  test "long packet type can be set":
+    var header = newPacketHeader(@[0b11000000'u8, 0'u8, 0'u8, 0'u8, 1'u8])
+    header.kind = packetHandshake
+    check header.bytes[0].bits[2] == 1
+    check header.bytes[0].bits[3] == 0
+
   test "packet numbers are in the range 0 to 2^62-1":
     check PacketNumber.low == 0
     check PacketNumber.high == 2'u64 ^ 62 - 1
