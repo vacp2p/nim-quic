@@ -43,3 +43,12 @@ proc `version=`*(header: var PacketHeader, version: uint32) =
 proc kind*(header: PacketHeader): PacketKind =
   if header.version == 0:
     result = packetVersionNegotiation
+  else:
+    var kind: uint8
+    kind.bits[6] = header.bytes[0].bits[2]
+    kind.bits[7] = header.bytes[0].bits[3]
+    result = PacketKind(kind)
+
+proc `kind=`*(header: var PacketHeader, kind: PacketKind) =
+  header.bytes[0].bits[2] = kind.uint8.bits[6]
+  header.bytes[0].bits[3] = kind.uint8.bits[7]
