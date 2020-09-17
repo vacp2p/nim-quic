@@ -2,7 +2,7 @@ import math
 import bits
 
 type
-  PacketHeaderKind* = enum
+  HeaderForm* = enum
     headerShort
     headerLong
   PacketHeader* = object
@@ -13,11 +13,11 @@ proc newPacketHeader*(bytes: seq[byte]): PacketHeader =
   assert bytes[0].bits[1] == 1
   PacketHeader(bytes: bytes)
 
-proc kind*(header: PacketHeader): PacketHeaderKind =
-  PacketHeaderKind(header.bytes[0].bits[0])
+proc form*(header: PacketHeader): HeaderForm =
+  HeaderForm(header.bytes[0].bits[0])
 
-proc `kind=`*(header: var PacketHeader, kind: PacketHeaderKind) =
-  header.bytes[0].bits[0] = Bit(kind)
+proc `form=`*(header: var PacketHeader, form: HeaderForm) =
+  header.bytes[0].bits[0] = Bit(form)
 
 proc bytes*(header: PacketHeader): seq[byte] =
   header.bytes

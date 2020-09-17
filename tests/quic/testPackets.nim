@@ -5,13 +5,13 @@ import quic/bits
 
 suite "packets":
 
-  test "first bit of the header indicates its kind":
-    check newPacketHeader(@[0b01000000'u8]).kind == headerShort
-    check newPacketHeader(@[0b11000000'u8]).kind == headerLong
+  test "first bit of the header indicates its form":
+    check newPacketHeader(@[0b01000000'u8]).form == headerShort
+    check newPacketHeader(@[0b11000000'u8]).form == headerLong
 
-  test "header kind can be set":
+  test "header form can be set":
     var header = newPacketHeader(@[0b01000000'u8])
-    header.kind = headerLong
+    header.form = headerLong
     check header.bytes[0].bits[0] == 1
 
   test "second bit of the header should always be 1":
