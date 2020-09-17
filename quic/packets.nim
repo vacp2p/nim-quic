@@ -1,4 +1,5 @@
 import math
+import strformat
 import bits
 
 type
@@ -64,3 +65,13 @@ proc source*(header: PacketHeader): ConnectionId =
   let sourceLength = header.bytes[destinationEnd]
   let sourceStart = destinationEnd + 1
   result = header.bytes[sourceStart..<sourceStart+sourceLength]
+
+proc `$`*(header: PacketHeader): string =
+  case header.form:
+  of headerShort: fmt"(form: {header.form})"
+  of headerLong: "(" &
+      fmt"form: {header.form}, " &
+      fmt"kind: {header.kind}, " &
+      fmt"destination: {header.destination}, " &
+      fmt"source: {header.source}" &
+    ")"
