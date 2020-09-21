@@ -88,9 +88,19 @@ proc `$`*(header: PacketHeader): string =
 
 proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}
 
+proc supportedVersionSlice(header: PacketHeader): Slice[int] =
+  let start = header.sourceSlice().b + 1
+  result = start..<start+4
+
+proc supportedVersion*(header: PacketHeader): uint32 =
+  let versionBytes = header.bytes[header.supportedVersionSlice]
+  result.bytes[0] = versionBytes[0]
+  result.bytes[1] = versionBytes[1]
+  result.bytes[2] = versionBytes[2]
+  result.bytes[3] = versionBytes[3]
 proc packetLength*(header: PacketHeader): int =
   case header.kind:
   of packetVersionNegotiation:
-    return header.sourceSlice.b + 1 + 4
+    return header.supportedVersionSlice.b + 1
   else:
     return 0

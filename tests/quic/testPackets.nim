@@ -121,6 +121,16 @@ suite "long headers":
         source.len + 1 +
         version1.len
 
+    test "has a supported version field":
+      let header = newPacketHeader(
+        type0 &
+        version0 &
+        destination.len.uint8 & destination &
+        source.len.uint8 & source &
+        version1
+      )
+      check header.supportedVersion == 1'u32
+
 suite "packet numbers":
 
   test "packet numbers are in the range 0 to 2^62-1":
