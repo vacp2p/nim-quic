@@ -15,9 +15,13 @@ type
     packetRetry
     packetVersionNegotiation
   FieldsInitial* = object
+    version*: uint32
   Fields0RTT* = object
+    version*: uint32
   FieldsHandshake* = object
+    version*: uint32
   FieldsRetry* = object
+    version*: uint32
   FieldsVersionNegotiation* = object
     supportedVersion*: uint32
   PacketHeader* = object
@@ -31,7 +35,6 @@ type
       of packetHandshake: handshake*: FieldsHandshake
       of packetRetry: retry*: FieldsRetry
       of packetVersionNegotiation: negotiation*: FieldsVersionNegotiation
-      version*: uint32
       destination*: ConnectionId
       source*: ConnectionId
     bytes: seq[byte]
@@ -55,18 +58,27 @@ proc readVersion(datagram: seq[byte]): uint32 =
   result.bytes[2] = datagram[3]
   result.bytes[3] = datagram[4]
 
-proc writeVersion*(datagram: var seq[byte], header: PacketHeader) =
+proc version*(header: PacketHeader): uint32 =
   case header.kind
-  of packet0RTT, packetHandshake, packetInitial, packetRetry:
-    datagram[1] = header.version.bytes[0]
-    datagram[2] = header.version.bytes[1]
-    datagram[3] = header.version.bytes[2]
-    datagram[4] = header.version.bytes[3]
-  of packetVersionNegotiation:
-    datagram[1] = 0'u8
-    datagram[2] = 0'u8
-    datagram[3] = 0'u8
-    datagram[4] = 0'u8
+  of packetInitial: header.initial.version
+  of packet0RTT: header.rtt.version
+  of packetHandshake: header.handshake.version
+  of packetRetry: header.retry.version
+  of packetVersionNegotiation: 0
+
+proc `version=`*(header: var PacketHeader, version: uint32) =
+  case header.kind
+  of packetInitial: header.initial.version = version
+  of packet0RTT: header.rtt.version = version
+  of packetHandshake: header.handshake.version = version
+  of packetRetry: header.retry.version = version
+  of packetVersionNegotiation: discard
+
+proc writeVersion*(datagram: var seq[byte], header: PacketHeader) =
+  datagram[1] = header.version.bytes[0]
+  datagram[2] = header.version.bytes[1]
+  datagram[3] = header.version.bytes[2]
+  datagram[4] = header.version.bytes[3]
 
 proc readKind(datagram: seq[byte]): PacketKind =
   if datagram.readVersion() == 0:
@@ -128,8 +140,8 @@ proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
       let supportedVersion = datagram.readSupportedVersion()
       result = PacketHeader(form: form, kind: kind, destination: destination, source: source, negotiation: FieldsVersionNegotiation(supportedVersion: supportedVersion), bytes: datagram)
     else:
-      let version = datagram.readVersion()
-      result = PacketHeader(form: form, kind:kind, version: version, destination: destination, source: source, bytes: datagram)
+      result = PacketHeader(form: form, kind:kind, destination: destination, source: source, bytes: datagram)
+      result.version = datagram.readVersion()
 
 proc newShortPacketHeader*(): PacketHeader =
   PacketHeader(form: formShort)
