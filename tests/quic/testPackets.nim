@@ -32,6 +32,10 @@ suite "short headers":
     datagram.write(newShortPacketHeader())
     check datagram[0].bits[0] == 0
 
+  test "writes correct fixed bit":
+    datagram.write(newShortPacketHeader())
+    check datagram[0].bits[1] == 1
+
   test "conversion to string":
     check $newPacketHeader(@[0b01000000'u8]) == "(kind: packetShort)"
 
