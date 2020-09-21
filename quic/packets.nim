@@ -37,7 +37,6 @@ type
       of packetVersionNegotiation: negotiation*: HeaderVersionNegotiation
       destination*: ConnectionId
       source*: ConnectionId
-    bytes: seq[byte]
   PacketNumber* = range[0'u64..2'u64^62-1]
 
 proc readForm(datagram: seq[byte]): PacketForm =
@@ -130,7 +129,7 @@ proc newPacket*(datagram: seq[byte]): Packet =
   datagram.readFixedBit()
   case form
   of formShort:
-    result = Packet(form: form, bytes: datagram)
+    result = Packet(form: form)
   else:
     let kind = datagram.readKind()
     let destination = datagram.readDestination()
@@ -138,16 +137,15 @@ proc newPacket*(datagram: seq[byte]): Packet =
     case kind
     of packetVersionNegotiation:
       let supportedVersion = datagram.readSupportedVersion()
-      result = Packet(form: form, kind: kind, destination: destination, source: source, negotiation: HeaderVersionNegotiation(supportedVersion: supportedVersion), bytes: datagram)
+      result = Packet(form: form, kind: kind, destination: destination, source: source, negotiation: HeaderVersionNegotiation(supportedVersion: supportedVersion))
     else:
-      result = Packet(form: form, kind:kind, destination: destination, source: source, bytes: datagram)
+      result = Packet(form: form, kind:kind, destination: destination, source: source)
       result.version = datagram.readVersion()
 
 proc newShortPacket*(): Packet =
   Packet(form: formShort)
 
 proc write*(datagram: var seq[byte], header: Packet) =
-  datagram[0..<header.bytes.len] = header.bytes
   datagram.writeForm(header)
   datagram.writeFixedBit()
   if header.form == formLong:
