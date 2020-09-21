@@ -92,13 +92,13 @@ suite "long headers":
   test "conversion to string":
     let header = $newPacketHeader(
       type0 &
-      version0 &
+      version1 &
       destination.len.uint8 & destination &
       source.len.uint8 & source
     )
     check $header == "(" &
       "form: headerLong, " &
-      "kind: packetVersionNegotiation, " &
+      "kind: packetInitial, " &
       "destination: 0xAABBCC, " &
       "source: 0xDDEEFF" &
     ")"
@@ -130,6 +130,23 @@ suite "long headers":
         version1
       )
       check header.supportedVersion == 1'u32
+
+    test "conversion to string":
+      let header = newPacketHeader(
+        type0 &
+        version0 &
+        destination.len.uint8 & destination &
+        source.len.uint8 & source &
+        version1
+      )
+      check $header == "(" &
+        "form: headerLong, " &
+        "kind: packetVersionNegotiation, " &
+        "destination: 0xAABBCC, " &
+        "source: 0xDDEEFF, " &
+        "supportedVersion: 1" &
+      ")"
+
 
 suite "packet numbers":
 

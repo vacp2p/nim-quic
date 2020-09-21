@@ -73,21 +73,6 @@ proc destination*(header: PacketHeader): ConnectionId =
 proc source*(header: PacketHeader): ConnectionId =
   result = ConnectionId(header.bytes[header.sourceSlice])
 
-proc `$`*(id: ConnectionId): string =
-  "0x" & cast[string](id).toHex
-
-proc `$`*(header: PacketHeader): string =
-  case header.form:
-  of headerShort: fmt"(form: {header.form})"
-  of headerLong: "(" &
-      fmt"form: {header.form}, " &
-      fmt"kind: {header.kind}, " &
-      fmt"destination: {header.destination}, " &
-      fmt"source: {header.source}" &
-    ")"
-
-proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}
-
 proc supportedVersionSlice(header: PacketHeader): Slice[int] =
   let start = header.sourceSlice().b + 1
   result = start..<start+4
@@ -98,6 +83,33 @@ proc supportedVersion*(header: PacketHeader): uint32 =
   result.bytes[1] = versionBytes[1]
   result.bytes[2] = versionBytes[2]
   result.bytes[3] = versionBytes[3]
+
+proc `$`*(id: ConnectionId): string =
+  "0x" & cast[string](id).toHex
+
+proc `$`*(header: PacketHeader): string =
+  case header.form:
+  of headerShort: fmt"(form: {header.form})"
+  of headerLong:
+    case header.kind:
+    of packetVersionNegotiation:
+      "(" &
+        fmt"form: {header.form}, " &
+        fmt"kind: {header.kind}, " &
+        fmt"destination: {header.destination}, " &
+        fmt"source: {header.source}, " &
+        fmt"supportedVersion: {header.supportedVersion}" &
+      ")"
+    else:
+      "(" &
+        fmt"form: {header.form}, " &
+        fmt"kind: {header.kind}, " &
+        fmt"destination: {header.destination}, " &
+        fmt"source: {header.source}" &
+      ")"
+
+proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}
+
 proc packetLength*(header: PacketHeader): int =
   case header.kind:
   of packetVersionNegotiation:
