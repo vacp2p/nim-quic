@@ -4,14 +4,12 @@ import strformat
 import bits
 
 type
-  HeaderForm* = enum
-    headerShort
-    headerLong
   PacketKind* = enum
     packetInitial
     packet0RTT
     packetHandshake
     packetRetry
+    packetShort
     packetVersionNegotiation
   PacketHeader* = object
     bytes: seq[byte]
@@ -24,12 +22,6 @@ proc newPacketHeader*(bytes: seq[byte]): PacketHeader =
 
 proc bytes*(header: PacketHeader): seq[byte] =
   header.bytes
-
-proc form*(header: PacketHeader): HeaderForm =
-  HeaderForm(header.bytes[0].bits[0])
-
-proc `form=`*(header: var PacketHeader, form: HeaderForm) =
-  header.bytes[0].bits[0] = Bit(form)
 
 proc version*(header: PacketHeader): uint32 =
   result.bytes[0] = header.bytes[1]
@@ -44,7 +36,9 @@ proc `version=`*(header: var PacketHeader, version: uint32) =
   header.bytes[4] = version.bytes[3]
 
 proc kind*(header: PacketHeader): PacketKind =
-  if header.version == 0:
+  if header.bytes[0].bits[0] == 0:
+    result = packetShort
+  elif header.version == 0:
     result = packetVersionNegotiation
   else:
     var kind: uint8
@@ -88,25 +82,22 @@ proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
 
 proc `$`*(header: PacketHeader): string =
-  case header.form:
-  of headerShort: fmt"(form: {header.form})"
-  of headerLong:
-    case header.kind:
-    of packetVersionNegotiation:
-      "(" &
-        fmt"form: {header.form}, " &
-        fmt"kind: {header.kind}, " &
-        fmt"destination: {header.destination}, " &
-        fmt"source: {header.source}, " &
-        fmt"supportedVersion: {header.supportedVersion}" &
-      ")"
-    else:
-      "(" &
-        fmt"form: {header.form}, " &
-        fmt"kind: {header.kind}, " &
-        fmt"destination: {header.destination}, " &
-        fmt"source: {header.source}" &
-      ")"
+  case header.kind:
+  of packetShort:
+    fmt"(kind: {header.kind})"
+  of packetVersionNegotiation:
+    "(" &
+      fmt"kind: {header.kind}, " &
+      fmt"destination: {header.destination}, " &
+      fmt"source: {header.source}, " &
+      fmt"supportedVersion: {header.supportedVersion}" &
+    ")"
+  else:
+    "(" &
+      fmt"kind: {header.kind}, " &
+      fmt"destination: {header.destination}, " &
+      fmt"source: {header.source}" &
+    ")"
 
 proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}
 
