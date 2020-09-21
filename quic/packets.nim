@@ -12,16 +12,57 @@ type
     packetShort
     packetVersionNegotiation
   PacketHeader* = object
+    kind*: PacketKind
     bytes: seq[byte]
   PacketNumber* = range[0'u64..2'u64^62-1]
   ConnectionId* = distinct seq[byte]
 
-proc newPacketHeader*(bytes: seq[byte]): PacketHeader =
-  assert bytes[0].bits[1] == 1
-  PacketHeader(bytes: bytes)
+proc readVersion(datagram: seq[byte]): uint32 =
+  result.bytes[0] = datagram[1]
+  result.bytes[1] = datagram[2]
+  result.bytes[2] = datagram[3]
+  result.bytes[3] = datagram[4]
+
+proc writeVersion*(datagram: var seq[byte], version: uint32) =
+  datagram[1] = version.bytes[0]
+  datagram[2] = version.bytes[1]
+  datagram[3] = version.bytes[2]
+  datagram[4] = version.bytes[3]
+
+proc readKind(datagram: seq[byte]): PacketKind =
+  if datagram[0].bits[0] == 0:
+    result = packetShort
+  elif datagram.readVersion() == 0:
+    result = packetVersionNegotiation
+  else:
+    var kind: uint8
+    kind.bits[6] = datagram[0].bits[2]
+    kind.bits[7] = datagram[0].bits[3]
+    result = PacketKind(kind)
+
+proc writeKind(datagram: var seq[byte], kind: PacketKind) =
+  case kind:
+  of packetShort:
+    datagram[0].bits[0] = 0
+  else:
+    datagram[0].bits[0] = 1
+    case kind:
+    of packetVersionNegotiation:
+      datagram.writeVersion(0)
+    else:
+      datagram[0].bits[2] = kind.uint8.bits[6]
+      datagram[0].bits[3] = kind.uint8.bits[7]
+
+proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
+  assert datagram[0].bits[1] == 1
+  PacketHeader(kind: datagram.readKind(), bytes: datagram)
+
+proc newShortPacketHeader*(): PacketHeader =
+  PacketHeader(kind: packetShort)
 
 proc write*(datagram: var seq[byte], header: PacketHeader) =
   datagram[0..<header.bytes.len] = header.bytes
+  datagram.writeKind(header.kind)
 
 proc version*(header: PacketHeader): uint32 =
   result.bytes[0] = header.bytes[1]
@@ -34,21 +75,6 @@ proc `version=`*(header: var PacketHeader, version: uint32) =
   header.bytes[2] = version.bytes[1]
   header.bytes[3] = version.bytes[2]
   header.bytes[4] = version.bytes[3]
-
-proc kind*(header: PacketHeader): PacketKind =
-  if header.bytes[0].bits[0] == 0:
-    result = packetShort
-  elif header.version == 0:
-    result = packetVersionNegotiation
-  else:
-    var kind: uint8
-    kind.bits[6] = header.bytes[0].bits[2]
-    kind.bits[7] = header.bytes[0].bits[3]
-    result = PacketKind(kind)
-
-proc `kind=`*(header: var PacketHeader, kind: PacketKind) =
-  header.bytes[0].bits[2] = kind.uint8.bits[6]
-  header.bytes[0].bits[3] = kind.uint8.bits[7]
 
 proc destinationSlice(header: PacketHeader): Slice[int] =
   let start = 6
