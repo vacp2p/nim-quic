@@ -4,6 +4,9 @@ import strformat
 import bits
 
 type
+  PacketForm = enum
+    formShort
+    formLong
   PacketKind* = enum
     packetInitial
     packet0RTT
@@ -35,8 +38,14 @@ proc writeVersion*(datagram: var seq[byte], version: uint32) =
   datagram[3] = version.bytes[2]
   datagram[4] = version.bytes[3]
 
+proc readForm(datagram: seq[byte]): PacketForm =
+  PacketForm(datagram[0].bits[0])
+
+proc writeForm(datagram: var seq[byte], header: PacketHeader) =
+  datagram[0].bits[0] = Bit(header.kind != packetShort)
+
 proc readKind(datagram: seq[byte]): PacketKind =
-  if datagram[0].bits[0] == 0:
+  if datagram.readForm() == formShort:
     result = packetShort
   elif datagram.readVersion() == 0:
     result = packetVersionNegotiation
@@ -49,15 +58,12 @@ proc readKind(datagram: seq[byte]): PacketKind =
 proc writeKind(datagram: var seq[byte], kind: PacketKind) =
   case kind:
   of packetShort:
-    datagram[0].bits[0] = 0
+    discard
+  of packetVersionNegotiation:
+    datagram.writeVersion(0)
   else:
-    datagram[0].bits[0] = 1
-    case kind:
-    of packetVersionNegotiation:
-      datagram.writeVersion(0)
-    else:
-      datagram[0].bits[2] = kind.uint8.bits[6]
-      datagram[0].bits[3] = kind.uint8.bits[7]
+    datagram[0].bits[2] = kind.uint8.bits[6]
+    datagram[0].bits[3] = kind.uint8.bits[7]
 
 proc readFixedBit(datagram: seq[byte]) =
   assert datagram[0].bits[1] == 1
@@ -80,6 +86,7 @@ proc newShortPacketHeader*(): PacketHeader =
 
 proc write*(datagram: var seq[byte], header: PacketHeader) =
   datagram[0..<header.bytes.len] = header.bytes
+  datagram.writeForm(header)
   datagram.writeFixedBit()
   datagram.writeKind(header.kind)
   case header.kind
