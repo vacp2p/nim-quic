@@ -53,8 +53,14 @@ proc writeKind(datagram: var seq[byte], kind: PacketKind) =
       datagram[0].bits[2] = kind.uint8.bits[6]
       datagram[0].bits[3] = kind.uint8.bits[7]
 
-proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
+proc readFixedBit(datagram: seq[byte]) =
   assert datagram[0].bits[1] == 1
+
+proc writeFixedBit(datagram: var seq[byte]) =
+  datagram[0].bits[1] = 1
+
+proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
+  datagram.readFixedBit()
   PacketHeader(kind: datagram.readKind(), bytes: datagram)
 
 proc newShortPacketHeader*(): PacketHeader =
@@ -62,6 +68,7 @@ proc newShortPacketHeader*(): PacketHeader =
 
 proc write*(datagram: var seq[byte], header: PacketHeader) =
   datagram[0..<header.bytes.len] = header.bytes
+  datagram.writeFixedBit()
   datagram.writeKind(header.kind)
 
 proc version*(header: PacketHeader): uint32 =
