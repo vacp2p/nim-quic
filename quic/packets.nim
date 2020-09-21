@@ -14,16 +14,24 @@ type
     packetHandshake
     packetRetry
     packetVersionNegotiation
+  FieldsInitial* = object
+  Fields0RTT* = object
+  FieldsHandshake* = object
+  FieldsRetry* = object
+  FieldsVersionNegotiation* = object
+    supportedVersion*: uint32
   PacketHeader* = object
     case form*: PacketForm
     of formShort:
       discard
     of formLong:
       case kind*: PacketKind
-      of packetInitial, packet0RTT, packetHandshake, packetRetry:
-        version*: uint32
-      of packetVersionNegotiation:
-        supportedVersion*: uint32
+      of packetInitial: initial*: FieldsInitial
+      of packet0RTT: rtt*: Fields0RTT
+      of packetHandshake: handshake*: FieldsHandshake
+      of packetRetry: retry*: FieldsRetry
+      of packetVersionNegotiation: negotiation*: FieldsVersionNegotiation
+      version*: uint32
       destination*: ConnectionId
       source*: ConnectionId
     bytes: seq[byte]
@@ -118,7 +126,7 @@ proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
     case kind
     of packetVersionNegotiation:
       let supportedVersion = datagram.readSupportedVersion()
-      result = PacketHeader(form: form, kind: kind, destination: destination, source: source, supportedVersion: supportedVersion, bytes: datagram)
+      result = PacketHeader(form: form, kind: kind, destination: destination, source: source, negotiation: FieldsVersionNegotiation(supportedVersion: supportedVersion), bytes: datagram)
     else:
       let version = datagram.readVersion()
       result = PacketHeader(form: form, kind:kind, version: version, destination: destination, source: source, bytes: datagram)
@@ -163,7 +171,7 @@ proc `$`*(header: PacketHeader): string =
         fmt"kind: {header.kind}, " &
         fmt"destination: {header.destination}, " &
         fmt"source: {header.source}, " &
-        fmt"supportedVersion: {header.supportedVersion}" &
+        fmt"supportedVersion: {header.negotiation.supportedVersion}" &
       ")"
     else:
       "(" &
