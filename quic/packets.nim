@@ -56,16 +56,22 @@ proc `kind=`*(header: var PacketHeader, kind: PacketKind) =
   header.bytes[0].bits[2] = kind.uint8.bits[6]
   header.bytes[0].bits[3] = kind.uint8.bits[7]
 
+proc destinationSlice(header: PacketHeader): Slice[int] =
+  let start = 6
+  let length = header.bytes[5].int
+  result = start..<start+length
+
+proc sourceSlice(header: PacketHeader): Slice[int] =
+  let destinationEnd = header.destinationSlice.b + 1
+  let start = destinationEnd + 1
+  let length = header.bytes[destinationEnd].int
+  result = start..<start+length
+
 proc destination*(header: PacketHeader): ConnectionId =
-  let length = header.bytes[5]
-  result = ConnectionId(header.bytes[6..<6+length])
+  result = ConnectionId(header.bytes[header.destinationSlice])
 
 proc source*(header: PacketHeader): ConnectionId =
-  let destinationLength = header.bytes[5]
-  let destinationEnd = 6+destinationLength
-  let sourceLength = header.bytes[destinationEnd]
-  let sourceStart = destinationEnd + 1
-  result = ConnectionId(header.bytes[sourceStart..<sourceStart+sourceLength])
+  result = ConnectionId(header.bytes[header.sourceSlice])
 
 proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
@@ -81,3 +87,10 @@ proc `$`*(header: PacketHeader): string =
     ")"
 
 proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}
+
+proc packetLength*(header: PacketHeader): int =
+  case header.kind:
+  of packetVersionNegotiation:
+    return header.sourceSlice.b + 1 + 4
+  else:
+    return 0

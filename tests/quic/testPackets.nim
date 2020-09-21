@@ -103,6 +103,24 @@ suite "long headers":
       "source: 0xDDEEFF" &
     ")"
 
+  suite "version negotiation packet":
+
+    test "has a fixed length":
+      let header = newPacketHeader(
+        type0 &
+        version0 &
+        destination.len.uint8 & destination &
+        source.len.uint8 & source &
+        version1 &
+        @[byte('r'), byte('e'), byte('s'), byte('t')]
+      )
+      check header.packetLength ==
+        type0.len +
+        version0.len +
+        destination.len + 1 +
+        source.len + 1 +
+        version1.len
+
 suite "packet numbers":
 
   test "packet numbers are in the range 0 to 2^62-1":
