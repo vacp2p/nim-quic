@@ -1,6 +1,5 @@
 import math
 import strutils
-import strformat
 import bits
 
 type
@@ -154,26 +153,6 @@ proc write*(datagram: var seq[byte], header: Packet) =
 
 proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
-
-proc `$`*(header: Packet): string =
-  case header.form:
-  of formShort:
-    fmt"(form: {header.form})"
-  else:
-    case header.kind:
-    of packetVersionNegotiation:
-      "(" &
-        fmt"kind: {header.kind}, " &
-        fmt"destination: {header.destination}, " &
-        fmt"source: {header.source}, " &
-        fmt"supportedVersion: {header.negotiation.supportedVersion}" &
-      ")"
-    else:
-      "(" &
-        fmt"kind: {header.kind}, " &
-        fmt"destination: {header.destination}, " &
-        fmt"source: {header.source}" &
-      ")"
 
 proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}
 proc `len`*(x: ConnectionId): int {.borrow.}

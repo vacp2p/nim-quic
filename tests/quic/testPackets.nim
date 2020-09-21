@@ -36,9 +36,6 @@ suite "short headers":
     datagram.write(newShortPacket())
     check datagram[0].bits[1] == 1
 
-  test "conversion to string":
-    check $newPacket(@[0b01000000'u8]) == "(form: formShort)"
-
 suite "long headers":
 
   var datagram: seq[byte]
@@ -110,19 +107,6 @@ suite "long headers":
     )
     check header.source == ConnectionId(source)
 
-  test "conversion to string":
-    let header = $newPacket(
-      type0 &
-      version1 &
-      destination.len.uint8 & destination &
-      source.len.uint8 & source
-    )
-    check $header == "(" &
-      "kind: packetInitial, " &
-      "destination: 0xAABBCC, " &
-      "source: 0xDDEEFF" &
-    ")"
-
   suite "version negotiation packet":
 
     test "has a fixed length":
@@ -150,22 +134,6 @@ suite "long headers":
         version1
       )
       check header.negotiation.supportedVersion == 1'u32
-
-    test "conversion to string":
-      let header = newPacket(
-        type0 &
-        version0 &
-        destination.len.uint8 & destination &
-        source.len.uint8 & source &
-        version1
-      )
-      check $header == "(" &
-        "kind: packetVersionNegotiation, " &
-        "destination: 0xAABBCC, " &
-        "source: 0xDDEEFF, " &
-        "supportedVersion: 1" &
-      ")"
-
 
 suite "packet numbers":
 
