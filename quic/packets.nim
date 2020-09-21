@@ -123,7 +123,7 @@ proc readSupportedVersion*(datagram: seq[byte]): uint32 =
   result.bytes[2] = versionBytes[2]
   result.bytes[3] = versionBytes[3]
 
-proc newVersionNegotiation(datagram: seq[byte]): Packet =
+proc readVersionNegotiation(datagram: seq[byte]): Packet =
   result = Packet(
     form: formLong,
     kind: packetVersionNegotiation,
@@ -134,11 +134,11 @@ proc newVersionNegotiation(datagram: seq[byte]): Packet =
     )
   )
 
-proc newLongPacket(datagram: seq[byte]): Packet =
+proc readLongPacket(datagram: seq[byte]): Packet =
   let kind = datagram.readKind()
   case kind
   of packetVersionNegotiation:
-    result = newVersionNegotiation(datagram)
+    result = readVersionNegotiation(datagram)
   else:
     result = Packet(
       form: formLong,
@@ -148,14 +148,14 @@ proc newLongPacket(datagram: seq[byte]): Packet =
     )
     result.version = datagram.readVersion()
 
-proc newPacket*(datagram: seq[byte]): Packet =
+proc readPacket*(datagram: seq[byte]): Packet =
   let form = datagram.readForm()
   datagram.readFixedBit()
   case form
   of formShort:
     result = Packet(form: form)
   else:
-    result = newLongPacket(datagram)
+    result = readLongPacket(datagram)
 
 proc newShortPacket*(): Packet =
   Packet(form: formShort)
