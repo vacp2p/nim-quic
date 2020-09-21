@@ -154,21 +154,6 @@ proc write*(datagram: var seq[byte], header: Packet) =
     datagram.writeKind(header)
     datagram.writeVersion(header)
 
-proc destinationSlice(header: Packet): Slice[int] =
-  let start = 6
-  let length = header.bytes[5].int
-  result = start..<start+length
-
-proc sourceSlice(header: Packet): Slice[int] =
-  let destinationEnd = header.destinationSlice.b + 1
-  let start = destinationEnd + 1
-  let length = header.bytes[destinationEnd].int
-  result = start..<start+length
-
-proc supportedVersionSlice(header: Packet): Slice[int] =
-  let start = header.sourceSlice().b + 1
-  result = start..<start+4
-
 proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
 
@@ -193,10 +178,11 @@ proc `$`*(header: Packet): string =
       ")"
 
 proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}
+proc `len`*(x: ConnectionId): int {.borrow.}
 
 proc packetLength*(header: Packet): int =
   case header.kind:
   of packetVersionNegotiation:
-    return header.supportedVersionSlice.b + 1
+    return 11 + header.destination.len + header.source.len
   else:
     return 0
