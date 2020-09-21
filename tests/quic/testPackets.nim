@@ -12,9 +12,9 @@ suite "packet header":
 
   test "first bit of the header indicates short/long form":
     datagram[0] = 0b01000000'u8
-    check newPacketHeader(datagram).kind == packetShort
+    check newPacketHeader(datagram).form == formShort
     datagram[0] = 0b11000000'u8
-    check newPacketHeader(datagram).kind != packetShort
+    check newPacketHeader(datagram).form == formLong
 
   test "second bit of the header should always be 1":
     datagram[0] = 0b00000000'u8
@@ -37,7 +37,7 @@ suite "short headers":
     check datagram[0].bits[1] == 1
 
   test "conversion to string":
-    check $newPacketHeader(@[0b01000000'u8]) == "(kind: packetShort)"
+    check $newPacketHeader(@[0b01000000'u8]) == "(form: formShort)"
 
 suite "long headers":
 
