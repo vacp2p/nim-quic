@@ -18,22 +18,6 @@ suite "packet header":
     expect Exception:
       discard newPacketHeader(@[0b00000000'u8])
 
-  test "QUIC version is stored in bytes 1..4":
-    var version = 0xAABBCCDD'u32
-    var header = newPacketHeader(@[
-      0b01000000'u8,
-      version.bytes[0],
-      version.bytes[1],
-      version.bytes[2],
-      version.bytes[3]
-    ])
-    check header.version == version
-
-  test "QUIC version can be set":
-    var header = newPacketHeader(@[0b01000000'u8, 0'u8, 0'u8, 0'u8, 0'u8])
-    header.version = 0xAABBCCDD'u32
-    check header.bytes[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
-
 suite "short headers":
 
   test "conversion to string":
@@ -49,6 +33,22 @@ suite "long headers":
   const version1 = @[0'u8, 0'u8, 0'u8, 1'u8]
   const destination = @[0xAA'u8, 0xBB'u8, 0xCC'u8]
   const source = @[0xDD'u8, 0xEE'u8, 0xFF'u8]
+
+  test "QUIC version is stored in bytes 1..4":
+    var version = 0xAABBCCDD'u32
+    var header = newPacketHeader(@[
+      0b11000000'u8,
+      version.bytes[0],
+      version.bytes[1],
+      version.bytes[2],
+      version.bytes[3]
+    ])
+    check header.version == version
+
+  test "QUIC version can be set":
+    var header = newPacketHeader(@[0b11000000'u8, 0'u8, 0'u8, 0'u8, 0'u8])
+    header.version = 0xAABBCCDD'u32
+    check header.bytes[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
   test "version negotiation packet is a packet with version 0":
     let header = newPacketHeader(type0 & version0)
