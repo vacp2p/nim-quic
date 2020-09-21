@@ -72,7 +72,7 @@ suite "long headers":
     check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
   test "version negotiation packet is a packet with version 0":
-    let header = newPacketHeader(type0 & version0 & destination.len.uint8 & destination & source.len.uint8 & source)
+    let header = newPacketHeader(type0 & version0 & destination.len.uint8 & destination & source.len.uint8 & source & version1)
     check header.kind == packetVersionNegotiation
 
   test "initial packet is a long packet of type 0":
