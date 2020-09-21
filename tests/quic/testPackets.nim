@@ -23,6 +23,15 @@ suite "packet header":
 
 suite "short headers":
 
+  var datagram: seq[byte]
+
+  setup:
+    datagram = newSeq[byte](4096)
+
+  test "writes correct form bit":
+    datagram.write(newShortPacketHeader())
+    check datagram[0].bits[0] == 0
+
   test "conversion to string":
     check $newPacketHeader(@[0b01000000'u8]) == "(kind: packetShort)"
 
@@ -54,7 +63,7 @@ suite "long headers":
     check header.version == version
 
   test "QUIC version can be set":
-    var header = newPacketHeader(@[0b11000000'u8, 0'u8, 0'u8, 0'u8, 0'u8])
+    var header = newPacketHeader(@[0b11000000'u8, 0'u8, 0'u8, 0'u8, 1'u8])
     header.version = 0xAABBCCDD'u32
     datagram.write(header)
     check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
