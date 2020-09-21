@@ -12,7 +12,13 @@ type
     packetShort
     packetVersionNegotiation
   PacketHeader* = object
-    kind*: PacketKind
+    case kind*: PacketKind
+    of packetInitial, packet0RTT, packetHandshake, packetRetry:
+      version*: uint32
+    of packetShort:
+      discard
+    of packetVersionNegotiation:
+      discard
     bytes: seq[byte]
   PacketNumber* = range[0'u64..2'u64^62-1]
   ConnectionId* = distinct seq[byte]
@@ -61,7 +67,13 @@ proc writeFixedBit(datagram: var seq[byte]) =
 
 proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
   datagram.readFixedBit()
-  PacketHeader(kind: datagram.readKind(), bytes: datagram)
+  let kind = datagram.readKind()
+  case kind
+  of packetShort, packetVersionNegotiation:
+    result = PacketHeader(kind: kind, bytes: datagram)
+  else:
+    let version = datagram.readVersion()
+    result = PacketHeader(kind:kind, version: version, bytes: datagram)
 
 proc newShortPacketHeader*(): PacketHeader =
   PacketHeader(kind: packetShort)
@@ -70,18 +82,11 @@ proc write*(datagram: var seq[byte], header: PacketHeader) =
   datagram[0..<header.bytes.len] = header.bytes
   datagram.writeFixedBit()
   datagram.writeKind(header.kind)
-
-proc version*(header: PacketHeader): uint32 =
-  result.bytes[0] = header.bytes[1]
-  result.bytes[1] = header.bytes[2]
-  result.bytes[2] = header.bytes[3]
-  result.bytes[3] = header.bytes[4]
-
-proc `version=`*(header: var PacketHeader, version: uint32) =
-  header.bytes[1] = version.bytes[0]
-  header.bytes[2] = version.bytes[1]
-  header.bytes[3] = version.bytes[2]
-  header.bytes[4] = version.bytes[3]
+  case header.kind
+  of packet0RTT, packetHandshake, packetInitial, packetRetry:
+    datagram.writeVersion(header.version)
+  else:
+    discard
 
 proc destinationSlice(header: PacketHeader): Slice[int] =
   let start = 6
