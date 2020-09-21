@@ -66,7 +66,7 @@ suite "long headers":
     check header.version == version
 
   test "QUIC version can be set":
-    var header = PacketHeader(form: formLong, kind: packetInitial, version: 1)
+    var header = PacketHeader(form: formLong, kind: packetInitial)
     header.version = 0xAABBCCDD'u32
     datagram.write(header)
     check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
