@@ -14,15 +14,15 @@ type
     packetHandshake
     packetRetry
     packetVersionNegotiation
-  FieldsInitial* = object
+  HeaderInitial* = object
     version*: uint32
-  Fields0RTT* = object
+  Header0RTT* = object
     version*: uint32
-  FieldsHandshake* = object
+  HeaderHandshake* = object
     version*: uint32
-  FieldsRetry* = object
+  HeaderRetry* = object
     version*: uint32
-  FieldsVersionNegotiation* = object
+  HeaderVersionNegotiation* = object
     supportedVersion*: uint32
   Packet* = object
     case form*: PacketForm
@@ -30,11 +30,11 @@ type
       discard
     of formLong:
       case kind*: PacketKind
-      of packetInitial: initial*: FieldsInitial
-      of packet0RTT: rtt*: Fields0RTT
-      of packetHandshake: handshake*: FieldsHandshake
-      of packetRetry: retry*: FieldsRetry
-      of packetVersionNegotiation: negotiation*: FieldsVersionNegotiation
+      of packetInitial: initial*: HeaderInitial
+      of packet0RTT: rtt*: Header0RTT
+      of packetHandshake: handshake*: HeaderHandshake
+      of packetRetry: retry*: HeaderRetry
+      of packetVersionNegotiation: negotiation*: HeaderVersionNegotiation
       destination*: ConnectionId
       source*: ConnectionId
     bytes: seq[byte]
@@ -138,7 +138,7 @@ proc newPacket*(datagram: seq[byte]): Packet =
     case kind
     of packetVersionNegotiation:
       let supportedVersion = datagram.readSupportedVersion()
-      result = Packet(form: form, kind: kind, destination: destination, source: source, negotiation: FieldsVersionNegotiation(supportedVersion: supportedVersion), bytes: datagram)
+      result = Packet(form: form, kind: kind, destination: destination, source: source, negotiation: HeaderVersionNegotiation(supportedVersion: supportedVersion), bytes: datagram)
     else:
       result = Packet(form: form, kind:kind, destination: destination, source: source, bytes: datagram)
       result.version = datagram.readVersion()
