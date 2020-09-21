@@ -26,6 +26,18 @@ type
   PacketNumber* = range[0'u64..2'u64^62-1]
   ConnectionId* = distinct seq[byte]
 
+proc readForm(datagram: seq[byte]): PacketForm =
+  PacketForm(datagram[0].bits[0])
+
+proc writeForm(datagram: var seq[byte], header: PacketHeader) =
+  datagram[0].bits[0] = Bit(header.kind != packetShort)
+
+proc readFixedBit(datagram: seq[byte]) =
+  assert datagram[0].bits[1] == 1
+
+proc writeFixedBit(datagram: var seq[byte]) =
+  datagram[0].bits[1] = 1
+
 proc readVersion(datagram: seq[byte]): uint32 =
   result.bytes[0] = datagram[1]
   result.bytes[1] = datagram[2]
@@ -37,12 +49,6 @@ proc writeVersion*(datagram: var seq[byte], version: uint32) =
   datagram[2] = version.bytes[1]
   datagram[3] = version.bytes[2]
   datagram[4] = version.bytes[3]
-
-proc readForm(datagram: seq[byte]): PacketForm =
-  PacketForm(datagram[0].bits[0])
-
-proc writeForm(datagram: var seq[byte], header: PacketHeader) =
-  datagram[0].bits[0] = Bit(header.kind != packetShort)
 
 proc readKind(datagram: seq[byte]): PacketKind =
   if datagram.readForm() == formShort:
@@ -64,12 +70,6 @@ proc writeKind(datagram: var seq[byte], kind: PacketKind) =
   else:
     datagram[0].bits[2] = kind.uint8.bits[6]
     datagram[0].bits[3] = kind.uint8.bits[7]
-
-proc readFixedBit(datagram: seq[byte]) =
-  assert datagram[0].bits[1] == 1
-
-proc writeFixedBit(datagram: var seq[byte]) =
-  datagram[0].bits[1] = 1
 
 proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
   datagram.readFixedBit()
