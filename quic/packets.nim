@@ -25,6 +25,7 @@ type
       of packetVersionNegotiation:
         discard
       destination*: ConnectionId
+      source*: ConnectionId
     bytes: seq[byte]
   PacketNumber* = range[0'u64..2'u64^62-1]
 
@@ -84,6 +85,15 @@ proc findDestination(datagram: seq[byte]): Slice[int] =
 proc readDestination*(datagram: seq[byte]): ConnectionId =
   result = ConnectionId(datagram[datagram.findDestination()])
 
+proc findSource(datagram: seq[byte]): Slice[int] =
+  let destinationEnd = datagram.findDestination().b + 1
+  let start = destinationEnd + 1
+  let length = datagram[destinationEnd].int
+  result = start..<start+length
+
+proc readSource(datagram: seq[byte]): ConnectionId =
+  result = ConnectionId(datagram[datagram.findSource()])
+
 proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
   let form = datagram.readForm()
   datagram.readFixedBit()
@@ -93,12 +103,13 @@ proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
   else:
     let kind = datagram.readKind()
     let destination = datagram.readDestination()
+    let source = datagram.readSource()
     case kind
     of packetVersionNegotiation:
-      result = PacketHeader(form: form, kind: kind, destination: destination, bytes: datagram)
+      result = PacketHeader(form: form, kind: kind, destination: destination, source: source, bytes: datagram)
     else:
       let version = datagram.readVersion()
-      result = PacketHeader(form: form, kind:kind, version: version, destination: destination, bytes: datagram)
+      result = PacketHeader(form: form, kind:kind, version: version, destination: destination, source: source, bytes: datagram)
 
 proc newShortPacketHeader*(): PacketHeader =
   PacketHeader(form: formShort)
@@ -121,9 +132,6 @@ proc sourceSlice(header: PacketHeader): Slice[int] =
   let start = destinationEnd + 1
   let length = header.bytes[destinationEnd].int
   result = start..<start+length
-
-proc source*(header: PacketHeader): ConnectionId =
-  result = ConnectionId(header.bytes[header.sourceSlice])
 
 proc supportedVersionSlice(header: PacketHeader): Slice[int] =
   let start = header.sourceSlice().b + 1
