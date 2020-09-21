@@ -4,6 +4,7 @@ import strformat
 import bits
 
 type
+  ConnectionId* = distinct seq[byte]
   PacketForm* = enum
     formShort
     formLong
@@ -23,9 +24,9 @@ type
         version*: uint32
       of packetVersionNegotiation:
         discard
+      destination*: ConnectionId
     bytes: seq[byte]
   PacketNumber* = range[0'u64..2'u64^62-1]
-  ConnectionId* = distinct seq[byte]
 
 proc readForm(datagram: seq[byte]): PacketForm =
   PacketForm(datagram[0].bits[0])
@@ -75,6 +76,14 @@ proc writeKind(datagram: var seq[byte], header: PacketHeader) =
     datagram[0].bits[2] = header.kind.uint8.bits[6]
     datagram[0].bits[3] = header.kind.uint8.bits[7]
 
+proc findDestination(datagram: seq[byte]): Slice[int] =
+  let start = 6
+  let length = datagram[5].int
+  result = start..<start+length
+
+proc readDestination*(datagram: seq[byte]): ConnectionId =
+  result = ConnectionId(datagram[datagram.findDestination()])
+
 proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
   let form = datagram.readForm()
   datagram.readFixedBit()
@@ -83,12 +92,13 @@ proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
     result = PacketHeader(form: form, bytes: datagram)
   else:
     let kind = datagram.readKind()
+    let destination = datagram.readDestination()
     case kind
     of packetVersionNegotiation:
-      result = PacketHeader(form: form, kind: kind, bytes: datagram)
+      result = PacketHeader(form: form, kind: kind, destination: destination, bytes: datagram)
     else:
       let version = datagram.readVersion()
-      result = PacketHeader(form: form, kind:kind, version: version, bytes: datagram)
+      result = PacketHeader(form: form, kind:kind, version: version, destination: destination, bytes: datagram)
 
 proc newShortPacketHeader*(): PacketHeader =
   PacketHeader(form: formShort)
@@ -111,9 +121,6 @@ proc sourceSlice(header: PacketHeader): Slice[int] =
   let start = destinationEnd + 1
   let length = header.bytes[destinationEnd].int
   result = start..<start+length
-
-proc destination*(header: PacketHeader): ConnectionId =
-  result = ConnectionId(header.bytes[header.destinationSlice])
 
 proc source*(header: PacketHeader): ConnectionId =
   result = ConnectionId(header.bytes[header.sourceSlice])
