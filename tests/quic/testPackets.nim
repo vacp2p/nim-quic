@@ -28,6 +28,11 @@ suite "short headers":
 
 suite "long headers":
 
+  var datagram: seq[byte]
+
+  setup:
+    datagram = newSeq[byte](4096)
+
   const type0 = @[0b11000000'u8]
   const type1 = @[0b11010000'u8]
   const type2 = @[0b11100000'u8]
@@ -51,7 +56,8 @@ suite "long headers":
   test "QUIC version can be set":
     var header = newPacketHeader(@[0b11000000'u8, 0'u8, 0'u8, 0'u8, 0'u8])
     header.version = 0xAABBCCDD'u32
-    check header.bytes[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
+    datagram.write(header)
+    check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
   test "version negotiation packet is a packet with version 0":
     let header = newPacketHeader(type0 & version0)
@@ -76,8 +82,9 @@ suite "long headers":
   test "long packet type can be set":
     var header = newPacketHeader(type0 & version1)
     header.kind = packetHandshake
-    check header.bytes[0].bits[2] == 1
-    check header.bytes[0].bits[3] == 0
+    datagram.write(header)
+    check datagram[0].bits[2] == 1
+    check datagram[0].bits[3] == 0
 
   test "destination connection id is encoded from byte 5 onwards":
     let id = @[1'u8, 2'u8, 3'u8]
