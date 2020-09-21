@@ -92,8 +92,7 @@ suite "long headers":
     check header.kind == packetRetry
 
   test "long packet type can be set":
-    var header = newPacketHeader(type0 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
-    header.kind = packetHandshake
+    var header = PacketHeader(form: formLong, kind: packetHandshake)
     datagram.write(header)
     check datagram[0].bits[2] == 1
     check datagram[0].bits[3] == 0
@@ -150,7 +149,7 @@ suite "long headers":
         source.len.uint8 & source &
         version1
       )
-      check header.supportedVersion == 1'u32
+      check header.negotiation.supportedVersion == 1'u32
 
     test "conversion to string":
       let header = newPacketHeader(
