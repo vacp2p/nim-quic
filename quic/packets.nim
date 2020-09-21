@@ -20,8 +20,8 @@ proc newPacketHeader*(bytes: seq[byte]): PacketHeader =
   assert bytes[0].bits[1] == 1
   PacketHeader(bytes: bytes)
 
-proc bytes*(header: PacketHeader): seq[byte] =
-  header.bytes
+proc write*(datagram: var seq[byte], header: PacketHeader) =
+  datagram[0..<header.bytes.len] = header.bytes
 
 proc version*(header: PacketHeader): uint32 =
   result.bytes[0] = header.bytes[1]
