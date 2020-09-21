@@ -24,7 +24,7 @@ type
     version*: uint32
   FieldsVersionNegotiation* = object
     supportedVersion*: uint32
-  PacketHeader* = object
+  Packet* = object
     case form*: PacketForm
     of formShort:
       discard
@@ -43,7 +43,7 @@ type
 proc readForm(datagram: seq[byte]): PacketForm =
   PacketForm(datagram[0].bits[0])
 
-proc writeForm(datagram: var seq[byte], header: PacketHeader) =
+proc writeForm(datagram: var seq[byte], header: Packet) =
   datagram[0].bits[0] = Bit(header.form)
 
 proc readFixedBit(datagram: seq[byte]) =
@@ -58,7 +58,7 @@ proc readVersion(datagram: seq[byte]): uint32 =
   result.bytes[2] = datagram[3]
   result.bytes[3] = datagram[4]
 
-proc version*(header: PacketHeader): uint32 =
+proc version*(header: Packet): uint32 =
   case header.kind
   of packetInitial: header.initial.version
   of packet0RTT: header.rtt.version
@@ -66,7 +66,7 @@ proc version*(header: PacketHeader): uint32 =
   of packetRetry: header.retry.version
   of packetVersionNegotiation: 0
 
-proc `version=`*(header: var PacketHeader, version: uint32) =
+proc `version=`*(header: var Packet, version: uint32) =
   case header.kind
   of packetInitial: header.initial.version = version
   of packet0RTT: header.rtt.version = version
@@ -74,7 +74,7 @@ proc `version=`*(header: var PacketHeader, version: uint32) =
   of packetRetry: header.retry.version = version
   of packetVersionNegotiation: discard
 
-proc writeVersion*(datagram: var seq[byte], header: PacketHeader) =
+proc writeVersion*(datagram: var seq[byte], header: Packet) =
   datagram[1] = header.version.bytes[0]
   datagram[2] = header.version.bytes[1]
   datagram[3] = header.version.bytes[2]
@@ -89,7 +89,7 @@ proc readKind(datagram: seq[byte]): PacketKind =
     kind.bits[7] = datagram[0].bits[3]
     result = PacketKind(kind)
 
-proc writeKind(datagram: var seq[byte], header: PacketHeader) =
+proc writeKind(datagram: var seq[byte], header: Packet) =
   case header.kind:
   of packetVersionNegotiation:
     discard
@@ -125,12 +125,12 @@ proc readSupportedVersion*(datagram: seq[byte]): uint32 =
   result.bytes[2] = versionBytes[2]
   result.bytes[3] = versionBytes[3]
 
-proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
+proc newPacket*(datagram: seq[byte]): Packet =
   let form = datagram.readForm()
   datagram.readFixedBit()
   case form
   of formShort:
-    result = PacketHeader(form: form, bytes: datagram)
+    result = Packet(form: form, bytes: datagram)
   else:
     let kind = datagram.readKind()
     let destination = datagram.readDestination()
@@ -138,15 +138,15 @@ proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
     case kind
     of packetVersionNegotiation:
       let supportedVersion = datagram.readSupportedVersion()
-      result = PacketHeader(form: form, kind: kind, destination: destination, source: source, negotiation: FieldsVersionNegotiation(supportedVersion: supportedVersion), bytes: datagram)
+      result = Packet(form: form, kind: kind, destination: destination, source: source, negotiation: FieldsVersionNegotiation(supportedVersion: supportedVersion), bytes: datagram)
     else:
-      result = PacketHeader(form: form, kind:kind, destination: destination, source: source, bytes: datagram)
+      result = Packet(form: form, kind:kind, destination: destination, source: source, bytes: datagram)
       result.version = datagram.readVersion()
 
-proc newShortPacketHeader*(): PacketHeader =
-  PacketHeader(form: formShort)
+proc newShortPacket*(): Packet =
+  Packet(form: formShort)
 
-proc write*(datagram: var seq[byte], header: PacketHeader) =
+proc write*(datagram: var seq[byte], header: Packet) =
   datagram[0..<header.bytes.len] = header.bytes
   datagram.writeForm(header)
   datagram.writeFixedBit()
@@ -154,25 +154,25 @@ proc write*(datagram: var seq[byte], header: PacketHeader) =
     datagram.writeKind(header)
     datagram.writeVersion(header)
 
-proc destinationSlice(header: PacketHeader): Slice[int] =
+proc destinationSlice(header: Packet): Slice[int] =
   let start = 6
   let length = header.bytes[5].int
   result = start..<start+length
 
-proc sourceSlice(header: PacketHeader): Slice[int] =
+proc sourceSlice(header: Packet): Slice[int] =
   let destinationEnd = header.destinationSlice.b + 1
   let start = destinationEnd + 1
   let length = header.bytes[destinationEnd].int
   result = start..<start+length
 
-proc supportedVersionSlice(header: PacketHeader): Slice[int] =
+proc supportedVersionSlice(header: Packet): Slice[int] =
   let start = header.sourceSlice().b + 1
   result = start..<start+4
 
 proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
 
-proc `$`*(header: PacketHeader): string =
+proc `$`*(header: Packet): string =
   case header.form:
   of formShort:
     fmt"(form: {header.form})"
@@ -194,7 +194,7 @@ proc `$`*(header: PacketHeader): string =
 
 proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}
 
-proc packetLength*(header: PacketHeader): int =
+proc packetLength*(header: Packet): int =
   case header.kind:
   of packetVersionNegotiation:
     return header.supportedVersionSlice.b + 1
