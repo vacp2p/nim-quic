@@ -12,14 +12,14 @@ suite "packet header":
 
   test "first bit of the header indicates short/long form":
     datagram[0] = 0b01000000'u8
-    check newPacketHeader(datagram).form == formShort
+    check newPacket(datagram).form == formShort
     datagram[0] = 0b11000000'u8
-    check newPacketHeader(datagram).form == formLong
+    check newPacket(datagram).form == formLong
 
   test "second bit of the header should always be 1":
     datagram[0] = 0b00000000'u8
     expect Exception:
-      discard newPacketHeader(datagram)
+      discard newPacket(datagram)
 
 suite "short headers":
 
@@ -29,15 +29,15 @@ suite "short headers":
     datagram = newSeq[byte](4096)
 
   test "writes correct form bit":
-    datagram.write(newShortPacketHeader())
+    datagram.write(newShortPacket())
     check datagram[0].bits[0] == 0
 
   test "writes correct fixed bit":
-    datagram.write(newShortPacketHeader())
+    datagram.write(newShortPacket())
     check datagram[0].bits[1] == 1
 
   test "conversion to string":
-    check $newPacketHeader(@[0b01000000'u8]) == "(form: formShort)"
+    check $newPacket(@[0b01000000'u8]) == "(form: formShort)"
 
 suite "long headers":
 
@@ -57,7 +57,7 @@ suite "long headers":
 
   test "QUIC version is stored in bytes 1..4":
     var version = 0xAABBCCDD'u32
-    var header = newPacketHeader(
+    var header = newPacket(
       type0 &
       @[version.bytes[0], version.bytes[1], version.bytes[2],  version.bytes[3]] &
       destination.len.uint8 & destination &
@@ -66,44 +66,44 @@ suite "long headers":
     check header.version == version
 
   test "QUIC version can be set":
-    var header = PacketHeader(form: formLong, kind: packetInitial)
+    var header = Packet(form: formLong, kind: packetInitial)
     header.version = 0xAABBCCDD'u32
     datagram.write(header)
     check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
   test "version negotiation packet is a packet with version 0":
-    let header = newPacketHeader(type0 & version0 & destination.len.uint8 & destination & source.len.uint8 & source & version1)
+    let header = newPacket(type0 & version0 & destination.len.uint8 & destination & source.len.uint8 & source & version1)
     check header.kind == packetVersionNegotiation
 
   test "initial packet is a long packet of type 0":
-    let header = newPacketHeader(type0 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
+    let header = newPacket(type0 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
     check header.kind == packetInitial
 
   test "0-RTT packet is a long packet of type 1":
-    let header = newPacketHeader(type1 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
+    let header = newPacket(type1 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
     check header.kind == packet0RTT
 
   test "handshake packet is a long packet of type 2":
-    let header = newPacketHeader(type2 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
+    let header = newPacket(type2 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
     check header.kind == packetHandshake
 
   test "retry packet is a long packet of type 3":
-    let header = newPacketHeader(type3 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
+    let header = newPacket(type3 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
     check header.kind == packetRetry
 
   test "long packet type can be set":
-    var header = PacketHeader(form: formLong, kind: packetHandshake)
+    var header = Packet(form: formLong, kind: packetHandshake)
     datagram.write(header)
     check datagram[0].bits[2] == 1
     check datagram[0].bits[3] == 0
 
   test "destination connection id is encoded from byte 5 onwards":
     let id = @[1'u8, 2'u8, 3'u8]
-    var header = newPacketHeader(type0 & version1 & id.len.uint8 & id & source.len.uint8 & source)
+    var header = newPacket(type0 & version1 & id.len.uint8 & id & source.len.uint8 & source)
     check header.destination == ConnectionId(id)
 
   test "source connection id follows the destination connection id":
-    var header = newPacketHeader(
+    var header = newPacket(
       type0 & version1 &
       destination.len.uint8 & destination &
       source.len.uint8 & source
@@ -111,7 +111,7 @@ suite "long headers":
     check header.source == ConnectionId(source)
 
   test "conversion to string":
-    let header = $newPacketHeader(
+    let header = $newPacket(
       type0 &
       version1 &
       destination.len.uint8 & destination &
@@ -126,7 +126,7 @@ suite "long headers":
   suite "version negotiation packet":
 
     test "has a fixed length":
-      let header = newPacketHeader(
+      let header = newPacket(
         type0 &
         version0 &
         destination.len.uint8 & destination &
@@ -142,7 +142,7 @@ suite "long headers":
         version1.len
 
     test "has a supported version field":
-      let header = newPacketHeader(
+      let header = newPacket(
         type0 &
         version0 &
         destination.len.uint8 & destination &
@@ -152,7 +152,7 @@ suite "long headers":
       check header.negotiation.supportedVersion == 1'u32
 
     test "conversion to string":
-      let header = newPacketHeader(
+      let header = newPacket(
         type0 &
         version0 &
         destination.len.uint8 & destination &
