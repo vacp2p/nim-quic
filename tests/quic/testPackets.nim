@@ -5,14 +5,12 @@ import quic/bits
 
 suite "packet header":
 
-  test "first bit of the header indicates its form":
-    check newPacketHeader(@[0b01000000'u8]).form == headerShort
-    check newPacketHeader(@[0b11000000'u8]).form == headerLong
-
-  test "header form can be set":
-    var header = newPacketHeader(@[0b01000000'u8])
-    header.form = headerLong
-    check header.bytes[0].bits[0] == 1
+  test "first bit of the header indicates short/long form":
+    var datagram = newSeq[byte](4096)
+    datagram[0] = 0b01000000'u8
+    check newPacketHeader(datagram).kind == packetShort
+    datagram[0] = 0b11000000'u8
+    check newPacketHeader(datagram).kind != packetShort
 
   test "second bit of the header should always be 1":
     expect Exception:
@@ -21,7 +19,7 @@ suite "packet header":
 suite "short headers":
 
   test "conversion to string":
-    check $newPacketHeader(@[0b01000000'u8]) == "(form: headerShort)"
+    check $newPacketHeader(@[0b01000000'u8]) == "(kind: packetShort)"
 
 suite "long headers":
 
@@ -97,7 +95,6 @@ suite "long headers":
       source.len.uint8 & source
     )
     check $header == "(" &
-      "form: headerLong, " &
       "kind: packetInitial, " &
       "destination: 0xAABBCC, " &
       "source: 0xDDEEFF" &
@@ -140,7 +137,6 @@ suite "long headers":
         version1
       )
       check $header == "(" &
-        "form: headerLong, " &
         "kind: packetVersionNegotiation, " &
         "destination: 0xAABBCC, " &
         "source: 0xDDEEFF, " &
