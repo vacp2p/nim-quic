@@ -157,9 +157,6 @@ proc readPacket*(datagram: seq[byte]): Packet =
   else:
     result = readLongPacket(datagram)
 
-proc newShortPacket*(): Packet =
-  Packet(form: formShort)
-
 proc write*(datagram: var seq[byte], header: Packet) =
   datagram.writeForm(header)
   datagram.writeFixedBit()
