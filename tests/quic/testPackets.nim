@@ -29,11 +29,11 @@ suite "short headers":
     datagram = newSeq[byte](4096)
 
   test "writes correct form bit":
-    datagram.write(newShortPacket())
+    datagram.write(Packet(form: formShort))
     check datagram[0].bits[0] == 0
 
   test "writes correct fixed bit":
-    datagram.write(newShortPacket())
+    datagram.write(Packet(form: formShort))
     check datagram[0].bits[1] == 1
 
 suite "long headers":
