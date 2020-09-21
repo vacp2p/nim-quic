@@ -5,16 +5,21 @@ import quic/bits
 
 suite "packet header":
 
+  var datagram: seq[byte]
+
+  setup:
+    datagram = newSeq[byte](4096)
+
   test "first bit of the header indicates short/long form":
-    var datagram = newSeq[byte](4096)
     datagram[0] = 0b01000000'u8
     check newPacketHeader(datagram).kind == packetShort
     datagram[0] = 0b11000000'u8
     check newPacketHeader(datagram).kind != packetShort
 
   test "second bit of the header should always be 1":
+    datagram[0] = 0b00000000'u8
     expect Exception:
-      discard newPacketHeader(@[0b00000000'u8])
+      discard newPacketHeader(datagram)
 
 suite "short headers":
 
