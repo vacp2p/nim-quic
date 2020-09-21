@@ -4,7 +4,7 @@ import strformat
 import bits
 
 type
-  PacketForm = enum
+  PacketForm* = enum
     formShort
     formLong
   PacketKind* = enum
@@ -12,16 +12,17 @@ type
     packet0RTT
     packetHandshake
     packetRetry
-    packetShort
     packetVersionNegotiation
   PacketHeader* = object
-    case kind*: PacketKind
-    of packetInitial, packet0RTT, packetHandshake, packetRetry:
-      version*: uint32
-    of packetShort:
+    case form*: PacketForm
+    of formShort:
       discard
-    of packetVersionNegotiation:
-      discard
+    of formLong:
+      case kind*: PacketKind
+      of packetInitial, packet0RTT, packetHandshake, packetRetry:
+        version*: uint32
+      of packetVersionNegotiation:
+        discard
     bytes: seq[byte]
   PacketNumber* = range[0'u64..2'u64^62-1]
   ConnectionId* = distinct seq[byte]
@@ -30,7 +31,7 @@ proc readForm(datagram: seq[byte]): PacketForm =
   PacketForm(datagram[0].bits[0])
 
 proc writeForm(datagram: var seq[byte], header: PacketHeader) =
-  datagram[0].bits[0] = Bit(header.kind != packetShort)
+  datagram[0].bits[0] = Bit(header.form)
 
 proc readFixedBit(datagram: seq[byte]) =
   assert datagram[0].bits[1] == 1
@@ -56,13 +57,9 @@ proc writeVersion*(datagram: var seq[byte], header: PacketHeader) =
     datagram[2] = 0'u8
     datagram[3] = 0'u8
     datagram[4] = 0'u8
-  else:
-    discard
 
 proc readKind(datagram: seq[byte]): PacketKind =
-  if datagram.readForm() == formShort:
-    result = packetShort
-  elif datagram.readVersion() == 0:
+  if datagram.readVersion() == 0:
     result = packetVersionNegotiation
   else:
     var kind: uint8
@@ -72,31 +69,37 @@ proc readKind(datagram: seq[byte]): PacketKind =
 
 proc writeKind(datagram: var seq[byte], header: PacketHeader) =
   case header.kind:
-  of packetShort, packetVersionNegotiation:
+  of packetVersionNegotiation:
     discard
   else:
     datagram[0].bits[2] = header.kind.uint8.bits[6]
     datagram[0].bits[3] = header.kind.uint8.bits[7]
 
 proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
+  let form = datagram.readForm()
   datagram.readFixedBit()
-  let kind = datagram.readKind()
-  case kind
-  of packetShort, packetVersionNegotiation:
-    result = PacketHeader(kind: kind, bytes: datagram)
+  case form
+  of formShort:
+    result = PacketHeader(form: form, bytes: datagram)
   else:
-    let version = datagram.readVersion()
-    result = PacketHeader(kind:kind, version: version, bytes: datagram)
+    let kind = datagram.readKind()
+    case kind
+    of packetVersionNegotiation:
+      result = PacketHeader(form: form, kind: kind, bytes: datagram)
+    else:
+      let version = datagram.readVersion()
+      result = PacketHeader(form: form, kind:kind, version: version, bytes: datagram)
 
 proc newShortPacketHeader*(): PacketHeader =
-  PacketHeader(kind: packetShort)
+  PacketHeader(form: formShort)
 
 proc write*(datagram: var seq[byte], header: PacketHeader) =
   datagram[0..<header.bytes.len] = header.bytes
   datagram.writeForm(header)
   datagram.writeFixedBit()
-  datagram.writeKind(header)
-  datagram.writeVersion(header)
+  if header.form == formLong:
+    datagram.writeKind(header)
+    datagram.writeVersion(header)
 
 proc destinationSlice(header: PacketHeader): Slice[int] =
   let start = 6
@@ -130,22 +133,24 @@ proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
 
 proc `$`*(header: PacketHeader): string =
-  case header.kind:
-  of packetShort:
-    fmt"(kind: {header.kind})"
-  of packetVersionNegotiation:
-    "(" &
-      fmt"kind: {header.kind}, " &
-      fmt"destination: {header.destination}, " &
-      fmt"source: {header.source}, " &
-      fmt"supportedVersion: {header.supportedVersion}" &
-    ")"
+  case header.form:
+  of formShort:
+    fmt"(form: {header.form})"
   else:
-    "(" &
-      fmt"kind: {header.kind}, " &
-      fmt"destination: {header.destination}, " &
-      fmt"source: {header.source}" &
-    ")"
+    case header.kind:
+    of packetVersionNegotiation:
+      "(" &
+        fmt"kind: {header.kind}, " &
+        fmt"destination: {header.destination}, " &
+        fmt"source: {header.source}, " &
+        fmt"supportedVersion: {header.supportedVersion}" &
+      ")"
+    else:
+      "(" &
+        fmt"kind: {header.kind}, " &
+        fmt"destination: {header.destination}, " &
+        fmt"source: {header.source}" &
+      ")"
 
 proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}
 
