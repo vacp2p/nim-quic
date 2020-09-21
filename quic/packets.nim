@@ -44,11 +44,20 @@ proc readVersion(datagram: seq[byte]): uint32 =
   result.bytes[2] = datagram[3]
   result.bytes[3] = datagram[4]
 
-proc writeVersion*(datagram: var seq[byte], version: uint32) =
-  datagram[1] = version.bytes[0]
-  datagram[2] = version.bytes[1]
-  datagram[3] = version.bytes[2]
-  datagram[4] = version.bytes[3]
+proc writeVersion*(datagram: var seq[byte], header: PacketHeader) =
+  case header.kind
+  of packet0RTT, packetHandshake, packetInitial, packetRetry:
+    datagram[1] = header.version.bytes[0]
+    datagram[2] = header.version.bytes[1]
+    datagram[3] = header.version.bytes[2]
+    datagram[4] = header.version.bytes[3]
+  of packetVersionNegotiation:
+    datagram[1] = 0'u8
+    datagram[2] = 0'u8
+    datagram[3] = 0'u8
+    datagram[4] = 0'u8
+  else:
+    discard
 
 proc readKind(datagram: seq[byte]): PacketKind =
   if datagram.readForm() == formShort:
@@ -61,15 +70,13 @@ proc readKind(datagram: seq[byte]): PacketKind =
     kind.bits[7] = datagram[0].bits[3]
     result = PacketKind(kind)
 
-proc writeKind(datagram: var seq[byte], kind: PacketKind) =
-  case kind:
-  of packetShort:
+proc writeKind(datagram: var seq[byte], header: PacketHeader) =
+  case header.kind:
+  of packetShort, packetVersionNegotiation:
     discard
-  of packetVersionNegotiation:
-    datagram.writeVersion(0)
   else:
-    datagram[0].bits[2] = kind.uint8.bits[6]
-    datagram[0].bits[3] = kind.uint8.bits[7]
+    datagram[0].bits[2] = header.kind.uint8.bits[6]
+    datagram[0].bits[3] = header.kind.uint8.bits[7]
 
 proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
   datagram.readFixedBit()
@@ -88,12 +95,8 @@ proc write*(datagram: var seq[byte], header: PacketHeader) =
   datagram[0..<header.bytes.len] = header.bytes
   datagram.writeForm(header)
   datagram.writeFixedBit()
-  datagram.writeKind(header.kind)
-  case header.kind
-  of packet0RTT, packetHandshake, packetInitial, packetRetry:
-    datagram.writeVersion(header.version)
-  else:
-    discard
+  datagram.writeKind(header)
+  datagram.writeVersion(header)
 
 proc destinationSlice(header: PacketHeader): Slice[int] =
   let start = 6
