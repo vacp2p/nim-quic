@@ -23,7 +23,7 @@ type
       of packetInitial, packet0RTT, packetHandshake, packetRetry:
         version*: uint32
       of packetVersionNegotiation:
-        discard
+        supportedVersion*: uint32
       destination*: ConnectionId
       source*: ConnectionId
     bytes: seq[byte]
@@ -94,6 +94,17 @@ proc findSource(datagram: seq[byte]): Slice[int] =
 proc readSource(datagram: seq[byte]): ConnectionId =
   result = ConnectionId(datagram[datagram.findSource()])
 
+proc findSupportedVersion(datagram: seq[byte]): Slice[int] =
+  let start = datagram.findSource().b + 1
+  result = start..<start+4
+
+proc readSupportedVersion*(datagram: seq[byte]): uint32 =
+  let versionBytes = datagram[datagram.findSupportedVersion()]
+  result.bytes[0] = versionBytes[0]
+  result.bytes[1] = versionBytes[1]
+  result.bytes[2] = versionBytes[2]
+  result.bytes[3] = versionBytes[3]
+
 proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
   let form = datagram.readForm()
   datagram.readFixedBit()
@@ -106,7 +117,8 @@ proc newPacketHeader*(datagram: seq[byte]): PacketHeader =
     let source = datagram.readSource()
     case kind
     of packetVersionNegotiation:
-      result = PacketHeader(form: form, kind: kind, destination: destination, source: source, bytes: datagram)
+      let supportedVersion = datagram.readSupportedVersion()
+      result = PacketHeader(form: form, kind: kind, destination: destination, source: source, supportedVersion: supportedVersion, bytes: datagram)
     else:
       let version = datagram.readVersion()
       result = PacketHeader(form: form, kind:kind, version: version, destination: destination, source: source, bytes: datagram)
@@ -136,13 +148,6 @@ proc sourceSlice(header: PacketHeader): Slice[int] =
 proc supportedVersionSlice(header: PacketHeader): Slice[int] =
   let start = header.sourceSlice().b + 1
   result = start..<start+4
-
-proc supportedVersion*(header: PacketHeader): uint32 =
-  let versionBytes = header.bytes[header.supportedVersionSlice]
-  result.bytes[0] = versionBytes[0]
-  result.bytes[1] = versionBytes[1]
-  result.bytes[2] = versionBytes[2]
-  result.bytes[3] = versionBytes[3]
 
 proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
