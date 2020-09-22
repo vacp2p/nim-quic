@@ -2,6 +2,8 @@ import math
 import strutils
 import bits
 
+{.push raises:[].} # avoid exceptions in this module
+
 type
   ConnectionId* = distinct seq[byte]
   PacketForm* = enum
