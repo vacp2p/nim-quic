@@ -27,19 +27,3 @@ suite "bits":
     value.bits[3] = 0
     value.bits[7] = 0
     check value == 0b01101110'u8
-
-suite "bytes":
-
-  test "can index bytes":
-    let value = 0xAABBCCDD'u32
-    check value.bytes[0] == 0xAA
-    check value.bytes[1] == 0xBB
-    check value.bytes[2] == 0xCC
-    check value.bytes[3] == 0xDD
-
-  test "can set bytes":
-    var value = 0x00000000'u32
-    value.bytes[0] = 0xAA
-    value.bytes[2] = 0xCC
-    value.bytes[3] = 0xDD
-    check value == 0xAA00CCDD'u32

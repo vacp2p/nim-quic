@@ -1,6 +1,7 @@
 import math
 import strutils
 import bits
+import stew/endians2
 
 {.push raises:[].} # avoid exceptions in this module
 
@@ -54,10 +55,7 @@ proc writeFixedBit(datagram: var Datagram) =
   datagram[0].bits[1] = 1
 
 proc readVersion(datagram: Datagram): uint32 =
-  result.bytes[0] = datagram[1]
-  result.bytes[1] = datagram[2]
-  result.bytes[2] = datagram[3]
-  result.bytes[3] = datagram[4]
+  fromBytesBE(uint32, datagram[1..4])
 
 proc version*(header: Packet): uint32 =
   case header.kind
@@ -76,10 +74,11 @@ proc `version=`*(header: var Packet, version: uint32) =
   of packetVersionNegotiation: discard
 
 proc writeVersion*(datagram: var Datagram, header: Packet) =
-  datagram[1] = header.version.bytes[0]
-  datagram[2] = header.version.bytes[1]
-  datagram[3] = header.version.bytes[2]
-  datagram[4] = header.version.bytes[3]
+  let bytes = toBytesBE(header.version)
+  datagram[1] = bytes[0]
+  datagram[2] = bytes[1]
+  datagram[3] = bytes[2]
+  datagram[4] = bytes[3]
 
 proc readKind(datagram: Datagram): PacketKind =
   if datagram.readVersion() == 0:
@@ -121,10 +120,7 @@ proc findSupportedVersion(datagram: Datagram): Slice[int] =
 
 proc readSupportedVersion*(datagram: Datagram): uint32 =
   let versionBytes = datagram[datagram.findSupportedVersion()]
-  result.bytes[0] = versionBytes[0]
-  result.bytes[1] = versionBytes[1]
-  result.bytes[2] = versionBytes[2]
-  result.bytes[3] = versionBytes[3]
+  fromBytesBE(uint32, versionBytes)
 
 proc readVersionNegotiation(datagram: Datagram): Packet =
   Packet(
