@@ -81,12 +81,12 @@ proc writeVersion*(datagram: var Datagram, header: Packet) =
 
 proc readKind(datagram: Datagram): PacketKind =
   if datagram.readVersion() == 0:
-    result = packetVersionNegotiation
+    packetVersionNegotiation
   else:
     var kind: uint8
     kind.bits[6] = datagram[0].bits[2]
     kind.bits[7] = datagram[0].bits[3]
-    result = PacketKind(kind)
+    PacketKind(kind)
 
 proc writeKind(datagram: var Datagram, header: Packet) =
   case header.kind:
@@ -99,23 +99,23 @@ proc writeKind(datagram: var Datagram, header: Packet) =
 proc findDestination(datagram: Datagram): Slice[int] =
   let start = 6
   let length = datagram[5].int
-  result = start..<start+length
+  start..<start+length
 
 proc readDestination*(datagram: Datagram): ConnectionId =
-  result = ConnectionId(datagram[datagram.findDestination()])
+  ConnectionId(datagram[datagram.findDestination()])
 
 proc findSource(datagram: Datagram): Slice[int] =
   let destinationEnd = datagram.findDestination().b + 1
   let start = destinationEnd + 1
   let length = datagram[destinationEnd].int
-  result = start..<start+length
+  start..<start+length
 
 proc readSource(datagram: Datagram): ConnectionId =
-  result = ConnectionId(datagram[datagram.findSource()])
+  ConnectionId(datagram[datagram.findSource()])
 
 proc findSupportedVersion(datagram: Datagram): Slice[int] =
   let start = datagram.findSource().b + 1
-  result = start..<start+4
+  start..<start+4
 
 proc readSupportedVersion*(datagram: Datagram): uint32 =
   let versionBytes = datagram[datagram.findSupportedVersion()]
@@ -125,7 +125,7 @@ proc readSupportedVersion*(datagram: Datagram): uint32 =
   result.bytes[3] = versionBytes[3]
 
 proc readVersionNegotiation(datagram: Datagram): Packet =
-  result = Packet(
+  Packet(
     form: formLong,
     kind: packetVersionNegotiation,
     destination: datagram.readDestination(),
@@ -154,9 +154,9 @@ proc readPacket*(datagram: Datagram): Packet =
   datagram.readFixedBit()
   case form
   of formShort:
-    result = Packet(form: form)
+    Packet(form: form)
   else:
-    result = readLongPacket(datagram)
+    readLongPacket(datagram)
 
 proc write*(datagram: var Datagram, header: Packet) =
   datagram.writeForm(header)
