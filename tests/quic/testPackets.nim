@@ -2,6 +2,7 @@ import unittest
 import math
 import quic
 import quic/bits
+import stew/endians2
 
 suite "packet header":
 
@@ -56,7 +57,7 @@ suite "long headers":
     var version = 0xAABBCCDD'u32
     var header = readPacket(
       type0 &
-      @[version.bytes[0], version.bytes[1], version.bytes[2],  version.bytes[3]] &
+      @(toBytesBE(version)) &
       destination.len.uint8 & destination &
       source.len.uint8 & source
     )
