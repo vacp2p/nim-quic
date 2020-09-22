@@ -37,20 +37,21 @@ type
       destination*: ConnectionId
       source*: ConnectionId
   PacketNumber* = range[0'u64..2'u64^62-1]
+  Datagram* = openArray[byte]
 
-proc readForm(datagram: seq[byte]): PacketForm =
+proc readForm(datagram: Datagram): PacketForm =
   PacketForm(datagram[0].bits[0])
 
-proc writeForm(datagram: var seq[byte], header: Packet) =
+proc writeForm(datagram: var Datagram, header: Packet) =
   datagram[0].bits[0] = Bit(header.form)
 
-proc readFixedBit(datagram: seq[byte]) =
+proc readFixedBit(datagram: Datagram) =
   assert datagram[0].bits[1] == 1
 
-proc writeFixedBit(datagram: var seq[byte]) =
+proc writeFixedBit(datagram: var Datagram) =
   datagram[0].bits[1] = 1
 
-proc readVersion(datagram: seq[byte]): uint32 =
+proc readVersion(datagram: Datagram): uint32 =
   result.bytes[0] = datagram[1]
   result.bytes[1] = datagram[2]
   result.bytes[2] = datagram[3]
@@ -72,13 +73,13 @@ proc `version=`*(header: var Packet, version: uint32) =
   of packetRetry: header.retry.version = version
   of packetVersionNegotiation: discard
 
-proc writeVersion*(datagram: var seq[byte], header: Packet) =
+proc writeVersion*(datagram: var Datagram, header: Packet) =
   datagram[1] = header.version.bytes[0]
   datagram[2] = header.version.bytes[1]
   datagram[3] = header.version.bytes[2]
   datagram[4] = header.version.bytes[3]
 
-proc readKind(datagram: seq[byte]): PacketKind =
+proc readKind(datagram: Datagram): PacketKind =
   if datagram.readVersion() == 0:
     result = packetVersionNegotiation
   else:
@@ -87,7 +88,7 @@ proc readKind(datagram: seq[byte]): PacketKind =
     kind.bits[7] = datagram[0].bits[3]
     result = PacketKind(kind)
 
-proc writeKind(datagram: var seq[byte], header: Packet) =
+proc writeKind(datagram: var Datagram, header: Packet) =
   case header.kind:
   of packetVersionNegotiation:
     discard
@@ -95,35 +96,35 @@ proc writeKind(datagram: var seq[byte], header: Packet) =
     datagram[0].bits[2] = header.kind.uint8.bits[6]
     datagram[0].bits[3] = header.kind.uint8.bits[7]
 
-proc findDestination(datagram: seq[byte]): Slice[int] =
+proc findDestination(datagram: Datagram): Slice[int] =
   let start = 6
   let length = datagram[5].int
   result = start..<start+length
 
-proc readDestination*(datagram: seq[byte]): ConnectionId =
+proc readDestination*(datagram: Datagram): ConnectionId =
   result = ConnectionId(datagram[datagram.findDestination()])
 
-proc findSource(datagram: seq[byte]): Slice[int] =
+proc findSource(datagram: Datagram): Slice[int] =
   let destinationEnd = datagram.findDestination().b + 1
   let start = destinationEnd + 1
   let length = datagram[destinationEnd].int
   result = start..<start+length
 
-proc readSource(datagram: seq[byte]): ConnectionId =
+proc readSource(datagram: Datagram): ConnectionId =
   result = ConnectionId(datagram[datagram.findSource()])
 
-proc findSupportedVersion(datagram: seq[byte]): Slice[int] =
+proc findSupportedVersion(datagram: Datagram): Slice[int] =
   let start = datagram.findSource().b + 1
   result = start..<start+4
 
-proc readSupportedVersion*(datagram: seq[byte]): uint32 =
+proc readSupportedVersion*(datagram: Datagram): uint32 =
   let versionBytes = datagram[datagram.findSupportedVersion()]
   result.bytes[0] = versionBytes[0]
   result.bytes[1] = versionBytes[1]
   result.bytes[2] = versionBytes[2]
   result.bytes[3] = versionBytes[3]
 
-proc readVersionNegotiation(datagram: seq[byte]): Packet =
+proc readVersionNegotiation(datagram: Datagram): Packet =
   result = Packet(
     form: formLong,
     kind: packetVersionNegotiation,
@@ -134,7 +135,7 @@ proc readVersionNegotiation(datagram: seq[byte]): Packet =
     )
   )
 
-proc readLongPacket(datagram: seq[byte]): Packet =
+proc readLongPacket(datagram: Datagram): Packet =
   let kind = datagram.readKind()
   case kind
   of packetVersionNegotiation:
@@ -148,7 +149,7 @@ proc readLongPacket(datagram: seq[byte]): Packet =
     )
     result.version = datagram.readVersion()
 
-proc readPacket*(datagram: seq[byte]): Packet =
+proc readPacket*(datagram: Datagram): Packet =
   let form = datagram.readForm()
   datagram.readFixedBit()
   case form
@@ -157,7 +158,7 @@ proc readPacket*(datagram: seq[byte]): Packet =
   else:
     result = readLongPacket(datagram)
 
-proc write*(datagram: var seq[byte], header: Packet) =
+proc write*(datagram: var Datagram, header: Packet) =
   datagram.writeForm(header)
   datagram.writeFixedBit()
   if header.form == formLong:
