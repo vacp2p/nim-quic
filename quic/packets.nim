@@ -46,7 +46,7 @@ proc writeForm(datagram: var Datagram, header: Packet) =
   datagram[0].bits[0] = Bit(header.form)
 
 proc readFixedBit(datagram: Datagram) =
-  assert datagram[0].bits[1] == 1
+  doAssert datagram[0].bits[1] == 1
 
 proc writeFixedBit(datagram: var Datagram) =
   datagram[0].bits[1] = 1
