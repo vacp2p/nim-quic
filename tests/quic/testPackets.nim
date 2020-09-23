@@ -51,6 +51,13 @@ suite "packet writing":
     check datagram[9] == source.len.uint8
     check datagram[10..11] == source
 
+  test "writes supported version for a version negotiation packet":
+    const supportedVersion = 0xAABBCCDD'u32
+    var packet = Packet(form: formLong, kind: packetVersionNegotiation)
+    packet.negotiation.supportedVersion = supportedVersion
+    datagram.write(packet)
+    check datagram[7..10] == supportedVersion.toBytesBE
+
 suite "packet reading":
 
   var datagram: seq[byte]
