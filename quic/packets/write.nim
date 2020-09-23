@@ -23,3 +23,15 @@ proc writeVersion*(datagram: var Datagram, packet: Packet) =
   datagram[2] = bytes[1]
   datagram[3] = bytes[2]
   datagram[4] = bytes[3]
+
+proc writeConnectionId(datagram: var Datagram, id: ConnectionId, offset: int) =
+  let bytes = cast[seq[byte]](id)
+  datagram[offset] = bytes.len.uint8
+  for i in 0..<bytes.len:
+    datagram[offset + 1 + i] = bytes[i]
+
+proc writeDestination*(datagram: var Datagram, packet: Packet) =
+  datagram.writeConnectionId(packet.destination, offset=5)
+
+proc writeSource*(datagram: var Datagram, packet: Packet) =
+  datagram.writeConnectionId(packet.source, offset=6+packet.destination.len)

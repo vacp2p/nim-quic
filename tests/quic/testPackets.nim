@@ -39,6 +39,18 @@ suite "packet writing":
     datagram.write(packet)
     check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
+  test "writes source and destination":
+    const source = @[1'u8, 2'u8]
+    const destination = @[3'u8, 4'u8, 5'u8]
+    var packet = Packet(form: formLong)
+    packet.source = ConnectionId(source)
+    packet.destination = ConnectionId(destination)
+    datagram.write(packet)
+    check datagram[5] == destination.len.uint8
+    check datagram[6..8] == destination
+    check datagram[9] == source.len.uint8
+    check datagram[10..11] == source
+
 suite "packet reading":
 
   var datagram: seq[byte]
