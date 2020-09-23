@@ -55,63 +55,63 @@ suite "long headers":
 
   test "QUIC version is stored in bytes 1..4":
     var version = 0xAABBCCDD'u32
-    var header = readPacket(
+    var packet = readPacket(
       type0 &
       @(toBytesBE(version)) &
       destination.len.uint8 & destination &
       source.len.uint8 & source
     )
-    check header.version == version
+    check packet.version == version
 
   test "QUIC version can be set":
-    var header = Packet(form: formLong, kind: packetInitial)
-    header.version = 0xAABBCCDD'u32
-    datagram.write(header)
+    var packet = Packet(form: formLong, kind: packetInitial)
+    packet.version = 0xAABBCCDD'u32
+    datagram.write(packet)
     check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
   test "version negotiation packet is a packet with version 0":
-    let header = readPacket(type0 & version0 & destination.len.uint8 & destination & source.len.uint8 & source & version1)
-    check header.kind == packetVersionNegotiation
+    let packet = readPacket(type0 & version0 & destination.len.uint8 & destination & source.len.uint8 & source & version1)
+    check packet.kind == packetVersionNegotiation
 
   test "initial packet is a long packet of type 0":
-    let header = readPacket(type0 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
-    check header.kind == packetInitial
+    let packet = readPacket(type0 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
+    check packet.kind == packetInitial
 
   test "0-RTT packet is a long packet of type 1":
-    let header = readPacket(type1 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
-    check header.kind == packet0RTT
+    let packet = readPacket(type1 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
+    check packet.kind == packet0RTT
 
   test "handshake packet is a long packet of type 2":
-    let header = readPacket(type2 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
-    check header.kind == packetHandshake
+    let packet = readPacket(type2 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
+    check packet.kind == packetHandshake
 
   test "retry packet is a long packet of type 3":
-    let header = readPacket(type3 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
-    check header.kind == packetRetry
+    let packet = readPacket(type3 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
+    check packet.kind == packetRetry
 
   test "long packet type can be set":
-    var header = Packet(form: formLong, kind: packetHandshake)
-    datagram.write(header)
+    var packet = Packet(form: formLong, kind: packetHandshake)
+    datagram.write(packet)
     check datagram[0].bits[2] == 1
     check datagram[0].bits[3] == 0
 
   test "destination connection id is encoded from byte 5 onwards":
     let id = @[1'u8, 2'u8, 3'u8]
-    var header = readPacket(type0 & version1 & id.len.uint8 & id & source.len.uint8 & source)
-    check header.destination == ConnectionId(id)
+    var packet = readPacket(type0 & version1 & id.len.uint8 & id & source.len.uint8 & source)
+    check packet.destination == ConnectionId(id)
 
   test "source connection id follows the destination connection id":
-    var header = readPacket(
+    var packet = readPacket(
       type0 & version1 &
       destination.len.uint8 & destination &
       source.len.uint8 & source
     )
-    check header.source == ConnectionId(source)
+    check packet.source == ConnectionId(source)
 
   suite "version negotiation packet":
 
     test "has a fixed length":
-      let header = readPacket(
+      let packet = readPacket(
         type0 &
         version0 &
         destination.len.uint8 & destination &
@@ -119,7 +119,7 @@ suite "long headers":
         version1 &
         @[byte('r'), byte('e'), byte('s'), byte('t')]
       )
-      check header.packetLength ==
+      check packet.packetLength ==
         type0.len +
         version0.len +
         destination.len + 1 +
@@ -127,14 +127,14 @@ suite "long headers":
         version1.len
 
     test "has a supported version field":
-      let header = readPacket(
+      let packet = readPacket(
         type0 &
         version0 &
         destination.len.uint8 & destination &
         source.len.uint8 & source &
         version1
       )
-      check header.negotiation.supportedVersion == 1'u32
+      check packet.negotiation.supportedVersion == 1'u32
 
 suite "packet numbers":
 
