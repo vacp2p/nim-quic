@@ -49,3 +49,5 @@ proc write*(datagram: var Datagram, packet: Packet) =
   if packet.form == formLong:
     datagram.writeKind(packet)
     datagram.writeVersion(packet)
+    datagram.writeDestination(packet)
+    datagram.writeSource(packet)
