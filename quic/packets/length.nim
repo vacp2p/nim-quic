@@ -2,9 +2,9 @@ import packet
 
 {.push raises:[].} # avoid exceptions in this module
 
-proc packetLength*(header: Packet): int =
-  case header.kind:
+proc packetLength*(packet: Packet): int =
+  case packet.kind:
   of packetVersionNegotiation:
-    return 11 + header.destination.len + header.source.len
+    return 11 + packet.destination.len + packet.source.len
   else:
     return 0

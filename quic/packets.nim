@@ -43,9 +43,9 @@ proc readPacket*(datagram: Datagram): Packet =
   else:
     readLongPacket(datagram)
 
-proc write*(datagram: var Datagram, header: Packet) =
-  datagram.writeForm(header)
+proc write*(datagram: var Datagram, packet: Packet) =
+  datagram.writeForm(packet)
   datagram.writeFixedBit()
-  if header.form == formLong:
-    datagram.writeKind(header)
-    datagram.writeVersion(header)
+  if packet.form == formLong:
+    datagram.writeKind(packet)
+    datagram.writeVersion(packet)

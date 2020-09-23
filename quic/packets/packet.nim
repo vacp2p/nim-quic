@@ -39,18 +39,18 @@ type
       source*: ConnectionId
   PacketNumber* = range[0'u64..2'u64^62-1]
 
-proc version*(header: Packet): uint32 =
-  case header.kind
-  of packetInitial: header.initial.version
-  of packet0RTT: header.rtt.version
-  of packetHandshake: header.handshake.version
-  of packetRetry: header.retry.version
+proc version*(packet: Packet): uint32 =
+  case packet.kind
+  of packetInitial: packet.initial.version
+  of packet0RTT: packet.rtt.version
+  of packetHandshake: packet.handshake.version
+  of packetRetry: packet.retry.version
   of packetVersionNegotiation: 0
 
-proc `version=`*(header: var Packet, version: uint32) =
-  case header.kind
-  of packetInitial: header.initial.version = version
-  of packet0RTT: header.rtt.version = version
-  of packetHandshake: header.handshake.version = version
-  of packetRetry: header.retry.version = version
+proc `version=`*(packet: var Packet, version: uint32) =
+  case packet.kind
+  of packetInitial: packet.initial.version = version
+  of packet0RTT: packet.rtt.version = version
+  of packetHandshake: packet.handshake.version = version
+  of packetRetry: packet.retry.version = version
   of packetVersionNegotiation: discard
