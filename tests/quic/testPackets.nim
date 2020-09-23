@@ -4,137 +4,111 @@ import quic
 import quic/bits
 import stew/endians2
 
-suite "packet header":
+suite "packet writing":
 
   var datagram: seq[byte]
 
   setup:
     datagram = newSeq[byte](4096)
 
-  test "first bit of the header indicates short/long form":
-    datagram[0] = 0b01000000'u8
-    check readPacket(datagram).form == formShort
-    datagram[0] = 0b11000000'u8
-    check readPacket(datagram).form == formLong
-
-  test "second bit of the header should always be 1":
-    datagram[0] = 0b00000000'u8
-    expect Exception:
-      discard readPacket(datagram)
-
-suite "short headers":
-
-  var datagram: seq[byte]
-
-  setup:
-    datagram = newSeq[byte](4096)
-
-  test "writes correct form bit":
+  test "writes short/long form":
     datagram.write(Packet(form: formShort))
     check datagram[0].bits[0] == 0
+    datagram.write(Packet(form: formLong))
+    check datagram[0].bits[0] == 1
 
-  test "writes correct fixed bit":
+  test "writes fixed bit":
     datagram.write(Packet(form: formShort))
     check datagram[0].bits[1] == 1
+    datagram.write(Packet(form: formLong))
+    check datagram[0].bits[1] == 1
 
-suite "long headers":
+  test "writes packet type":
+    datagram.write(Packet(form: formLong, kind: packetInitial))
+    check datagram[0] == 0b11000000
+    datagram.write(Packet(form: formLong, kind: packet0RTT))
+    check datagram[0] == 0b11010000
+    datagram.write(Packet(form: formLong, kind: packetHandshake))
+    check datagram[0] == 0b11100000
+    datagram.write(Packet(form: formLong, kind: packetRetry))
+    check datagram[0] == 0b11110000
 
-  var datagram: seq[byte]
-
-  setup:
-    datagram = newSeq[byte](4096)
-
-  const type0 = @[0b11000000'u8]
-  const type1 = @[0b11010000'u8]
-  const type2 = @[0b11100000'u8]
-  const type3 = @[0b11110000'u8]
-  const version0 = @[0'u8, 0'u8, 0'u8, 0'u8]
-  const version1 = @[0'u8, 0'u8, 0'u8, 1'u8]
-  const destination = @[0xAA'u8, 0xBB'u8, 0xCC'u8]
-  const source = @[0xDD'u8, 0xEE'u8, 0xFF'u8]
-
-  test "QUIC version is stored in bytes 1..4":
-    var version = 0xAABBCCDD'u32
-    var packet = readPacket(
-      type0 &
-      @(toBytesBE(version)) &
-      destination.len.uint8 & destination &
-      source.len.uint8 & source
-    )
-    check packet.version == version
-
-  test "QUIC version can be set":
-    var packet = Packet(form: formLong, kind: packetInitial)
+  test "writes version":
+    var packet = Packet(form: formLong)
     packet.version = 0xAABBCCDD'u32
     datagram.write(packet)
     check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
-  test "version negotiation packet is a packet with version 0":
-    let packet = readPacket(type0 & version0 & destination.len.uint8 & destination & source.len.uint8 & source & version1)
-    check packet.kind == packetVersionNegotiation
+suite "packet reading":
 
-  test "initial packet is a long packet of type 0":
-    let packet = readPacket(type0 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
-    check packet.kind == packetInitial
+  var datagram: seq[byte]
 
-  test "0-RTT packet is a long packet of type 1":
-    let packet = readPacket(type1 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
-    check packet.kind == packet0RTT
+  setup:
+    datagram = newSeq[byte](4096)
 
-  test "handshake packet is a long packet of type 2":
-    let packet = readPacket(type2 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
-    check packet.kind == packetHandshake
+  test "reads long/short form":
+    datagram[0] = 0b01000000
+    check readPacket(datagram).form == formShort
+    datagram[0] = 0b11000000
+    check readPacket(datagram).form == formLong
 
-  test "retry packet is a long packet of type 3":
-    let packet = readPacket(type3 & version1 & destination.len.uint8 & destination & source.len.uint8 & source)
-    check packet.kind == packetRetry
+  test "checks fixed bit":
+    datagram[0] = 0b00000000
+    expect Exception:
+      discard readPacket(datagram)
 
-  test "long packet type can be set":
-    var packet = Packet(form: formLong, kind: packetHandshake)
-    datagram.write(packet)
-    check datagram[0].bits[2] == 1
-    check datagram[0].bits[3] == 0
+  test "reads packet type":
+    const version = 1'u32
+    datagram[1..4] = version.toBytesBE
+    datagram[0] = 0b11000000
+    check readPacket(datagram).kind == packetInitial
+    datagram[0] = 0b11010000
+    check readPacket(datagram).kind == packet0RTT
+    datagram[0] = 0b11100000
+    check readPacket(datagram).kind == packetHandshake
+    datagram[0] = 0b11110000
+    check readPacket(datagram).kind == packetRetry
 
-  test "destination connection id is encoded from byte 5 onwards":
-    let id = @[1'u8, 2'u8, 3'u8]
-    var packet = readPacket(type0 & version1 & id.len.uint8 & id & source.len.uint8 & source)
-    check packet.destination == ConnectionId(id)
+  test "reads version negotiation packet":
+    const version = 0'u32
+    datagram[0] = 0b11000000
+    datagram[1..4] = version.toBytesBE
+    check readPacket(datagram).kind == packetVersionNegotiation
 
-  test "source connection id follows the destination connection id":
-    var packet = readPacket(
-      type0 & version1 &
-      destination.len.uint8 & destination &
-      source.len.uint8 & source
-    )
+  test "reads version":
+    const version = 0xAABBCCDD'u32
+    datagram[0] = 0b11000000
+    datagram[1..4] = version.toBytesBE
+    check readPacket(datagram).version == version
+
+  test "reads source and destination connection id":
+    const source = @[1'u8, 2'u8, 3'u8]
+    const destination = @[4'u8, 5'u8, 6'u8]
+    datagram[0] = 0b11000000
+    datagram[5] = destination.len.uint8
+    datagram[6..8] = destination
+    datagram[9] = source.len.uint8
+    datagram[10..12] = source
+    let packet = readPacket(datagram)
     check packet.source == ConnectionId(source)
+    check packet.destination == ConnectionId(destination)
 
-  suite "version negotiation packet":
+  test "reads supported version in version negotiation packet":
+    const supportedVersion = 0xAABBCCDD'u32
+    const version = 0'u32
+    datagram[0] = 0b11000000
+    datagram[1..4] = version.toBytesBE
+    datagram[7..10] = supportedVersion.toBytesBE
+    check readPacket(datagram).negotiation.supportedVersion == supportedVersion
 
-    test "has a fixed length":
-      let packet = readPacket(
-        type0 &
-        version0 &
-        destination.len.uint8 & destination &
-        source.len.uint8 & source &
-        version1 &
-        @[byte('r'), byte('e'), byte('s'), byte('t')]
-      )
-      check packet.packetLength ==
-        type0.len +
-        version0.len +
-        destination.len + 1 +
-        source.len + 1 +
-        version1.len
+suite "packet length":
 
-    test "has a supported version field":
-      let packet = readPacket(
-        type0 &
-        version0 &
-        destination.len.uint8 & destination &
-        source.len.uint8 & source &
-        version1
-      )
-      check packet.negotiation.supportedVersion == 1'u32
+  test "knows the length of a version negotiation packet":
+    var packet = Packet(form: formLong, kind: packetVersionNegotiation)
+    packet.destination = ConnectionId(@[3'u8, 4'u8, 5'u8])
+    packet.source = ConnectionId(@[1'u8, 2'u8])
+    packet.negotiation.supportedVersion = 42
+    check packet.packetLength == 11 + packet.destination.len + packet.source.len
 
 suite "packet numbers":
 
