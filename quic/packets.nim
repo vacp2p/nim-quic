@@ -51,3 +51,5 @@ proc write*(datagram: var Datagram, packet: Packet) =
     datagram.writeVersion(packet)
     datagram.writeDestination(packet)
     datagram.writeSource(packet)
+    if packet.kind == packetVersionNegotiation:
+      datagram.writeSupportedVersion(packet)

@@ -35,3 +35,9 @@ proc writeDestination*(datagram: var Datagram, packet: Packet) =
 
 proc writeSource*(datagram: var Datagram, packet: Packet) =
   datagram.writeConnectionId(packet.source, offset=6+packet.destination.len)
+
+proc writeSupportedVersion*(datagram: var Datagram, packet: Packet) =
+  let bytes = packet.negotiation.supportedVersion.toBytesBE
+  let offset = 7 + packet.destination.len + packet.source.len
+  for i in 0..<bytes.len:
+    datagram[offset + i] = bytes[i]
