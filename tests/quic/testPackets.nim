@@ -127,7 +127,7 @@ suite "packet length":
     packet.destination = ConnectionId(@[3'u8, 4'u8, 5'u8])
     packet.source = ConnectionId(@[1'u8, 2'u8])
     packet.negotiation.supportedVersion = 42
-    check packet.packetLength == 11 + packet.destination.len + packet.source.len
+    check packet.len == 11 + packet.destination.len + packet.source.len
 
 suite "packet numbers":
 
