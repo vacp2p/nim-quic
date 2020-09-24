@@ -18,6 +18,7 @@ proc readRetry(packet: var Packet, datagram: Datagram) =
 
 proc readHandshake(packet: var Packet, datagram: Datagram) =
   packet.handshake.packetnumber = datagram.readPacketNumber()
+  packet.handshake.payload = datagram.readPayload()
 
 proc readLongPacket(datagram: Datagram): Packet =
   result = Packet(form: formLong, kind: datagram.readKind())

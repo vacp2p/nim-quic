@@ -3,6 +3,7 @@ import sequtils
 import math
 import quic
 import quic/bits
+import quic/varints
 import stew/endians2
 
 suite "packet writing":
@@ -153,6 +154,16 @@ suite "packet reading":
     datagram[8..9] = packetnumber.toBytesBE
     let packet = readPacket(datagram)
     check packet.handshake.packetnumber == packetnumber
+
+  test "reads payload from handshake packet":
+    const payload = repeat(0xAB'u8, 1024)
+    const version = 1'u32
+    datagram[0] = 0b11100000
+    datagram[1..4] = version.toBytesBE
+    datagram[7..8] = payload.len.toVarInt
+    datagram[10..1033] = payload
+    let packet = readPacket(datagram)
+    check packet.handshake.payload == payload
 
 suite "packet length":
 
