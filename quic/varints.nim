@@ -3,9 +3,8 @@ import stew/endians2
 
 type
   VarIntCompatible* = range[0'u64..2'u64^62-1]
-  VarInt* = seq[byte]
 
-proc toVarInt*(value: VarIntCompatible): VarInt =
+proc toVarInt*(value: VarIntCompatible): seq[byte] =
   case value
   of 0..2^6-1:
     @[value.uint8]
@@ -18,3 +17,20 @@ proc toVarInt*(value: VarIntCompatible): VarInt =
   else:
     const length = 0b11'u64 shl 62
     @(toBytesBE(length or value))
+
+proc varintlen*(varint: openArray[byte]): int =
+  2^(varint[0] shr 6)
+
+proc fromVarInt*(varint: openArray[byte]): VarIntCompatible =
+  case varintlen(varint)
+  of 1:
+    varint[0].uint64
+  of 2:
+    const mask = not(0b11'u16 shl 14)
+    fromBytesBE(uint16, varint) and mask
+  of 4:
+    const mask = not(0b11'u32 shl 30)
+    fromBytesBE(uint32, varint) and mask
+  else:
+    const mask = not(0b11'u64 shl 62)
+    fromBytesBE(uint64, varint) and mask
