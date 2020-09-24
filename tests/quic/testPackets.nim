@@ -65,6 +65,12 @@ suite "packet writing":
     datagram.write(packet)
     check datagram[7..<packet.len-16] == packet.retry.token
 
+  test "writes retry integrity tag":
+    var packet = Packet(form: formLong, kind: packetRetry)
+    packet.retry.integrity[0..<16] = repeat(0xB'u8, 16)
+    datagram.write(packet)
+    check datagram[packet.len-16..<packet.len] == packet.retry.integrity
+
 suite "packet reading":
 
   var datagram: seq[byte]

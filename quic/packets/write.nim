@@ -1,6 +1,7 @@
 import stew/endians2
 import datagram
 import packet
+import length
 import ../bits
 import ../openarray
 
@@ -45,3 +46,7 @@ proc writeToken*(datagram: var Datagram, packet: Packet) =
   let token = packet.retry.token
   let offset = 7 + packet.destination.len + packet.source.len
   datagram[offset..<offset+token.len] = token
+
+proc writeIntegrity*(datagram: var Datagram, packet: Packet) =
+  let length = packet.len
+  datagram[length-16..<length] = packet.retry.integrity
