@@ -41,3 +41,9 @@ proc writeSupportedVersion*(datagram: var Datagram, packet: Packet) =
   let offset = 7 + packet.destination.len + packet.source.len
   for i in 0..<bytes.len:
     datagram[offset + i] = bytes[i]
+
+proc writeToken*(datagram: var Datagram, packet: Packet) =
+  let token = packet.retry.token
+  let offset = 7 + packet.destination.len + packet.source.len
+  for i in 0..<token.len:
+    datagram[offset + i] = token[i]
