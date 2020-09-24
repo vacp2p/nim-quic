@@ -22,6 +22,8 @@ type
     version*: uint32
   HeaderRetry* = object
     version*: uint32
+    token*: seq[byte]
+    integrity*: array[16, byte]
   HeaderVersionNegotiation* = object
     supportedVersion*: uint32
   Packet* = object

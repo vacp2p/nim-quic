@@ -1,4 +1,5 @@
 import unittest
+import sequtils
 import math
 import quic
 import quic/bits
@@ -122,12 +123,24 @@ suite "packet reading":
 
 suite "packet length":
 
+  const destination = ConnectionId(@[3'u8, 4'u8, 5'u8])
+  const source = ConnectionId(@[1'u8, 2'u8])
+  const token = @[0xA'u8, 0xB'u8, 0xC'u8]
+
   test "knows the length of a version negotiation packet":
     var packet = Packet(form: formLong, kind: packetVersionNegotiation)
-    packet.destination = ConnectionId(@[3'u8, 4'u8, 5'u8])
-    packet.source = ConnectionId(@[1'u8, 2'u8])
+    packet.destination = destination
+    packet.source = source
     packet.negotiation.supportedVersion = 42
-    check packet.len == 11 + packet.destination.len + packet.source.len
+    check packet.len == 11 + destination.len + source.len
+
+  test "knows the length of a retry packet":
+    var packet = Packet(form: formLong, kind: packetRetry)
+    packet.destination = destination
+    packet.source = source
+    packet.retry.token = token
+    packet.retry.integrity[0..15] = repeat(0xA'u8, 16)
+    check packet.len == 7 + destination.len + source.len + token.len + 16
 
 suite "packet numbers":
 
