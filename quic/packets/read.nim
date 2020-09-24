@@ -49,6 +49,11 @@ proc findPacketNumber(datagram: Datagram): Slice[int] =
   let length = 1 + int(datagram[0] and 0b11)
   start..<start+length
 
+proc findPayload(datagram: Datagram): Slice[int] =
+  let start = datagram.findPacketNumber().b + 1
+  let length = datagram[datagram.findPacketLength()].fromVarInt
+  start..<start+length.int
+
 proc readDestination*(datagram: Datagram): ConnectionId =
   ConnectionId(datagram[datagram.findDestination()])
 
@@ -78,3 +83,6 @@ proc readPacketNumber*(datagram: Datagram): PacketNumber =
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
   fromBytesBE(uint64, padded)
+
+proc readPayload*(datagram: Datagram): seq[byte] =
+  datagram[datagram.findPayload()]
