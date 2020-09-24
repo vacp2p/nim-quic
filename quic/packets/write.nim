@@ -3,6 +3,7 @@ import datagram
 import packet
 import length
 import ../bits
+import ../varints
 import ../openarray
 
 proc writeForm*(datagram: var Datagram, packet: Packet) =
@@ -50,3 +51,12 @@ proc writeToken*(datagram: var Datagram, packet: Packet) =
 proc writeIntegrity*(datagram: var Datagram, packet: Packet) =
   let length = packet.len
   datagram[length-16..<length] = packet.retry.integrity
+
+proc writePacketNumber*(datagram: var Datagram, packet: Packet) =
+  let bytes = packet.handshake.packetnumber.toBytesBE
+  var length = bytes.len
+  while length > 1 and bytes[bytes.len - length] == 0:
+    length = length - 1
+  datagram[0] = datagram[0] or uint8(length - 1)
+  let offset = 7 + packet.destination.len + packet.source.len + packet.handshake.payload.len.toVarInt.len
+  datagram[offset..<offset+length] = bytes[bytes.len-length..<bytes.len]

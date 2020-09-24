@@ -72,6 +72,14 @@ suite "packet writing":
     datagram.write(packet)
     check datagram[packet.len-16..<packet.len] == packet.retry.integrity
 
+  test "writes handshake packet number":
+    const packetnumber = 0xAABBCCDD'u32
+    var packet = Packet(form: formLong, kind: packetHandshake)
+    packet.handshake.packetnumber = packetnumber
+    datagram.write(packet)
+    check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
+    check datagram[8..11] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
+
 suite "packet reading":
 
   var datagram: seq[byte]
