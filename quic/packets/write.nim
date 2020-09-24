@@ -2,6 +2,7 @@ import stew/endians2
 import datagram
 import packet
 import ../bits
+import ../openarray
 
 proc writeForm*(datagram: var Datagram, packet: Packet) =
   datagram[0].bits[0] = Bit(packet.form)
@@ -27,8 +28,7 @@ proc writeVersion*(datagram: var Datagram, packet: Packet) =
 proc writeConnectionId(datagram: var Datagram, id: ConnectionId, offset: int) =
   let bytes = cast[seq[byte]](id)
   datagram[offset] = bytes.len.uint8
-  for i in 0..<bytes.len:
-    datagram[offset + 1 + i] = bytes[i]
+  datagram[offset+1..<offset+1+bytes.len] = bytes
 
 proc writeDestination*(datagram: var Datagram, packet: Packet) =
   datagram.writeConnectionId(packet.destination, offset=5)
@@ -39,11 +39,9 @@ proc writeSource*(datagram: var Datagram, packet: Packet) =
 proc writeSupportedVersion*(datagram: var Datagram, packet: Packet) =
   let bytes = packet.negotiation.supportedVersion.toBytesBE
   let offset = 7 + packet.destination.len + packet.source.len
-  for i in 0..<bytes.len:
-    datagram[offset + i] = bytes[i]
+  datagram[offset..<offset+bytes.len] = bytes
 
 proc writeToken*(datagram: var Datagram, packet: Packet) =
   let token = packet.retry.token
   let offset = 7 + packet.destination.len + packet.source.len
-  for i in 0..<token.len:
-    datagram[offset + i] = token[i]
+  datagram[offset..<offset+token.len] = token
