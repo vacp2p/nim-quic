@@ -133,6 +133,18 @@ suite "packet reading":
     datagram[7..10] = supportedVersion.toBytesBE
     check readPacket(datagram).negotiation.supportedVersion == supportedVersion
 
+  test "reads token and integrity tag from retry packet":
+    const token = @[1'u8, 2'u8, 3'u8]
+    const integrity = repeat(0xA'u8, 16)
+    const version = 1'u32
+    datagram[0] = 0b11110000
+    datagram[1..4] = version.toBytesBE
+    datagram[7..9] = token
+    datagram[10..25] = integrity
+    let packet = readPacket(datagram[0..25])
+    check packet.retry.token == token
+    check packet.retry.integrity == integrity
+
 suite "packet length":
 
   const destination = ConnectionId(@[3'u8, 4'u8, 5'u8])

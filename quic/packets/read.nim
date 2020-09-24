@@ -47,3 +47,14 @@ proc readSource*(datagram: Datagram): ConnectionId =
 proc readSupportedVersion*(datagram: Datagram): uint32 =
   let versionBytes = datagram[datagram.findSupportedVersion()]
   fromBytesBE(uint32, versionBytes)
+
+proc readToken*(datagram: Datagram): seq[byte] =
+  let start = datagram.findSource().b + 1
+  let stop = datagram.len-16
+  datagram[start..<stop]
+
+proc readIntegrity*(datagram: Datagram): array[16, byte] =
+  try:
+    result[0..<16] = datagram[datagram.len-16..<datagram.len]
+  except RangeError:
+    doAssert false, "programmer error: assignment ranges do not match"
