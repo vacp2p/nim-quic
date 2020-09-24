@@ -1,5 +1,6 @@
 import stew/endians2
 import ../bits
+import ../varints
 import datagram
 import packet
 
@@ -38,6 +39,16 @@ proc findSupportedVersion(datagram: Datagram): Slice[int] =
   let start = datagram.findSource().b + 1
   start..<start+4
 
+proc findPacketLength(datagram: Datagram): Slice[int] =
+  let start = datagram.findSource().b + 1
+  let length = varintlen(datagram.toOpenArray(start, datagram.len-1))
+  start..<start+length
+
+proc findPacketNumber(datagram: Datagram): Slice[int] =
+  let start = datagram.findPacketLength().b + 1
+  let length = 1 + int(datagram[0] and 0b11)
+  start..<start+length
+
 proc readDestination*(datagram: Datagram): ConnectionId =
   ConnectionId(datagram[datagram.findDestination()])
 
@@ -58,3 +69,12 @@ proc readIntegrity*(datagram: Datagram): array[16, byte] =
     result[0..<16] = datagram[datagram.len-16..<datagram.len]
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
+
+proc readPacketNumber*(datagram: Datagram): PacketNumber =
+  let bytes = datagram[datagram.findPacketNumber()]
+  var padded: array[8, byte]
+  try:
+    padded[padded.len-bytes.len..<padded.len] = bytes
+  except RangeError:
+    doAssert false, "programmer error: assignment ranges do not match"
+  fromBytesBE(uint64, padded)

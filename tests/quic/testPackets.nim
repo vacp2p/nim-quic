@@ -145,6 +145,15 @@ suite "packet reading":
     check packet.retry.token == token
     check packet.retry.integrity == integrity
 
+  test "reads packet number from handshake packet":
+    const packetnumber = 0xABCD'u16
+    const version = 1'u32
+    datagram[0] = 0b111000_01 # size of packetnumber is 2
+    datagram[1..4] = version.toBytesBE
+    datagram[8..9] = packetnumber.toBytesBE
+    let packet = readPacket(datagram)
+    check packet.handshake.packetnumber == packetnumber
+
 suite "packet length":
 
   const destination = ConnectionId(@[3'u8, 4'u8, 5'u8])

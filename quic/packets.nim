@@ -16,6 +16,9 @@ proc readRetry(packet: var Packet, datagram: Datagram) =
   packet.retry.token = datagram.readToken()
   packet.retry.integrity = datagram.readIntegrity()
 
+proc readHandshake(packet: var Packet, datagram: Datagram) =
+  packet.handshake.packetnumber = datagram.readPacketNumber()
+
 proc readLongPacket(datagram: Datagram): Packet =
   result = Packet(form: formLong, kind: datagram.readKind())
   result.destination = datagram.readDestination()
@@ -26,6 +29,8 @@ proc readLongPacket(datagram: Datagram): Packet =
     result.readVersionNegotiation(datagram)
   of packetRetry:
     result.readRetry(datagram)
+  of packetHandshake:
+    result.readHandshake(datagram)
   else:
     discard
 
