@@ -20,11 +20,25 @@ proc readVersionNegotiation(datagram: Datagram): Packet =
     )
   )
 
+proc readRetry(datagram: Datagram): Packet =
+  result = Packet(
+    form: formLong,
+    kind: packetRetry,
+    destination: datagram.readDestination(),
+    source: datagram.readSource(),
+    retry: HeaderRetry(
+      token: datagram.readToken(),
+      integrity: datagram.readIntegrity()
+    )
+  )
+
 proc readLongPacket(datagram: Datagram): Packet =
   let kind = datagram.readKind()
   case kind
   of packetVersionNegotiation:
     result = readVersionNegotiation(datagram)
+  of packetRetry:
+    result = readRetry(datagram)
   else:
     result = Packet(
       form: formLong,
