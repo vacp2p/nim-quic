@@ -1,6 +1,7 @@
-import math
 import connectionid
+import packetnumber
 export connectionid
+export PacketNumber
 
 {.push raises:[].} # avoid exceptions in this module
 
@@ -41,7 +42,6 @@ type
       of packetVersionNegotiation: negotiation*: HeaderVersionNegotiation
       destination*: ConnectionId
       source*: ConnectionId
-  PacketNumber* = range[0'u64..2'u64^62-1]
 
 proc version*(packet: Packet): uint32 =
   case packet.kind

@@ -1,6 +1,5 @@
 import unittest
 import sequtils
-import math
 import quic
 import quic/bits
 import quic/varints
@@ -193,9 +192,3 @@ suite "packet length":
     packet.retry.token = token
     packet.retry.integrity[0..15] = repeat(0xA'u8, 16)
     check packet.len == 7 + destination.len + source.len + token.len + 16
-
-suite "packet numbers":
-
-  test "packet numbers are in the range 0 to 2^62-1":
-    check PacketNumber.low == 0
-    check PacketNumber.high == 2'u64 ^ 62 - 1
