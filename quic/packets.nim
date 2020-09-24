@@ -9,44 +9,25 @@ export length
 
 {.push raises:[].} # avoid exceptions in this module
 
-proc readVersionNegotiation(datagram: Datagram): Packet =
-  Packet(
-    form: formLong,
-    kind: packetVersionNegotiation,
-    destination: datagram.readDestination(),
-    source: datagram.readSource(),
-    negotiation: HeaderVersionNegotiation(
-      supportedVersion: datagram.readSupportedVersion()
-    )
-  )
+proc readVersionNegotiation(packet: var Packet, datagram: Datagram) =
+  packet.negotiation.supportedVersion = datagram.readSupportedVersion()
 
-proc readRetry(datagram: Datagram): Packet =
-  result = Packet(
-    form: formLong,
-    kind: packetRetry,
-    destination: datagram.readDestination(),
-    source: datagram.readSource(),
-    retry: HeaderRetry(
-      token: datagram.readToken(),
-      integrity: datagram.readIntegrity()
-    )
-  )
+proc readRetry(packet: var Packet, datagram: Datagram) =
+  packet.retry.token = datagram.readToken()
+  packet.retry.integrity = datagram.readIntegrity()
 
 proc readLongPacket(datagram: Datagram): Packet =
-  let kind = datagram.readKind()
-  case kind
+  result = Packet(form: formLong, kind: datagram.readKind())
+  result.destination = datagram.readDestination()
+  result.source = datagram.readSource()
+  result.version = datagram.readVersion()
+  case result.kind
   of packetVersionNegotiation:
-    result = readVersionNegotiation(datagram)
+    result.readVersionNegotiation(datagram)
   of packetRetry:
-    result = readRetry(datagram)
+    result.readRetry(datagram)
   else:
-    result = Packet(
-      form: formLong,
-      kind:kind,
-      destination: datagram.readDestination(),
-      source: datagram.readSource()
-    )
-    result.version = datagram.readVersion()
+    discard
 
 proc readPacket*(datagram: Datagram): Packet =
   let form = datagram.readForm()
