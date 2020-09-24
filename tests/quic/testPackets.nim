@@ -59,6 +59,12 @@ suite "packet writing":
     datagram.write(packet)
     check datagram[7..10] == supportedVersion.toBytesBE
 
+  test "writes retry token":
+    var packet = Packet(form: formLong, kind: packetRetry)
+    packet.retry.token = @[1'u8, 2'u8, 3'u8]
+    datagram.write(packet)
+    check datagram[7..<packet.len-16] == packet.retry.token
+
 suite "packet reading":
 
   var datagram: seq[byte]
