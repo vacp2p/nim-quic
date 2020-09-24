@@ -30,7 +30,7 @@ suite "variable length integer encoding":
     check toVarInt(2^62-1) ==
       @[0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8]
 
-suite "variable lenght integer decoding":
+suite "variable length integer decoding":
 
   test "decodes 1 byte integers":
     check fromVarInt(@[0'u8]) == 0'u64
