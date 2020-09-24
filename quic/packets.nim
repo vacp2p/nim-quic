@@ -45,20 +45,21 @@ proc readPacket*(datagram: Datagram): Packet =
     readLongPacket(datagram)
 
 proc write*(datagram: var Datagram, packet: Packet) =
-  datagram.writeForm(packet)
-  datagram.writeFixedBit()
+  var writer = PacketWriter(packet: packet)
+  writer.writeForm(datagram)
+  writer.writeFixedBit(datagram)
   if packet.form == formLong:
-    datagram.writeKind(packet)
-    datagram.writeVersion(packet)
-    datagram.writeDestination(packet)
-    datagram.writeSource(packet)
+    writer.writeKind(datagram)
+    writer.writeVersion(datagram)
+    writer.writeDestination(datagram)
+    writer.writeSource(datagram)
     case packet.kind
     of packetVersionNegotiation:
-      datagram.writeSupportedVersion(packet)
+      writer.writeSupportedVersion(datagram)
     of packetRetry:
-      datagram.writeToken(packet)
-      datagram.writeIntegrity(packet)
+      writer.writeToken(datagram)
+      writer.writeIntegrity(datagram)
     of packetHandshake:
-      datagram.writePacketNumber(packet)
+      writer.writePacketNumber(datagram)
     else:
       discard

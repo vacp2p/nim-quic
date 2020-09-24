@@ -1,60 +1,63 @@
 import stew/endians2
 import datagram
 import packet
-import length
 import packetnumber
 import ../bits
-import ../varints
 import ../openarray
 
-proc writeForm*(datagram: var Datagram, packet: Packet) =
-  datagram[0].bits[0] = Bit(packet.form)
+type
+  PacketWriter* = object
+    packet*: Packet
+    first, next: int
 
-proc writeFixedBit*(datagram: var Datagram) =
-  datagram[0].bits[1] = 1
+proc move(writer: var PacketWriter, amount: int) =
+  writer.next = writer.next + amount
 
-proc writeKind*(datagram: var Datagram, packet: Packet) =
-  case packet.kind:
+proc write(writer: var PacketWriter, datagram: var Datagram, bytes: openArray[byte]) =
+  datagram[writer.next..<writer.next+bytes.len] = bytes
+  writer.move(bytes.len)
+
+proc writeForm*(writer: var PacketWriter, datagram: var Datagram) =
+  datagram[writer.next].bits[0] = Bit(writer.packet.form)
+
+proc writeFixedBit*(writer: var PacketWriter, datagram: var Datagram) =
+  datagram[writer.next].bits[1] = 1
+
+proc writeKind*(writer: var PacketWriter, datagram: var Datagram) =
+  let kind = writer.packet.kind
+  case kind:
   of packetVersionNegotiation:
     discard
   else:
-    datagram[0].bits[2] = packet.kind.uint8.bits[6]
-    datagram[0].bits[3] = packet.kind.uint8.bits[7]
+    datagram[writer.next].bits[2] = kind.uint8.bits[6]
+    datagram[writer.next].bits[3] = kind.uint8.bits[7]
+  writer.move(1)
 
-proc writeVersion*(datagram: var Datagram, packet: Packet) =
-  let bytes = toBytesBE(packet.version)
-  datagram[1] = bytes[0]
-  datagram[2] = bytes[1]
-  datagram[3] = bytes[2]
-  datagram[4] = bytes[3]
+proc writeVersion*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.write(datagram, toBytesBE(writer.packet.version))
 
-proc writeConnectionId(datagram: var Datagram, id: ConnectionId, offset: int) =
+proc writeConnectionId(writer: var PacketWriter, datagram: var Datagram, id: ConnectionId) =
   let bytes = cast[seq[byte]](id)
-  datagram[offset] = bytes.len.uint8
-  datagram[offset+1..<offset+1+bytes.len] = bytes
+  writer.write(datagram, @[bytes.len.uint8] & bytes)
 
-proc writeDestination*(datagram: var Datagram, packet: Packet) =
-  datagram.writeConnectionId(packet.destination, offset=5)
+proc writeDestination*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.writeConnectionId(datagram, writer.packet.destination)
 
-proc writeSource*(datagram: var Datagram, packet: Packet) =
-  datagram.writeConnectionId(packet.source, offset=6+packet.destination.len)
+proc writeSource*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.writeConnectionId(datagram, writer.packet.source)
 
-proc writeSupportedVersion*(datagram: var Datagram, packet: Packet) =
-  let bytes = packet.negotiation.supportedVersion.toBytesBE
-  let offset = 7 + packet.destination.len + packet.source.len
-  datagram[offset..<offset+bytes.len] = bytes
+proc writeSupportedVersion*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.write(datagram, writer.packet.negotiation.supportedVersion.toBytesBE)
 
-proc writeToken*(datagram: var Datagram, packet: Packet) =
-  let token = packet.retry.token
-  let offset = 7 + packet.destination.len + packet.source.len
-  datagram[offset..<offset+token.len] = token
+proc writeToken*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.write(datagram, writer.packet.retry.token)
 
-proc writeIntegrity*(datagram: var Datagram, packet: Packet) =
-  let length = packet.len
-  datagram[length-16..<length] = packet.retry.integrity
+proc writeIntegrity*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.write(datagram, writer.packet.retry.integrity)
 
-proc writePacketNumber*(datagram: var Datagram, packet: Packet) =
-  let bytes = packet.handshake.packetnumber.toMinimalBytes
-  datagram[0] = datagram[0] or uint8(bytes.len - 1)
-  let offset = 7 + packet.destination.len + packet.source.len + packet.handshake.payload.len.toVarInt.len
-  datagram[offset..<offset+bytes.len] = bytes
+proc writePacketNumber*(writer: var PacketWriter, datagram: var Datagram) =
+  let packetnumber = writer.packet.handshake.packetnumber
+  let bytes = packetnumber.toMinimalBytes
+  datagram[writer.first] = datagram[writer.first] or uint8(bytes.len - 1)
+  writer.move(1) # skip payload length for now
+  writer.write(datagram, bytes)
