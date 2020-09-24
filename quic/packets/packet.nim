@@ -20,6 +20,7 @@ type
     version*: uint32
   HeaderHandshake* = object
     version*: uint32
+    packetnumber*: PacketNumber
   HeaderRetry* = object
     version*: uint32
     token*: seq[byte]
