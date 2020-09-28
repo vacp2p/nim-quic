@@ -133,6 +133,13 @@ suite "packet writing":
     datagram.write(Packet(form: formShort, spinBit: true))
     check datagram[0].bits[2] == 1
 
+  test "writes reserved bits for short packet":
+    datagram[0].bits[3] = 1
+    datagram[0].bits[4] = 1
+    datagram.write(Packet(form: formShort))
+    check datagram[0].bits[3] == 0
+    check datagram[0].bits[4] == 0
+
 suite "packet reading":
 
   var datagram: seq[byte]
