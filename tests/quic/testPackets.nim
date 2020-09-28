@@ -305,6 +305,18 @@ suite "packet reading":
     let packet = readPacket(datagram)
     check packet.initial.payload == payload
 
+  test "reads spin bit from short packet":
+    datagram[0] = 0b01000000
+    check readPacket(datagram).short.spinBit == false
+    datagram[0] = 0b01100000
+    check readPacket(datagram).short.spinBit == true
+
+  test "reads key phase from short packet":
+    datagram[0] = 0b01000000
+    check readPacket(datagram).short.keyPhase == false
+    datagram[0] = 0b01000100
+    check readPacket(datagram).short.keyPhase == true
+
 suite "packet length":
 
   const destination = ConnectionId(@[3'u8, 4'u8, 5'u8])

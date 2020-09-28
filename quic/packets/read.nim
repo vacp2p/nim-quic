@@ -88,3 +88,9 @@ proc readPayload*(reader: var PacketReader, datagram: Datagram, length: int) =
 proc readInitialToken*(reader: var PacketReader, datagram: Datagram) =
   let length = reader.readVarInt(datagram)
   reader.packet.initial.token = reader.read(datagram, length.int)
+
+proc readSpinBit*(reader: var PacketReader, datagram: Datagram) =
+  reader.packet.short.spinBit = bool(datagram[reader.next].bits[2])
+
+proc readKeyPhase*(reader: var PacketReader, datagram: Datagram) =
+  reader.packet.short.keyPhase = bool(datagram[reader.next].bits[5])
