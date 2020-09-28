@@ -15,24 +15,24 @@ type
     packetHandshake
     packetRetry
     packetVersionNegotiation
-  HeaderInitial* = object
+  PacketInitial* = object
     version*: uint32
     token*: seq[byte]
     packetnumber*: PacketNumber
     payload*: seq[byte]
-  Header0RTT* = object
+  Packet0RTT* = object
     version*: uint32
     packetnumber*: PacketNumber
     payload*: seq[byte]
-  HeaderHandshake* = object
+  PacketHandshake* = object
     version*: uint32
     packetnumber*: PacketNumber
     payload*: seq[byte]
-  HeaderRetry* = object
+  PacketRetry* = object
     version*: uint32
     token*: seq[byte]
     integrity*: array[16, byte]
-  HeaderVersionNegotiation* = object
+  PacketVersionNegotiation* = object
     supportedVersion*: uint32
   Packet* = object
     case form*: PacketForm
@@ -40,11 +40,11 @@ type
       discard
     of formLong:
       case kind*: PacketKind
-      of packetInitial: initial*: HeaderInitial
-      of packet0RTT: rtt*: Header0RTT
-      of packetHandshake: handshake*: HeaderHandshake
-      of packetRetry: retry*: HeaderRetry
-      of packetVersionNegotiation: negotiation*: HeaderVersionNegotiation
+      of packetInitial: initial*: PacketInitial
+      of packet0RTT: rtt*: Packet0RTT
+      of packetHandshake: handshake*: PacketHandshake
+      of packetRetry: retry*: PacketRetry
+      of packetVersionNegotiation: negotiation*: PacketVersionNegotiation
       destination*: ConnectionId
       source*: ConnectionId
 
