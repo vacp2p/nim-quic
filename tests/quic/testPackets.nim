@@ -146,6 +146,18 @@ suite "packet writing":
     datagram.write(Packet(form: formShort, short: PacketShort(keyPhase: true)))
     check datagram[0].bits[5] == 1
 
+  test "writes destination connection id for short packet":
+    const destination = @[1'u8, 2'u8, 3'u8]
+    let packet = Packet(form: formShort, destination: ConnectionId(destination))
+    datagram.write(packet)
+    check datagram[1..3] == destination
+
+  test "writes packet number for short packet":
+    const packetnumber = 0xAABB'u16
+    datagram.write(Packet(form: formShort, short: PacketShort(packetnumber: packetnumber)))
+    check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
+    check datagram[1..2] == @[0xAA'u8, 0xBB'u8]
+
 suite "packet reading":
 
   var datagram: seq[byte]
