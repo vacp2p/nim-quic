@@ -38,6 +38,7 @@ type
     case form*: PacketForm
     of formShort:
       spinBit*: bool
+      keyPhase*: bool
     of formLong:
       case kind*: PacketKind
       of packetInitial: initial*: PacketInitial

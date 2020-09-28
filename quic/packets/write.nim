@@ -86,3 +86,6 @@ proc writeSpinBit*(writer: var PacketWriter, datagram: var Datagram) =
 proc writeReservedBits*(writer: var PacketWriter, datagram: var Datagram) =
   datagram[writer.next].bits[3] = 0
   datagram[writer.next].bits[4] = 0
+
+proc writeKeyPhase*(writer: var PacketWriter, datagram: var Datagram) =
+  datagram[writer.next].bits[5] = Bit(writer.packet.keyPhase)
