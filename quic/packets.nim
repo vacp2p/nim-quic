@@ -47,7 +47,7 @@ proc write*(datagram: var Datagram, packet: Packet) =
     of packetRetry:
       writer.writeToken(datagram)
       writer.writeIntegrity(datagram)
-    of packetHandshake:
+    of packetHandshake, packet0RTT:
       writer.writePacketLength(datagram)
       writer.writePacketNumber(datagram)
       writer.writePayload(datagram)

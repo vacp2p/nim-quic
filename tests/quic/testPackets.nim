@@ -87,6 +87,22 @@ suite "packet writing":
     check datagram[7..8] == payload.len.toVarInt
     check datagram[10..1033] == payload
 
+  test "writes 0-RTT packet number":
+    const packetnumber = 0xAABBCCDD'u32
+    var packet = Packet(form: formLong, kind: packet0RTT)
+    packet.rtt.packetnumber = packetnumber
+    datagram.write(packet)
+    check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
+    check datagram[8..11] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
+
+  test "writes 0-RTT payload":
+    const payload = repeat(0xAB'u8, 1024)
+    var packet = Packet(form: formLong, kind: packet0RTT)
+    packet.rtt.payload = payload
+    datagram.write(packet)
+    check datagram[7..8] == payload.len.toVarInt
+    check datagram[10..1033] == payload
+
 suite "packet reading":
 
   var datagram: seq[byte]

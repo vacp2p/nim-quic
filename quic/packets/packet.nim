@@ -19,6 +19,8 @@ type
     version*: uint32
   Header0RTT* = object
     version*: uint32
+    packetnumber*: PacketNumber
+    payload*: seq[byte]
   HeaderHandshake* = object
     version*: uint32
     packetnumber*: PacketNumber
