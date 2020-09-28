@@ -37,7 +37,7 @@ type
   Packet* = object
     case form*: PacketForm
     of formShort:
-      discard
+      spinBit*: bool
     of formLong:
       case kind*: PacketKind
       of packetInitial: initial*: PacketInitial
