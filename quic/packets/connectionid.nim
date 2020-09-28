@@ -7,3 +7,5 @@ proc `len`*(x: ConnectionId): int {.borrow.}
 
 proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
+
+const DefaultConnectionIdLength* = 16

@@ -17,6 +17,7 @@ proc readPacket*(datagram: Datagram): Packet =
   of formShort:
     reader.readSpinBit(datagram)
     reader.readKeyPhase(datagram)
+    reader.readShortDestination(datagram)
   of formLong:
     reader.readKind(datagram)
     reader.readVersion(datagram)

@@ -94,3 +94,8 @@ proc readSpinBit*(reader: var PacketReader, datagram: Datagram) =
 
 proc readKeyPhase*(reader: var PacketReader, datagram: Datagram) =
   reader.packet.short.keyPhase = bool(datagram[reader.next].bits[5])
+  reader.move(1)
+
+proc readShortDestination*(reader: var PacketReader, datagram: Datagram) =
+  const length = DefaultConnectionIdLength
+  reader.packet.destination = ConnectionId(reader.read(datagram, length))

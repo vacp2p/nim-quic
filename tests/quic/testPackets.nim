@@ -317,6 +317,12 @@ suite "packet reading":
     datagram[0] = 0b01000100
     check readPacket(datagram).short.keyPhase == true
 
+  test "reads destination id from short packet":
+    const destination = repeat(0xAB'u8, 16)
+    datagram[0] = 0b01000000
+    datagram[1..16] = destination
+    check readPacket(datagram).destination == ConnectionId(destination)
+
 suite "packet length":
 
   const destination = ConnectionId(@[3'u8, 4'u8, 5'u8])
