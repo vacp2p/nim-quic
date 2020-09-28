@@ -102,3 +102,7 @@ proc readKeyPhase*(reader: var PacketReader, datagram: Datagram) =
 proc readShortDestination*(reader: var PacketReader, datagram: Datagram) =
   const length = DefaultConnectionIdLength
   reader.packet.destination = ConnectionId(reader.read(datagram, length))
+
+proc readShortPayload*(reader: var PacketReader, datagram: Datagram) =
+  let length = datagram.len - reader.next
+  reader.packet.short.payload = reader.read(datagram, length)

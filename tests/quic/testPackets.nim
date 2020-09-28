@@ -330,6 +330,13 @@ suite "packet reading":
     let packet = readPacket(datagram)
     check packet.short.packetnumber == packetnumber
 
+  test "reads payload from short packet":
+    const payload = repeat(0xAB'u8, 1024)
+    datagram[0] = 0b01000000
+    datagram[18..1041] = payload
+    let packet = readPacket(datagram[0..1041])
+    check packet.short.payload == payload
+
 suite "packet length":
 
   const destination = ConnectionId(@[3'u8, 4'u8, 5'u8])
