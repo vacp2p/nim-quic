@@ -9,40 +9,33 @@ export length
 
 {.push raises:[].} # avoid exceptions in this module
 
-proc readVersionNegotiation(packet: var Packet, datagram: Datagram) =
-  packet.negotiation.supportedVersion = datagram.readSupportedVersion()
-
-proc readRetry(packet: var Packet, datagram: Datagram) =
-  packet.retry.token = datagram.readToken()
-  packet.retry.integrity = datagram.readIntegrity()
-
-proc readHandshake(packet: var Packet, datagram: Datagram) =
-  packet.handshake.packetnumber = datagram.readPacketNumber()
-  packet.handshake.payload = datagram.readPayload()
-
-proc readLongPacket(datagram: Datagram): Packet =
-  result = Packet(form: formLong, kind: datagram.readKind())
-  result.destination = datagram.readDestination()
-  result.source = datagram.readSource()
-  result.version = datagram.readVersion()
+proc readLongPacket(reader: var PacketReader, datagram: Datagram): Packet =
+  result = Packet(form: formLong, kind: reader.readKind(datagram))
+  result.version = reader.readVersion(datagram)
+  result.destination = reader.readConnectionId(datagram)
+  result.source = reader.readConnectionId(datagram)
   case result.kind
   of packetVersionNegotiation:
-    result.readVersionNegotiation(datagram)
+    result.negotiation.supportedVersion = reader.readVersion(datagram)
   of packetRetry:
-    result.readRetry(datagram)
+    result.retry.token = reader.readToken(datagram)
+    result.retry.integrity = reader.readIntegrity(datagram)
   of packetHandshake:
-    result.readHandshake(datagram)
+    let length = reader.readVarInt(datagram)
+    result.handshake.packetnumber = reader.readPacketNumber(datagram)
+    result.handshake.payload = reader.read(datagram, length.int)
   else:
     discard
 
 proc readPacket*(datagram: Datagram): Packet =
-  let form = datagram.readForm()
-  datagram.readFixedBit()
+  var reader = PacketReader()
+  let form = reader.readForm(datagram)
+  reader.readFixedBit(datagram)
   case form
   of formShort:
     Packet(form: form)
   else:
-    readLongPacket(datagram)
+    readLongPacket(reader, datagram)
 
 proc write*(datagram: var Datagram, packet: Packet) =
   var writer = PacketWriter(packet: packet)
