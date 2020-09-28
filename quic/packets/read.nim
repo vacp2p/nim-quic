@@ -64,12 +64,12 @@ proc readIntegrity*(reader: var PacketReader, datagram: Datagram): array[16, byt
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
 
-proc readPacketNumber*(reader: var PacketReader, datagram: Datagram): PacketNumber =
+proc readPacketNumber*(reader: var PacketReader, datagram: Datagram): uint32 =
   let length = 1 + int(datagram[reader.first] and 0b11)
   let bytes = reader.read(datagram, length)
-  var padded: array[8, byte]
+  var padded: array[4, byte]
   try:
     padded[padded.len-bytes.len..<padded.len] = bytes
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
-  fromBytesBE(uint64, padded)
+  fromBytesBE(uint32, padded)
