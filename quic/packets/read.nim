@@ -58,6 +58,18 @@ proc readVarInt*(reader: var PacketReader, datagram: Datagram): VarIntCompatible
   result = fromVarInt(datagram.toOpenArray(reader.next, datagram.len-1))
   reader.move(varintlen(datagram.toOpenArray(reader.next, datagram.len-1)))
 
+proc `packetnumber=`(packet: var Packet, number: PacketNumber) =
+  case packet.kind
+  of packetHandshake: packet.handshake.packetnumber = number
+  of packet0RTT: packet.rtt.packetnumber = number
+  else: discard
+
+proc `payload=`(packet: var Packet, payload: seq[byte]) =
+  case packet.kind
+  of packetHandshake: packet.handshake.payload = payload
+  of packet0RTT: packet.rtt.payload = payload
+  else: discard
+
 proc readPacketNumber*(reader: var PacketReader, datagram: Datagram) =
   let length = 1 + int(datagram[reader.first] and 0b11)
   let bytes = reader.read(datagram, length)
@@ -66,7 +78,7 @@ proc readPacketNumber*(reader: var PacketReader, datagram: Datagram) =
     padded[padded.len-bytes.len..<padded.len] = bytes
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
-  reader.packet.handshake.packetnumber = fromBytesBE(uint32, padded)
+  reader.packet.packetnumber = fromBytesBE(uint32, padded)
 
 proc readPayload*(reader: var PacketReader, datagram: Datagram, length: int) =
-  reader.packet.handshake.payload = reader.read(datagram, length)
+  reader.packet.payload = reader.read(datagram, length)

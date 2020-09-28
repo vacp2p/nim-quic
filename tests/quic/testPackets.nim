@@ -196,6 +196,25 @@ suite "packet reading":
     let packet = readPacket(datagram)
     check packet.handshake.payload == payload
 
+  test "reads packet number from 0-RTT packet":
+    const packetnumber = 0xABCD'u16
+    const version = 1'u32
+    datagram[0] = 0b110100_01 # size of packetnumber is 2
+    datagram[1..4] = version.toBytesBE
+    datagram[8..9] = packetnumber.toBytesBE
+    let packet = readPacket(datagram)
+    check packet.rtt.packetnumber == packetnumber
+
+  test "reads payload from 0-RTT packet":
+    const payload = repeat(0xAB'u8, 1024)
+    const version = 1'u32
+    datagram[0] = 0b11010000
+    datagram[1..4] = version.toBytesBE
+    datagram[7..8] = payload.len.toVarInt
+    datagram[10..1033] = payload
+    let packet = readPacket(datagram)
+    check packet.rtt.payload == payload
+
 suite "packet length":
 
   const destination = ConnectionId(@[3'u8, 4'u8, 5'u8])
