@@ -46,6 +46,7 @@ proc write*(datagram: var Datagram, packet: Packet) =
     writer.writeKeyPhase(datagram)
     writer.writeShortDestination(datagram)
     writer.writePacketNumber(datagram)
+    writer.writePayload(datagram)
   of formLong:
     writer.writeKind(datagram)
     writer.writeVersion(datagram)
