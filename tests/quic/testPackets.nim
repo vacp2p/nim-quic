@@ -140,6 +140,12 @@ suite "packet writing":
     check datagram[0].bits[3] == 0
     check datagram[0].bits[4] == 0
 
+  test "writes key phase for short packet":
+    datagram.write(Packet(form: formShort, keyPhase: false))
+    check datagram[0].bits[5] == 0
+    datagram.write(Packet(form: formShort, keyPhase: true))
+    check datagram[0].bits[5] == 1
+
 suite "packet reading":
 
   var datagram: seq[byte]

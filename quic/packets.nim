@@ -43,6 +43,7 @@ proc write*(datagram: var Datagram, packet: Packet) =
   of formShort:
     writer.writeSpinBit(datagram)
     writer.writeReservedBits(datagram)
+    writer.writeKeyPhase(datagram)
   of formLong:
     writer.writeKind(datagram)
     writer.writeVersion(datagram)
