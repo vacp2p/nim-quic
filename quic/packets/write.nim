@@ -45,14 +45,26 @@ proc writeToken*(writer: var PacketWriter, datagram: var Datagram) =
 proc writeIntegrity*(writer: var PacketWriter, datagram: var Datagram) =
   writer.write(datagram, writer.packet.retry.integrity)
 
+proc payload(packet: Packet): seq[byte] =
+  case packet.kind
+  of packetHandshake: packet.handshake.payload
+  of packet0RTT: packet.rtt.payload
+  else: @[]
+
+proc packetNumber(packet: Packet): PacketNumber =
+  case packet.kind
+  of packetHandshake: packet.handshake.packetnumber
+  of packet0RTT: packet.rtt.packetnumber
+  else: 0
+
 proc writePacketLength*(writer: var PacketWriter, datagram: var Datagram) =
-  writer.write(datagram, writer.packet.handshake.payload.len.toVarInt)
+  writer.write(datagram, writer.packet.payload.len.toVarInt)
 
 proc writePacketNumber*(writer: var PacketWriter, datagram: var Datagram) =
-  let packetnumber = writer.packet.handshake.packetnumber
+  let packetnumber = writer.packet.packetnumber
   let bytes = packetnumber.toMinimalBytes
   datagram[writer.first] = datagram[writer.first] or uint8(bytes.len - 1)
   writer.write(datagram, bytes)
 
 proc writePayload*(writer: var PacketWriter, datagram: var Datagram) =
-  writer.write(datagram, writer.packet.handshake.payload)
+  writer.write(datagram, writer.packet.payload)
