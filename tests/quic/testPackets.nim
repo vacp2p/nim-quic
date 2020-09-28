@@ -248,3 +248,16 @@ suite "packet length":
       1024.toVarInt.len + # packet length
       3 + # packet number
       1024 # payload
+
+  test "knows the length of a 0-RTT packet":
+    var packet = Packet(form: formLong, kind: packet0RTT)
+    packet.destination = destination
+    packet.source = source
+    packet.rtt.packetnumber = 0x00BBCCDD'u32
+    packet.rtt.payload = repeat(0xEE'u8, 1024)
+    check packet.len == 7 +
+      destination.len +
+      source.len +
+      1024.toVarInt.len + # packet length
+      3 + # packet number
+      1024 # payload

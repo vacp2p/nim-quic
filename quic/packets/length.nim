@@ -22,5 +22,12 @@ proc len*(packet: Packet): int =
       packet.handshake.payload.len.toVarInt.len +
       packet.handshake.packetnumber.toMinimalBytes.len +
       packet.handshake.payload.len
+  of packet0RTT:
+    return 7 +
+      packet.destination.len +
+      packet.source.len +
+      packet.rtt.payload.len.toVarInt.len +
+      packet.rtt.packetnumber.toMinimalBytes.len +
+      packet.rtt.payload.len
   else:
     return 0
