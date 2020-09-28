@@ -399,3 +399,13 @@ suite "packet length":
       1024.toVarInt.len + # packet length
       3 + # packet number
       1024 # payload
+
+  test "knows the length of a short packet":
+    var packet = Packet(form:formShort)
+    packet.destination = destination
+    packet.short.packetnumber = 0x00BBCCDD'u32
+    packet.short.payload = repeat(0xEE'u8, 1024)
+    check packet.len == 1 +
+      destination.len +
+      3 + # packet number
+      1024 # payload
