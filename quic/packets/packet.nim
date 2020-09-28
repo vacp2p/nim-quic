@@ -18,6 +18,7 @@ type
   PacketShort* = object
     spinBit*: bool
     keyPhase*: bool
+    packetnumber*: PacketNumber
   PacketInitial* = object
     version*: uint32
     token*: seq[byte]
@@ -48,8 +49,8 @@ type
       of packetHandshake: handshake*: PacketHandshake
       of packetRetry: retry*: PacketRetry
       of packetVersionNegotiation: negotiation*: PacketVersionNegotiation
-      destination*: ConnectionId
       source*: ConnectionId
+    destination*: ConnectionId
 
 proc version*(packet: Packet): uint32 =
   case packet.kind

@@ -62,11 +62,14 @@ proc payload(packet: Packet): seq[byte] =
   else: @[]
 
 proc packetNumber(packet: Packet): PacketNumber =
-  case packet.kind
-  of packetHandshake: packet.handshake.packetnumber
-  of packet0RTT: packet.rtt.packetnumber
-  of packetInitial: packet.initial.packetnumber
-  else: 0
+  case packet.form
+  of formShort: packet.short.packetnumber
+  of formLong:
+    case packet.kind
+    of packetHandshake: packet.handshake.packetnumber
+    of packet0RTT: packet.rtt.packetnumber
+    of packetInitial: packet.initial.packetnumber
+    else: 0
 
 proc writePacketLength*(writer: var PacketWriter, datagram: var Datagram) =
   writer.write(datagram, writer.packet.payload.len.toVarInt)
@@ -89,3 +92,7 @@ proc writeReservedBits*(writer: var PacketWriter, datagram: var Datagram) =
 
 proc writeKeyPhase*(writer: var PacketWriter, datagram: var Datagram) =
   datagram[writer.next].bits[5] = Bit(writer.packet.short.keyPhase)
+  writer.move(1)
+
+proc writeShortDestination*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.write(datagram, cast[seq[byte]](writer.packet.destination))
