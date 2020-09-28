@@ -200,3 +200,16 @@ suite "packet length":
     packet.retry.token = token
     packet.retry.integrity[0..15] = repeat(0xA'u8, 16)
     check packet.len == 7 + destination.len + source.len + token.len + 16
+
+  test "knows the length of a handshake packet":
+    var packet = Packet(form: formLong, kind: packetHandshake)
+    packet.destination = destination
+    packet.source = source
+    packet.handshake.packetnumber = 0x00BBCCDD'u32
+    packet.handshake.payload = repeat(0xEE'u8, 1024)
+    check packet.len == 7 +
+      destination.len +
+      source.len +
+      1024.toVarInt.len + # packet length
+      3 + # packet number
+      1024 # payload
