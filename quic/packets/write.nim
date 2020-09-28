@@ -4,6 +4,7 @@ import packet
 import packetnumber
 import writer
 import ../bits
+import ../varints
 export PacketWriter
 
 proc writeForm*(writer: var PacketWriter, datagram: var Datagram) =
@@ -44,9 +45,14 @@ proc writeToken*(writer: var PacketWriter, datagram: var Datagram) =
 proc writeIntegrity*(writer: var PacketWriter, datagram: var Datagram) =
   writer.write(datagram, writer.packet.retry.integrity)
 
+proc writePacketLength*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.write(datagram, writer.packet.handshake.payload.len.toVarInt)
+
 proc writePacketNumber*(writer: var PacketWriter, datagram: var Datagram) =
   let packetnumber = writer.packet.handshake.packetnumber
   let bytes = packetnumber.toMinimalBytes
   datagram[writer.first] = datagram[writer.first] or uint8(bytes.len - 1)
-  writer.move(1) # skip payload length for now
   writer.write(datagram, bytes)
+
+proc writePayload*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.write(datagram, writer.packet.handshake.payload)

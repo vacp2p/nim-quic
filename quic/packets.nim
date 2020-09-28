@@ -48,6 +48,8 @@ proc write*(datagram: var Datagram, packet: Packet) =
       writer.writeToken(datagram)
       writer.writeIntegrity(datagram)
     of packetHandshake:
+      writer.writePacketLength(datagram)
       writer.writePacketNumber(datagram)
+      writer.writePayload(datagram)
     else:
       discard
