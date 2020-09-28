@@ -58,12 +58,14 @@ proc payload(packet: Packet): seq[byte] =
   case packet.kind
   of packetHandshake: packet.handshake.payload
   of packet0RTT: packet.rtt.payload
+  of packetInitial: packet.initial.payload
   else: @[]
 
 proc packetNumber(packet: Packet): PacketNumber =
   case packet.kind
   of packetHandshake: packet.handshake.packetnumber
   of packet0RTT: packet.rtt.packetnumber
+  of packetInitial: packet.initial.packetnumber
   else: 0
 
 proc writePacketLength*(writer: var PacketWriter, datagram: var Datagram) =
