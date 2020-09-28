@@ -82,3 +82,7 @@ proc writePayload*(writer: var PacketWriter, datagram: var Datagram) =
 
 proc writeSpinBit*(writer: var PacketWriter, datagram: var Datagram) =
   datagram[writer.next].bits[2] = Bit(writer.packet.spinBit)
+
+proc writeReservedBits*(writer: var PacketWriter, datagram: var Datagram) =
+  datagram[writer.next].bits[3] = 0
+  datagram[writer.next].bits[4] = 0
