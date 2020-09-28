@@ -18,6 +18,8 @@ type
   HeaderInitial* = object
     version*: uint32
     token*: seq[byte]
+    packetnumber*: PacketNumber
+    payload*: seq[byte]
   Header0RTT* = object
     version*: uint32
     packetnumber*: PacketNumber

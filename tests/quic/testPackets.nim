@@ -111,6 +111,22 @@ suite "packet writing":
     check datagram[7..8] == token.len.toVarInt
     check datagram[9..1032] == token
 
+  test "writes initial packet number":
+    const packetnumber = 0xAABBCCDD'u32
+    var packet = Packet(form: formLong, kind: packetInitial)
+    packet.initial.packetnumber = packetnumber
+    datagram.write(packet)
+    check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
+    check datagram[9..12] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
+
+  test "writes initial payload":
+    const payload = repeat(0xAB'u8, 1024)
+    var packet = Packet(form: formLong, kind: packetInitial)
+    packet.initial.payload = payload
+    datagram.write(packet)
+    check datagram[8..9] == payload.len.toVarInt
+    check datagram[11..1034] == payload
+
 suite "packet reading":
 
   var datagram: seq[byte]
