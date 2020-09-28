@@ -9,33 +9,28 @@ export length
 
 {.push raises:[].} # avoid exceptions in this module
 
-proc readLongPacket(reader: var PacketReader, datagram: Datagram): Packet =
-  result = Packet(form: formLong, kind: reader.readKind(datagram))
-  result.version = reader.readVersion(datagram)
-  result.destination = reader.readConnectionId(datagram)
-  result.source = reader.readConnectionId(datagram)
-  case result.kind
-  of packetVersionNegotiation:
-    result.negotiation.supportedVersion = reader.readVersion(datagram)
-  of packetRetry:
-    result.retry.token = reader.readToken(datagram)
-    result.retry.integrity = reader.readIntegrity(datagram)
-  of packetHandshake:
-    let length = reader.readVarInt(datagram)
-    result.handshake.packetnumber = reader.readPacketNumber(datagram)
-    result.handshake.payload = reader.read(datagram, length.int)
-  else:
-    discard
-
 proc readPacket*(datagram: Datagram): Packet =
   var reader = PacketReader()
-  let form = reader.readForm(datagram)
+  reader.readForm(datagram)
   reader.readFixedBit(datagram)
-  case form
-  of formShort:
-    Packet(form: form)
-  else:
-    readLongPacket(reader, datagram)
+  if reader.packet.form == formLong:
+    reader.readKind(datagram)
+    reader.readVersion(datagram)
+    reader.readDestination(datagram)
+    reader.readSource(datagram)
+    case reader.packet.kind
+    of packetVersionNegotiation:
+      reader.readSupportedVersion(datagram)
+    of packetRetry:
+      reader.readToken(datagram)
+      reader.readIntegrity(datagram)
+    of packetHandshake:
+      let length = reader.readVarInt(datagram)
+      reader.readPacketNumber(datagram)
+      reader.readPayload(datagram, length.int)
+    else:
+      discard
+  reader.packet
 
 proc write*(datagram: var Datagram, packet: Packet) =
   var writer = PacketWriter(packet: packet)
