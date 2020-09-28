@@ -239,6 +239,16 @@ suite "packet reading":
     let packet = readPacket(datagram)
     check packet.rtt.payload == payload
 
+  test "reads token from initial packet":
+    const token = repeat(0xAA'u8, 1024)
+    const version = 1'u32
+    datagram[0] = 0b11000000
+    datagram[1..4] = version.toBytesBE
+    datagram[7..8] = token.len.toVarInt
+    datagram[9..1032] = token
+    let packet = readPacket(datagram)
+    check packet.initial.token == token
+
 suite "packet length":
 
   const destination = ConnectionId(@[3'u8, 4'u8, 5'u8])

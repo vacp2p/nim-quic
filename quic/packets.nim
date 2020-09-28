@@ -22,14 +22,14 @@ proc readPacket*(datagram: Datagram): Packet =
     of packetVersionNegotiation:
       reader.readSupportedVersion(datagram)
     of packetRetry:
-      reader.readToken(datagram)
+      reader.readRetryToken(datagram)
       reader.readIntegrity(datagram)
     of packetHandshake, packet0RTT:
       let length = reader.readVarInt(datagram)
       reader.readPacketNumber(datagram)
       reader.readPayload(datagram, length.int)
-    else:
-      discard
+    of packetInitial:
+      reader.readInitialToken(datagram)
   reader.packet
 
 proc write*(datagram: var Datagram, packet: Packet) =

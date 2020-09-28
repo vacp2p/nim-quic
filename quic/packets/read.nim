@@ -44,7 +44,7 @@ proc readDestination*(reader: var PacketReader, datagram: Datagram) =
 proc readSource*(reader: var PacketReader, datagram: Datagram) =
   reader.packet.source = reader.readConnectionId(datagram)
 
-proc readToken*(reader: var PacketReader, datagram: Datagram) =
+proc readRetryToken*(reader: var PacketReader, datagram: Datagram) =
   let length = datagram.len - 16 - reader.next
   reader.packet.retry.token = reader.read(datagram, length)
 
@@ -82,3 +82,7 @@ proc readPacketNumber*(reader: var PacketReader, datagram: Datagram) =
 
 proc readPayload*(reader: var PacketReader, datagram: Datagram, length: int) =
   reader.packet.payload = reader.read(datagram, length)
+
+proc readInitialToken*(reader: var PacketReader, datagram: Datagram) =
+  let length = reader.readVarInt(datagram)
+  reader.packet.initial.token = reader.read(datagram, length.int)
