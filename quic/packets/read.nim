@@ -59,11 +59,14 @@ proc readVarInt*(reader: var PacketReader, datagram: Datagram): VarIntCompatible
   reader.move(varintlen(datagram.toOpenArray(reader.next, datagram.len-1)))
 
 proc `packetnumber=`(packet: var Packet, number: PacketNumber) =
-  case packet.kind
-  of packetHandshake: packet.handshake.packetnumber = number
-  of packet0RTT: packet.rtt.packetnumber = number
-  of packetInitial: packet.initial.packetnumber = number
-  else: discard
+  case packet.form
+  of formShort: packet.short.packetnumber = number
+  of formLong:
+    case packet.kind
+    of packetHandshake: packet.handshake.packetnumber = number
+    of packet0RTT: packet.rtt.packetnumber = number
+    of packetInitial: packet.initial.packetnumber = number
+    else: discard
 
 proc `payload=`(packet: var Packet, payload: seq[byte]) =
   case packet.kind
