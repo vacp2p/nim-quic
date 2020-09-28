@@ -314,3 +314,19 @@ suite "packet length":
       1024.toVarInt.len + # packet length
       3 + # packet number
       1024 # payload
+
+  test "knows the length of an initial packet":
+    var packet = Packet(form: formLong, kind: packetInitial)
+    packet.destination = destination
+    packet.source = source
+    packet.initial.token = token
+    packet.initial.packetnumber = 0x00BBCCDD'u32
+    packet.initial.payload = repeat(0xEE'u8, 1024)
+    check packet.len == 7 +
+      destination.len +
+      source.len +
+      token.len.toVarInt.len +
+      token.len +
+      1024.toVarInt.len + # packet length
+      3 + # packet number
+      1024 # payload
