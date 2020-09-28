@@ -15,6 +15,9 @@ type
     packetHandshake
     packetRetry
     packetVersionNegotiation
+  PacketShort* = object
+    spinBit*: bool
+    keyPhase*: bool
   PacketInitial* = object
     version*: uint32
     token*: seq[byte]
@@ -37,8 +40,7 @@ type
   Packet* = object
     case form*: PacketForm
     of formShort:
-      spinBit*: bool
-      keyPhase*: bool
+      short*: PacketShort
     of formLong:
       case kind*: PacketKind
       of packetInitial: initial*: PacketInitial

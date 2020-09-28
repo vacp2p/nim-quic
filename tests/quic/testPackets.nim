@@ -128,9 +128,9 @@ suite "packet writing":
     check datagram[11..1034] == payload
 
   test "writes spin bit":
-    datagram.write(Packet(form: formShort, spinBit: false))
+    datagram.write(Packet(form: formShort, short: PacketShort(spinBit: false)))
     check datagram[0].bits[2] == 0
-    datagram.write(Packet(form: formShort, spinBit: true))
+    datagram.write(Packet(form: formShort, short: PacketShort(spinBit: true)))
     check datagram[0].bits[2] == 1
 
   test "writes reserved bits for short packet":
@@ -141,9 +141,9 @@ suite "packet writing":
     check datagram[0].bits[4] == 0
 
   test "writes key phase for short packet":
-    datagram.write(Packet(form: formShort, keyPhase: false))
+    datagram.write(Packet(form: formShort, short: PacketShort(keyPhase: false)))
     check datagram[0].bits[5] == 0
-    datagram.write(Packet(form: formShort, keyPhase: true))
+    datagram.write(Packet(form: formShort, short: PacketShort(keyPhase: true)))
     check datagram[0].bits[5] == 1
 
 suite "packet reading":
