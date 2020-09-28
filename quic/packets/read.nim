@@ -3,31 +3,10 @@ import ../bits
 import ../varints
 import datagram
 import packet
+import reader
+export PacketReader
 
 {.push raises:[].} # avoid exceptions in this module
-
-type
-  PacketReader* = object
-    packet*: Packet
-    first, next: int
-
-proc peek(reader: var PacketReader, datagram: Datagram, amount: int): seq[byte] =
-  datagram[reader.next..<reader.next+amount]
-
-proc move(reader: var PacketReader, amount: int) =
-  reader.next = reader.next + amount
-
-proc read(reader: var PacketReader, datagram: Datagram, amount: int): seq[byte] =
-  result = reader.peek(datagram, amount)
-  reader.move(amount)
-
-proc read(reader: var PacketReader, datagram: Datagram): byte =
-  result = datagram[reader.next]
-  reader.move(1)
-
-proc readVarInt*(reader: var PacketReader, datagram: Datagram): VarIntCompatible =
-  result = fromVarInt(datagram.toOpenArray(reader.next, datagram.len-1))
-  reader.move(varintlen(datagram.toOpenArray(reader.next, datagram.len-1)))
 
 proc readForm*(reader: var PacketReader, datagram: Datagram) =
   reader.packet = Packet(form: PacketForm(datagram[reader.next].bits[0]))
@@ -35,7 +14,7 @@ proc readForm*(reader: var PacketReader, datagram: Datagram) =
 proc readFixedBit*(reader: var PacketReader, datagram: Datagram) =
   doAssert datagram[reader.next].bits[1] == 1
 
-proc peekVersion*(reader: var PacketReader, datagram: Datagram): uint32 =
+proc peekVersion(reader: var PacketReader, datagram: Datagram): uint32 =
   fromBytesBE(uint32, reader.peek(datagram, 4))
 
 proc readVersion*(reader: var PacketReader, datagram: Datagram) =
@@ -55,7 +34,7 @@ proc readKind*(reader: var PacketReader, datagram: Datagram) =
   else:
     reader.packet = Packet(form: formLong, kind: PacketKind(kind))
 
-proc readConnectionId*(reader: var PacketReader, datagram: Datagram): ConnectionId =
+proc readConnectionId(reader: var PacketReader, datagram: Datagram): ConnectionId =
   let length = reader.read(datagram).int
   ConnectionId(reader.read(datagram, length))
 
@@ -74,6 +53,10 @@ proc readIntegrity*(reader: var PacketReader, datagram: Datagram) =
     reader.packet.retry.integrity[0..<16] = reader.read(datagram, 16)
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
+
+proc readVarInt*(reader: var PacketReader, datagram: Datagram): VarIntCompatible =
+  result = fromVarInt(datagram.toOpenArray(reader.next, datagram.len-1))
+  reader.move(varintlen(datagram.toOpenArray(reader.next, datagram.len-1)))
 
 proc readPacketNumber*(reader: var PacketReader, datagram: Datagram) =
   let length = 1 + int(datagram[reader.first] and 0b11)
