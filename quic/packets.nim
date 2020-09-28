@@ -51,5 +51,6 @@ proc write*(datagram: var Datagram, packet: Packet) =
       writer.writePacketLength(datagram)
       writer.writePacketNumber(datagram)
       writer.writePayload(datagram)
-    else:
-      discard
+    of packetInitial:
+      writer.writeTokenLength(datagram)
+      writer.writeToken(datagram)

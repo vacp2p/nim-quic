@@ -17,6 +17,7 @@ type
     packetVersionNegotiation
   HeaderInitial* = object
     version*: uint32
+    token*: seq[byte]
   Header0RTT* = object
     version*: uint32
     packetnumber*: PacketNumber
