@@ -2,20 +2,9 @@ import stew/endians2
 import datagram
 import packet
 import packetnumber
+import writer
 import ../bits
-import ../openarray
-
-type
-  PacketWriter* = object
-    packet*: Packet
-    first, next: int
-
-proc move(writer: var PacketWriter, amount: int) =
-  writer.next = writer.next + amount
-
-proc write(writer: var PacketWriter, datagram: var Datagram, bytes: openArray[byte]) =
-  datagram[writer.next..<writer.next+bytes.len] = bytes
-  writer.move(bytes.len)
+export PacketWriter
 
 proc writeForm*(writer: var PacketWriter, datagram: var Datagram) =
   datagram[writer.next].bits[0] = Bit(writer.packet.form)
