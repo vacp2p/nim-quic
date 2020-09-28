@@ -39,8 +39,17 @@ proc writeSource*(writer: var PacketWriter, datagram: var Datagram) =
 proc writeSupportedVersion*(writer: var PacketWriter, datagram: var Datagram) =
   writer.write(datagram, writer.packet.negotiation.supportedVersion.toBytesBE)
 
+proc `token`(packet: Packet): seq[byte] =
+  case packet.kind
+  of packetInitial: packet.initial.token
+  of packetRetry: packet.retry.token
+  else: @[]
+
+proc writeTokenLength*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.write(datagram, writer.packet.token.len.toVarInt)
+
 proc writeToken*(writer: var PacketWriter, datagram: var Datagram) =
-  writer.write(datagram, writer.packet.retry.token)
+  writer.write(datagram, writer.packet.token)
 
 proc writeIntegrity*(writer: var PacketWriter, datagram: var Datagram) =
   writer.write(datagram, writer.packet.retry.integrity)

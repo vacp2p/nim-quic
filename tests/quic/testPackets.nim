@@ -103,6 +103,14 @@ suite "packet writing":
     check datagram[7..8] == payload.len.toVarInt
     check datagram[10..1033] == payload
 
+  test "writes initial token":
+    const token = repeat(0xAA'u8, 1024)
+    var packet = Packet(form: formLong, kind: packetInitial)
+    packet.initial.token = token
+    datagram.write(packet)
+    check datagram[7..8] == token.len.toVarInt
+    check datagram[9..1032] == token
+
 suite "packet reading":
 
   var datagram: seq[byte]
