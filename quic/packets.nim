@@ -24,7 +24,7 @@ proc readPacket*(datagram: Datagram): Packet =
     of packetRetry:
       reader.readToken(datagram)
       reader.readIntegrity(datagram)
-    of packetHandshake:
+    of packetHandshake, packet0RTT:
       let length = reader.readVarInt(datagram)
       reader.readPacketNumber(datagram)
       reader.readPayload(datagram, length.int)
