@@ -29,5 +29,12 @@ proc len*(packet: Packet): int =
       packet.rtt.payload.len.toVarInt.len +
       packet.rtt.packetnumber.toMinimalBytes.len +
       packet.rtt.payload.len
-  else:
-    return 0
+  of packetInitial:
+    return 7 +
+      packet.destination.len +
+      packet.source.len +
+      packet.initial.token.len.toVarInt.len +
+      packet.initial.token.len +
+      packet.initial.payload.len.toVarInt.len +
+      packet.initial.packetnumber.toMinimalBytes.len +
+      packet.initial.payload.len
