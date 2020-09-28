@@ -39,7 +39,10 @@ proc write*(datagram: var Datagram, packet: Packet) =
   var writer = PacketWriter(packet: packet)
   writer.writeForm(datagram)
   writer.writeFixedBit(datagram)
-  if packet.form == formLong:
+  case packet.form
+  of formShort:
+    writer.writeSpinBit(datagram)
+  of formLong:
     writer.writeKind(datagram)
     writer.writeVersion(datagram)
     writer.writeDestination(datagram)

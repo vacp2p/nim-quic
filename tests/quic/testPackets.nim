@@ -127,6 +127,12 @@ suite "packet writing":
     check datagram[8..9] == payload.len.toVarInt
     check datagram[11..1034] == payload
 
+  test "writes spin bit":
+    datagram.write(Packet(form: formShort, spinBit: false))
+    check datagram[0].bits[2] == 0
+    datagram.write(Packet(form: formShort, spinBit: true))
+    check datagram[0].bits[2] == 1
+
 suite "packet reading":
 
   var datagram: seq[byte]
