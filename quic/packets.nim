@@ -13,7 +13,11 @@ proc readPacket*(datagram: Datagram): Packet =
   var reader = PacketReader()
   reader.readForm(datagram)
   reader.readFixedBit(datagram)
-  if reader.packet.form == formLong:
+  case reader.packet.form
+  of formShort:
+    reader.readSpinBit(datagram)
+    reader.readKeyPhase(datagram)
+  of formLong:
     reader.readKind(datagram)
     reader.readVersion(datagram)
     reader.readDestination(datagram)
