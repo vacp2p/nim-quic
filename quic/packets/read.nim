@@ -62,12 +62,14 @@ proc `packetnumber=`(packet: var Packet, number: PacketNumber) =
   case packet.kind
   of packetHandshake: packet.handshake.packetnumber = number
   of packet0RTT: packet.rtt.packetnumber = number
+  of packetInitial: packet.initial.packetnumber = number
   else: discard
 
 proc `payload=`(packet: var Packet, payload: seq[byte]) =
   case packet.kind
   of packetHandshake: packet.handshake.payload = payload
   of packet0RTT: packet.rtt.payload = payload
+  of packetInitial: packet.initial.payload = payload
   else: discard
 
 proc readPacketNumber*(reader: var PacketReader, datagram: Datagram) =

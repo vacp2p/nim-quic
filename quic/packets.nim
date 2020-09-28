@@ -30,6 +30,9 @@ proc readPacket*(datagram: Datagram): Packet =
       reader.readPayload(datagram, length.int)
     of packetInitial:
       reader.readInitialToken(datagram)
+      let length = reader.readVarInt(datagram)
+      reader.readPacketNumber(datagram)
+      reader.readPayload(datagram, length.int)
   reader.packet
 
 proc write*(datagram: var Datagram, packet: Packet) =
