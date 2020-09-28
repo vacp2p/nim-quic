@@ -23,6 +23,14 @@ proc writeKind*(writer: var PacketWriter, datagram: var Datagram) =
     datagram[writer.next].bits[3] = kind.uint8.bits[7]
   writer.move(1)
 
+proc version(packet: Packet): uint32 =
+  case packet.kind
+  of packetInitial: packet.initial.version
+  of packet0RTT: packet.rtt.version
+  of packetHandshake: packet.handshake.version
+  of packetRetry: packet.retry.version
+  of packetVersionNegotiation: 0
+
 proc writeVersion*(writer: var PacketWriter, datagram: var Datagram) =
   writer.write(datagram, toBytesBE(writer.packet.version))
 

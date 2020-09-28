@@ -52,19 +52,3 @@ type
       of packetVersionNegotiation: negotiation*: PacketVersionNegotiation
       source*: ConnectionId
     destination*: ConnectionId
-
-proc version*(packet: Packet): uint32 =
-  case packet.kind
-  of packetInitial: packet.initial.version
-  of packet0RTT: packet.rtt.version
-  of packetHandshake: packet.handshake.version
-  of packetRetry: packet.retry.version
-  of packetVersionNegotiation: 0
-
-proc `version=`*(packet: var Packet, version: uint32) =
-  case packet.kind
-  of packetInitial: packet.initial.version = version
-  of packet0RTT: packet.rtt.version = version
-  of packetHandshake: packet.handshake.version = version
-  of packetRetry: packet.retry.version = version
-  of packetVersionNegotiation: discard
