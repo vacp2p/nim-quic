@@ -73,6 +73,9 @@ proc payload(packet: Packet): seq[byte] =
     of packetInitial: packet.initial.payload
     else: @[]
 
+proc writePacketLength*(writer: var PacketWriter, datagram: var Datagram) =
+  writer.write(datagram, writer.packet.payload.len.toVarInt)
+
 proc packetNumber(packet: Packet): PacketNumber =
   case packet.form
   of formShort: packet.short.packetnumber
@@ -82,9 +85,6 @@ proc packetNumber(packet: Packet): PacketNumber =
     of packet0RTT: packet.rtt.packetnumber
     of packetInitial: packet.initial.packetnumber
     else: 0
-
-proc writePacketLength*(writer: var PacketWriter, datagram: var Datagram) =
-  writer.write(datagram, writer.packet.payload.len.toVarInt)
 
 proc writePacketNumber*(writer: var PacketWriter, datagram: var Datagram) =
   let packetnumber = writer.packet.packetnumber
