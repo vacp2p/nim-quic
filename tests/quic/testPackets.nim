@@ -158,6 +158,12 @@ suite "packet writing":
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
     check datagram[1..2] == @[0xAA'u8, 0xBB'u8]
 
+  test "writes payload for short packet":
+    const payload = repeat(0xAB'u8, 1024)
+    var packet = Packet(form: formShort, short: PacketShort(payload: payload))
+    datagram.write(packet)
+    check datagram[2..1025] == payload
+
 suite "packet reading":
 
   var datagram: seq[byte]

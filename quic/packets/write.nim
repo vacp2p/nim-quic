@@ -55,11 +55,15 @@ proc writeIntegrity*(writer: var PacketWriter, datagram: var Datagram) =
   writer.write(datagram, writer.packet.retry.integrity)
 
 proc payload(packet: Packet): seq[byte] =
-  case packet.kind
-  of packetHandshake: packet.handshake.payload
-  of packet0RTT: packet.rtt.payload
-  of packetInitial: packet.initial.payload
-  else: @[]
+  case packet.form
+  of formShort:
+    packet.short.payload
+  of formLong:
+    case packet.kind
+    of packetHandshake: packet.handshake.payload
+    of packet0RTT: packet.rtt.payload
+    of packetInitial: packet.initial.payload
+    else: @[]
 
 proc packetNumber(packet: Packet): PacketNumber =
   case packet.form

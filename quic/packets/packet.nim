@@ -19,6 +19,7 @@ type
     spinBit*: bool
     keyPhase*: bool
     packetnumber*: PacketNumber
+    payload*: seq[byte]
   PacketInitial* = object
     version*: uint32
     token*: seq[byte]
