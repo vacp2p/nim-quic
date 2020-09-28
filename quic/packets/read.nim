@@ -17,6 +17,14 @@ proc readFixedBit*(reader: var PacketReader, datagram: Datagram) =
 proc peekVersion(reader: var PacketReader, datagram: Datagram): uint32 =
   fromBytesBE(uint32, reader.peek(datagram, 4))
 
+proc `version=`(packet: var Packet, version: uint32) =
+  case packet.kind
+  of packetInitial: packet.initial.version = version
+  of packet0RTT: packet.rtt.version = version
+  of packetHandshake: packet.handshake.version = version
+  of packetRetry: packet.retry.version = version
+  of packetVersionNegotiation: discard
+
 proc readVersion*(reader: var PacketReader, datagram: Datagram) =
   reader.packet.version = fromBytesBE(uint32, reader.read(datagram, 4))
 

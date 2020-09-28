@@ -35,8 +35,8 @@ suite "packet writing":
     check datagram[0] == 0b11110000
 
   test "writes version":
-    var packet = Packet(form: formLong)
-    packet.version = 0xAABBCCDD'u32
+    var packet = Packet(form: formLong, kind: packetInitial)
+    packet.initial.version = 0xAABBCCDD'u32
     datagram.write(packet)
     check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
@@ -204,7 +204,7 @@ suite "packet reading":
     const version = 0xAABBCCDD'u32
     datagram[0] = 0b11000000
     datagram[1..4] = version.toBytesBE
-    check readPacket(datagram).version == version
+    check readPacket(datagram).initial.version == version
 
   test "reads source and destination connection id":
     const source = @[1'u8, 2'u8, 3'u8]
