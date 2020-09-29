@@ -41,11 +41,10 @@ proc readPacket*(datagram: Datagram): Packet =
       reader.readPayload(datagram, length.int)
   reader.packet
 
-proc write*(datagram: var Datagram, packet: Packet) =
-  var writer = PacketWriter(packet: packet)
+proc write(writer: var PacketWriter, datagram: var Datagram) =
   writer.writeForm(datagram)
   writer.writeFixedBit(datagram)
-  case packet.form
+  case writer.packet.form
   of formShort:
     writer.writeSpinBit(datagram)
     writer.writeReservedBits(datagram)
@@ -58,7 +57,7 @@ proc write*(datagram: var Datagram, packet: Packet) =
     writer.writeVersion(datagram)
     writer.writeDestination(datagram)
     writer.writeSource(datagram)
-    case packet.kind
+    case writer.packet.kind
     of packetVersionNegotiation:
       writer.writeSupportedVersion(datagram)
     of packetRetry:
@@ -74,3 +73,13 @@ proc write*(datagram: var Datagram, packet: Packet) =
       writer.writePacketLength(datagram)
       writer.writePacketNumber(datagram)
       writer.writePayload(datagram)
+
+proc write*(datagram: var Datagram, packet: Packet) =
+  var writer = PacketWriter(packet: packet)
+  writer.write(datagram)
+
+proc write*(datagram: var Datagram, packets: seq[Packet]) =
+  var writer = PacketWriter()
+  for packet in packets:
+    writer.nextPacket(packet)
+    writer.write(datagram)
