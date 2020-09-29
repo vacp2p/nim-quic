@@ -1,0 +1,77 @@
+import unittest
+import sequtils
+import quic
+import quic/varints
+
+suite "packet length":
+
+  const destination = ConnectionId(@[3'u8, 4'u8, 5'u8])
+  const source = ConnectionId(@[1'u8, 2'u8])
+  const token = @[0xA'u8, 0xB'u8, 0xC'u8]
+
+  test "knows the length of a version negotiation packet":
+    var packet = Packet(form: formLong, kind: packetVersionNegotiation)
+    packet.destination = destination
+    packet.source = source
+    packet.negotiation.supportedVersion = 42
+    check packet.len == 11 + destination.len + source.len
+
+  test "knows the length of a retry packet":
+    var packet = Packet(form: formLong, kind: packetRetry)
+    packet.destination = destination
+    packet.source = source
+    packet.retry.token = token
+    packet.retry.integrity[0..15] = repeat(0xA'u8, 16)
+    check packet.len == 7 + destination.len + source.len + token.len + 16
+
+  test "knows the length of a handshake packet":
+    var packet = Packet(form: formLong, kind: packetHandshake)
+    packet.destination = destination
+    packet.source = source
+    packet.handshake.packetnumber = 0x00BBCCDD'u32
+    packet.handshake.payload = repeat(0xEE'u8, 1024)
+    check packet.len == 7 +
+      destination.len +
+      source.len +
+      1024.toVarInt.len + # packet length
+      3 + # packet number
+      1024 # payload
+
+  test "knows the length of a 0-RTT packet":
+    var packet = Packet(form: formLong, kind: packet0RTT)
+    packet.destination = destination
+    packet.source = source
+    packet.rtt.packetnumber = 0x00BBCCDD'u32
+    packet.rtt.payload = repeat(0xEE'u8, 1024)
+    check packet.len == 7 +
+      destination.len +
+      source.len +
+      1024.toVarInt.len + # packet length
+      3 + # packet number
+      1024 # payload
+
+  test "knows the length of an initial packet":
+    var packet = Packet(form: formLong, kind: packetInitial)
+    packet.destination = destination
+    packet.source = source
+    packet.initial.token = token
+    packet.initial.packetnumber = 0x00BBCCDD'u32
+    packet.initial.payload = repeat(0xEE'u8, 1024)
+    check packet.len == 7 +
+      destination.len +
+      source.len +
+      token.len.toVarInt.len +
+      token.len +
+      1024.toVarInt.len + # packet length
+      3 + # packet number
+      1024 # payload
+
+  test "knows the length of a short packet":
+    var packet = Packet(form:formShort)
+    packet.destination = destination
+    packet.short.packetnumber = 0x00BBCCDD'u32
+    packet.short.payload = repeat(0xEE'u8, 1024)
+    check packet.len == 1 +
+      destination.len +
+      3 + # packet number
+      1024 # payload
