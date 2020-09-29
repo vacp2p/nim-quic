@@ -4,7 +4,7 @@ import ../varints
 import datagram
 import packet
 import reader
-export PacketReader
+export reader
 include ../noerrors
 
 proc readForm*(reader: var PacketReader, datagram: Datagram) =

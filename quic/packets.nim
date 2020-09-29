@@ -8,8 +8,7 @@ export packet
 export length
 include noerrors
 
-proc readPacket*(datagram: Datagram): Packet =
-  var reader = PacketReader()
+proc read(reader: var PacketReader, datagram: Datagram): Packet =
   reader.readForm(datagram)
   reader.readFixedBit(datagram)
   case reader.packet.form
@@ -40,6 +39,16 @@ proc readPacket*(datagram: Datagram): Packet =
       reader.readPacketNumber(datagram)
       reader.readPayload(datagram, length.int)
   reader.packet
+
+proc readPacket*(datagram: Datagram): Packet =
+  var reader = PacketReader()
+  reader.read(datagram)
+
+proc readPackets*(datagram: Datagram): seq[Packet] =
+  var reader = PacketReader()
+  while reader.next < datagram.len:
+    reader.nextPacket()
+    result.add(reader.read(datagram))
 
 proc write(writer: var PacketWriter, datagram: var Datagram) =
   writer.writeForm(datagram)

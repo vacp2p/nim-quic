@@ -27,3 +27,11 @@ suite "multiple packets":
     let packet1 = Packet(form: formLong, kind: packetInitial)
     let packet2 = Packet(form: formLong, kind: packetHandshake)
     check datagram.write(@[packet1, packet2]) == packet1.len + packet2.len
+
+  test "reads multiple packets from a datagram":
+    var packet1 = Packet(form: formLong, kind: packetInitial)
+    var packet2 = Packet(form: formLong, kind: packetHandshake)
+    packet1.initial.version = 1
+    packet2.handshake.version = 1
+    let length = datagram.write(@[packet1, packet2])
+    check datagram[0..<length].readPackets() == @[packet1, packet2]
