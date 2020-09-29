@@ -20,3 +20,6 @@ proc read*(reader: var PacketReader, datagram: Datagram): byte =
   result = datagram[reader.next]
   reader.move(1)
 
+proc nextPacket*(reader: var PacketReader) =
+  reader.packet = Packet()
+  reader.first = reader.next

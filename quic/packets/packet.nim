@@ -51,3 +51,19 @@ type
       of packetVersionNegotiation: negotiation*: PacketVersionNegotiation
       source*: ConnectionId
     destination*: ConnectionId
+
+proc `==`*(a, b: Packet): bool =
+  if a.form != b.form: return false
+  if a.destination != b.destination: return false
+  case a.form
+  of formShort:
+    a.short == b.short
+  of formLong:
+    if a.kind != b.kind: return false
+    if a.source != b.source: return false
+    case a.kind
+    of packetInitial: a.initial == b.initial
+    of packet0RTT: a.retry == b.retry
+    of packetHandshake: a.handshake == b.handshake
+    of packetRetry: a.retry == b.retry
+    of packetVersionNegotiation: a.negotiation == b.negotiation
