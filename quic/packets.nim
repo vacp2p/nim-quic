@@ -74,12 +74,14 @@ proc write(writer: var PacketWriter, datagram: var Datagram) =
       writer.writePacketNumber(datagram)
       writer.writePayload(datagram)
 
-proc write*(datagram: var Datagram, packet: Packet) =
+proc write*(datagram: var Datagram, packet: Packet): int {.discardable.} =
   var writer = PacketWriter(packet: packet)
   writer.write(datagram)
+  writer.bytesWritten
 
-proc write*(datagram: var Datagram, packets: seq[Packet]) =
+proc write*(datagram: var Datagram, packets: seq[Packet]): int {.discardable.} =
   var writer = PacketWriter()
   for packet in packets:
     writer.nextPacket(packet)
     writer.write(datagram)
+  writer.bytesWritten

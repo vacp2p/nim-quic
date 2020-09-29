@@ -17,3 +17,6 @@ proc write*(writer: var PacketWriter, datagram: var Datagram, bytes: openArray[b
 proc nextPacket*(writer: var PacketWriter, packet: Packet) =
   writer.packet = packet
   writer.first = writer.next
+
+proc bytesWritten*(writer: PacketWriter): int =
+  writer.next
