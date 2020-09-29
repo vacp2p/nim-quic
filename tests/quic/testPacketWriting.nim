@@ -163,3 +163,8 @@ suite "packet writing":
     var packet = Packet(form: formShort, short: PacketShort(payload: payload))
     datagram.write(packet)
     check datagram[2..1025] == payload
+
+  test "returns the number of bytes that were written":
+    let payload = repeat(0xAA'u8, 1024)
+    let packet = Packet(form: formShort, short: PacketShort(payload: payload))
+    check datagram.write(packet) == packet.len
