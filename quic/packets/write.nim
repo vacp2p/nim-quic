@@ -5,7 +5,7 @@ import packetnumber
 import writer
 import ../bits
 import ../varints
-export PacketWriter
+export writer
 
 proc writeForm*(writer: var PacketWriter, datagram: var Datagram) =
   datagram[writer.next].bits[0] = Bit(writer.packet.form)
