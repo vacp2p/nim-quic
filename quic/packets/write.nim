@@ -73,8 +73,13 @@ proc payload(packet: Packet): seq[byte] =
     of packetInitial: packet.initial.payload
     else: @[]
 
-proc writePacketLength*(writer: var PacketWriter, datagram: var Datagram) =
-  writer.write(datagram, writer.packet.payload.len.toVarInt)
+proc writePacketLength(writer: var PacketWriter, datagram: var Datagram,
+                       length: VarIntCompatible) =
+  case writer.packet.form
+  of formLong:
+    writer.write(datagram, length.toVarInt)
+  of formShort:
+    discard
 
 proc packetNumber(packet: Packet): PacketNumber =
   case packet.form
@@ -86,14 +91,17 @@ proc packetNumber(packet: Packet): PacketNumber =
     of packetInitial: packet.initial.packetnumber
     else: 0
 
-proc writePacketNumber*(writer: var PacketWriter, datagram: var Datagram) =
-  let packetnumber = writer.packet.packetnumber
-  let bytes = packetnumber.toMinimalBytes
-  datagram[writer.first] = datagram[writer.first] or uint8(bytes.len - 1)
-  writer.write(datagram, bytes)
+proc writePacketNumber(writer: var PacketWriter, datagram: var Datagram,
+                       packetnumber: openArray[byte]) =
+  datagram[writer.first] = datagram[writer.first] or uint8(packetnumber.len - 1)
+  writer.write(datagram, packetnumber)
 
-proc writePayload*(writer: var PacketWriter, datagram: var Datagram) =
-  writer.write(datagram, writer.packet.payload)
+proc writePacketNumberAndPayload*(writer: var PacketWriter, datagram: var Datagram) =
+  let packetnumber = writer.packet.packetnumber.toMinimalBytes
+  let payload = writer.packet.payload
+  writer.writePacketLength(datagram, packetnumber.len + payload.len)
+  writer.writePacketNumber(datagram, packetnumber)
+  writer.write(datagram, payload)
 
 proc writeSpinBit*(writer: var PacketWriter, datagram: var Datagram) =
   datagram[writer.next].bits[2] = Bit(writer.packet.short.spinBit)

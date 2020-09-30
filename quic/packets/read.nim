@@ -61,7 +61,7 @@ proc readIntegrity*(reader: var PacketReader, datagram: Datagram) =
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
 
-proc readVarInt*(reader: var PacketReader, datagram: Datagram): VarIntCompatible =
+proc readVarInt(reader: var PacketReader, datagram: Datagram): VarIntCompatible =
   result = fromVarInt(datagram.toOpenArray(reader.next, datagram.len-1))
   reader.move(varintlen(datagram.toOpenArray(reader.next, datagram.len-1)))
 
@@ -75,8 +75,10 @@ proc `packetnumber=`(packet: var Packet, number: PacketNumber) =
     of packetInitial: packet.initial.packetnumber = number
     else: discard
 
-proc readPacketNumber*(reader: var PacketReader, datagram: Datagram) =
-  let length = 1 + int(datagram[reader.first] and 0b11)
+proc readPacketNumberLength(reader: var PacketReader, datagram: Datagram): range[1..4] =
+  1 + int(datagram[reader.first] and 0b11)
+
+proc readPacketNumber(reader: var PacketReader, datagram: Datagram, length: range[1..4]) =
   let bytes = reader.read(datagram, length)
   var padded: array[4, byte]
   try:
@@ -86,14 +88,30 @@ proc readPacketNumber*(reader: var PacketReader, datagram: Datagram) =
   reader.packet.packetnumber = fromBytesBE(uint32, padded)
 
 proc `payload=`(packet: var Packet, payload: seq[byte]) =
-  case packet.kind
-  of packetHandshake: packet.handshake.payload = payload
-  of packet0RTT: packet.rtt.payload = payload
-  of packetInitial: packet.initial.payload = payload
-  else: discard
+  case packet.form
+  of formShort:
+    packet.short.payload = payload
+  of formLong:
+    case packet.kind
+    of packetHandshake: packet.handshake.payload = payload
+    of packet0RTT: packet.rtt.payload = payload
+    of packetInitial: packet.initial.payload = payload
+    else: discard
 
-proc readPayload*(reader: var PacketReader, datagram: Datagram, length: int) =
+proc readPacketLength(reader: var PacketReader, datagram: Datagram): uint64 =
+  case reader.packet.form:
+  of formLong: reader.readVarInt(datagram)
+  of formShort: datagram.len - reader.next
+
+proc readPayload(reader: var PacketReader, datagram: Datagram, length: int) =
   reader.packet.payload = reader.read(datagram, length)
+
+proc readPacketNumberAndPayload*(reader: var PacketReader, datagram: Datagram) =
+  let length = reader.readPacketLength(datagram)
+  let packetnumberLength = reader.readPacketNumberLength(datagram)
+  let payloadLength = length - packetnumberLength.uint64
+  reader.readPacketNumber(datagram, packetnumberLength)
+  reader.readPayload(datagram, payloadLength.int)
 
 proc readInitialToken*(reader: var PacketReader, datagram: Datagram) =
   let length = reader.readVarInt(datagram)
@@ -109,7 +127,3 @@ proc readKeyPhase*(reader: var PacketReader, datagram: Datagram) =
 proc readShortDestination*(reader: var PacketReader, datagram: Datagram) =
   const length = DefaultConnectionIdLength
   reader.packet.destination = ConnectionId(reader.read(datagram, length))
-
-proc readShortPayload*(reader: var PacketReader, datagram: Datagram) =
-  let length = datagram.len - reader.next
-  reader.packet.short.payload = reader.read(datagram, length)

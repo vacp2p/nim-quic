@@ -16,8 +16,7 @@ proc read(reader: var PacketReader, datagram: Datagram): Packet =
     reader.readSpinBit(datagram)
     reader.readKeyPhase(datagram)
     reader.readShortDestination(datagram)
-    reader.readPacketNumber(datagram)
-    reader.readShortPayload(datagram)
+    reader.readPacketNumberAndPayload(datagram)
   of formLong:
     reader.readKind(datagram)
     reader.readVersion(datagram)
@@ -30,14 +29,10 @@ proc read(reader: var PacketReader, datagram: Datagram): Packet =
       reader.readRetryToken(datagram)
       reader.readIntegrity(datagram)
     of packetHandshake, packet0RTT:
-      let length = reader.readVarInt(datagram)
-      reader.readPacketNumber(datagram)
-      reader.readPayload(datagram, length.int)
+      reader.readPacketNumberAndPayload(datagram)
     of packetInitial:
       reader.readInitialToken(datagram)
-      let length = reader.readVarInt(datagram)
-      reader.readPacketNumber(datagram)
-      reader.readPayload(datagram, length.int)
+      reader.readPacketNumberAndPayload(datagram)
   reader.packet
 
 proc readPacket*(datagram: Datagram): Packet =
@@ -59,8 +54,7 @@ proc write(writer: var PacketWriter, datagram: var Datagram) =
     writer.writeReservedBits(datagram)
     writer.writeKeyPhase(datagram)
     writer.writeShortDestination(datagram)
-    writer.writePacketNumber(datagram)
-    writer.writePayload(datagram)
+    writer.writePacketNumberAndPayload(datagram)
   of formLong:
     writer.writeKind(datagram)
     writer.writeVersion(datagram)
@@ -73,15 +67,11 @@ proc write(writer: var PacketWriter, datagram: var Datagram) =
       writer.writeToken(datagram)
       writer.writeIntegrity(datagram)
     of packetHandshake, packet0RTT:
-      writer.writePacketLength(datagram)
-      writer.writePacketNumber(datagram)
-      writer.writePayload(datagram)
+      writer.writePacketNumberAndPayload(datagram)
     of packetInitial:
       writer.writeTokenLength(datagram)
       writer.writeToken(datagram)
-      writer.writePacketLength(datagram)
-      writer.writePacketNumber(datagram)
-      writer.writePayload(datagram)
+      writer.writePacketNumberAndPayload(datagram)
 
 proc write*(datagram: var Datagram, packet: Packet): int {.discardable.} =
   var writer = PacketWriter(packet: packet)
