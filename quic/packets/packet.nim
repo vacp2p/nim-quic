@@ -2,8 +2,7 @@ import connectionid
 import packetnumber
 export connectionid
 export PacketNumber
-
-{.push raises:[].} # avoid exceptions in this module
+include ../noerrors
 
 type
   PacketForm* = enum

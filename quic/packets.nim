@@ -6,8 +6,7 @@ import packets/write
 export datagram
 export packet
 export length
-
-{.push raises:[].} # avoid exceptions in this module
+include noerrors
 
 proc readPacket*(datagram: Datagram): Packet =
   var reader = PacketReader()
