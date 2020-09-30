@@ -1,6 +1,41 @@
 import unittest
 import quic
 
+suite "packet creation":
+
+  test "short packets":
+    check shortPacket() == Packet(form: formShort)
+
+  test "initial packets":
+    let packet = initialPacket()
+    check packet.form == formLong
+    check packet.kind == packetInitial
+    check packet.initial.version == CurrentQuicVersion
+
+  test "0-RTT packets":
+    let packet = zeroRttPacket()
+    check packet.form == formLong
+    check packet.kind == packet0RTT
+    check packet.rtt.version == CurrentQuicVersion
+
+  test "handshake packets":
+    let packet = handshakePacket()
+    check packet.form == formLong
+    check packet.kind == packetHandshake
+    check packet.handshake.version == CurrentQuicVersion
+
+  test "retry packets":
+    let packet = retryPacket()
+    check packet.form == formLong
+    check packet.kind == packetRetry
+    check packet.retry.version == CurrentQuicVersion
+
+  test "version negotiation packets":
+    let packet = versionNegotiationPacket()
+    check packet.form == formLong
+    check packet.kind == packetVersionNegotiation
+    check packet.negotiation.supportedVersion == CurrentQuicVersion
+
 suite "multiple packets":
 
   var datagram: seq[byte]

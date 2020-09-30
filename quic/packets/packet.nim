@@ -1,5 +1,6 @@
 import connectionid
 import packetnumber
+import ../version
 export connectionid
 export PacketNumber
 include ../noerrors
@@ -51,6 +52,29 @@ type
       of packetVersionNegotiation: negotiation*: PacketVersionNegotiation
       source*: ConnectionId
     destination*: ConnectionId
+
+proc shortPacket*: Packet =
+  Packet(form: formShort)
+
+proc initialPacket*(version: uint32 = CurrentQuicVersion): Packet =
+  result = Packet(form: formLong, kind: packetInitial)
+  result.initial.version = version
+
+proc zeroRttPacket*(version: uint32 = CurrentQuicVersion): Packet =
+  result = Packet(form: formLong, kind: packet0RTT)
+  result.rtt.version = version
+
+proc handshakePacket*(version: uint32 = CurrentQuicVersion): Packet =
+  result = Packet(form: formLong, kind: packetHandshake)
+  result.handshake.version = version
+
+proc retryPacket*(version: uint32 = CurrentQuicVersion): Packet =
+  result = Packet(form: formLong, kind: packetRetry)
+  result.retry.version = version
+
+proc versionNegotiationPacket*(version: uint32 = CurrentQuicVersion): Packet =
+  result = Packet(form: formLong, kind: packetVersionNegotiation)
+  result.negotiation.supportedVersion = version
 
 proc `==`*(a, b: Packet): bool =
   if a.form != b.form: return false
