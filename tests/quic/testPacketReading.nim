@@ -1,8 +1,7 @@
 import unittest
 import sequtils
-import stew/endians2
 import quic
-import quic/varints
+import quic/bits
 
 suite "packet reading":
 
@@ -12,167 +11,155 @@ suite "packet reading":
     datagram = newSeq[byte](4096)
 
   test "reads long/short form":
-    datagram[0] = 0b01000000
+    datagram.write(shortPacket())
     check readPacket(datagram).form == formShort
-    datagram[0] = 0b11000000
+    datagram.write(initialPacket())
     check readPacket(datagram).form == formLong
 
   test "checks fixed bit":
-    datagram[0] = 0b00000000
+    datagram.write(shortPacket())
+    datagram[0].bits[1] = 0
     expect Exception:
       discard readPacket(datagram)
 
   test "reads packet type":
-    const version = 1'u32
-    datagram[1..4] = version.toBytesBE
-    datagram[0] = 0b11000000
+    datagram.write(initialPacket())
     check readPacket(datagram).kind == packetInitial
-    datagram[0] = 0b11010000
+    datagram.write(zeroRttPacket())
     check readPacket(datagram).kind == packet0RTT
-    datagram[0] = 0b11100000
+    datagram.write(handshakePacket())
     check readPacket(datagram).kind == packetHandshake
-    datagram[0] = 0b11110000
+    datagram.write(retryPacket())
     check readPacket(datagram).kind == packetRetry
 
   test "reads version negotiation packet":
-    const version = 0'u32
-    datagram[0] = 0b11000000
-    datagram[1..4] = version.toBytesBE
+    datagram.write(versionNegotiationPacket())
     check readPacket(datagram).kind == packetVersionNegotiation
 
   test "reads version":
     const version = 0xAABBCCDD'u32
-    datagram[0] = 0b11000000
-    datagram[1..4] = version.toBytesBE
+    datagram.write(initialPacket(version = version))
     check readPacket(datagram).initial.version == version
 
-  test "reads source and destination connection id":
-    const source = @[1'u8, 2'u8, 3'u8]
-    const destination = @[4'u8, 5'u8, 6'u8]
-    datagram[0] = 0b11000000
-    datagram[5] = destination.len.uint8
-    datagram[6..8] = destination
-    datagram[9] = source.len.uint8
-    datagram[10..12] = source
-    let packet = readPacket(datagram)
-    check packet.source == ConnectionId(source)
-    check packet.destination == ConnectionId(destination)
+  test "reads source connection id":
+    const source = ConnectionId(@[1'u8, 2'u8, 3'u8])
+    var packet = initialPacket()
+    packet.source = source
+    datagram.write(packet)
+    check readPacket(datagram).source == source
+
+  test "reads destination connection id":
+    const destination = ConnectionId(@[4'u8, 5'u8, 6'u8])
+    var packet = initialPacket()
+    packet.destination = destination
+    datagram.write(packet)
+    check readPacket(datagram).destination == destination
 
   test "reads supported version in version negotiation packet":
-    const supportedVersion = 0xAABBCCDD'u32
-    const version = 0'u32
-    datagram[0] = 0b11000000
-    datagram[1..4] = version.toBytesBE
-    datagram[7..10] = supportedVersion.toBytesBE
-    check readPacket(datagram).negotiation.supportedVersion == supportedVersion
+    const version = 0xAABBCCDD'u32
+    datagram.write(versionNegotiationPacket(version = version))
+    check readPacket(datagram).negotiation.supportedVersion == version
 
-  test "reads token and integrity tag from retry packet":
+  test "reads token from retry packet":
     const token = @[1'u8, 2'u8, 3'u8]
+    var packet = retryPacket()
+    packet.retry.token = token
+    let length = datagram.write(packet)
+    check readPacket(datagram[0..<length]).retry.token == token
+
+  test "reads integrity tag from retry packet":
     const integrity = repeat(0xA'u8, 16)
-    const version = 1'u32
-    datagram[0] = 0b11110000
-    datagram[1..4] = version.toBytesBE
-    datagram[7..9] = token
-    datagram[10..25] = integrity
-    let packet = readPacket(datagram[0..25])
-    check packet.retry.token == token
-    check packet.retry.integrity == integrity
+    var packet = retryPacket()
+    packet.retry.integrity[0..<16] = integrity
+    let length = datagram.write(packet)
+    check readPacket(datagram[0..<length]).retry.integrity == integrity
 
   test "reads packet number from handshake packet":
     const packetnumber = 0xABCD'u16
-    const version = 1'u32
-    datagram[0] = 0b111000_01 # size of packetnumber is 2
-    datagram[1..4] = version.toBytesBE
-    datagram[8..9] = packetnumber.toBytesBE
-    let packet = readPacket(datagram)
-    check packet.handshake.packetnumber == packetnumber
+    var packet = handshakePacket()
+    packet.handshake.packetnumber = packetnumber
+    datagram.write(packet)
+    check readPacket(datagram).handshake.packetnumber == packetnumber
 
   test "reads payload from handshake packet":
     const payload = repeat(0xAB'u8, 1024)
-    const version = 1'u32
-    datagram[0] = 0b11100000
-    datagram[1..4] = version.toBytesBE
-    datagram[7..8] = payload.len.toVarInt
-    datagram[10..1033] = payload
-    let packet = readPacket(datagram)
-    check packet.handshake.payload == payload
+    var packet = handshakePacket()
+    packet.handshake.payload = payload
+    datagram.write(packet)
+    check readPacket(datagram).handshake.payload == payload
 
   test "reads packet number from 0-RTT packet":
     const packetnumber = 0xABCD'u16
-    const version = 1'u32
-    datagram[0] = 0b110100_01 # size of packetnumber is 2
-    datagram[1..4] = version.toBytesBE
-    datagram[8..9] = packetnumber.toBytesBE
-    let packet = readPacket(datagram)
-    check packet.rtt.packetnumber == packetnumber
+    var packet = zeroRttPacket()
+    packet.rtt.packetnumber = packetnumber
+    datagram.write(packet)
+    check readPacket(datagram).rtt.packetnumber == packetnumber
 
   test "reads payload from 0-RTT packet":
     const payload = repeat(0xAB'u8, 1024)
-    const version = 1'u32
-    datagram[0] = 0b11010000
-    datagram[1..4] = version.toBytesBE
-    datagram[7..8] = payload.len.toVarInt
-    datagram[10..1033] = payload
-    let packet = readPacket(datagram)
-    check packet.rtt.payload == payload
+    var packet = zeroRttPacket()
+    packet.rtt.payload = payload
+    datagram.write(packet)
+    check readPacket(datagram).rtt.payload == payload
 
   test "reads token from initial packet":
     const token = repeat(0xAA'u8, 1024)
-    const version = 1'u32
-    datagram[0] = 0b11000000
-    datagram[1..4] = version.toBytesBE
-    datagram[7..8] = token.len.toVarInt
-    datagram[9..1032] = token
-    let packet = readPacket(datagram)
-    check packet.initial.token == token
+    var packet = initialPacket()
+    packet.initial.token = token
+    datagram.write(packet)
+    check readPacket(datagram).initial.token == token
 
   test "reads packet number from initial packet":
     const packetnumber = 0xABCD'u16
-    const version = 1'u32
-    datagram[0] = 0b110000_01 # size of packetnumber is 2
-    datagram[1..4] = version.toBytesBE
-    datagram[9..10] = packetnumber.toBytesBE
-    let packet = readPacket(datagram)
-    check packet.initial.packetnumber == packetnumber
+    var packet = initialPacket()
+    packet.initial.packetnumber = packetnumber
+    datagram.write(packet)
+    check readPacket(datagram).initial.packetnumber == packetnumber
 
   test "reads payload from initial packet":
     const payload = repeat(0xAB'u8, 1024)
-    const version = 1'u32
-    datagram[0] = 0b11000000
-    datagram[1..4] = version.toBytesBE
-    datagram[8..9] = payload.len.toVarInt
-    datagram[11..1034] = payload
-    let packet = readPacket(datagram)
-    check packet.initial.payload == payload
+    var packet = initialPacket()
+    packet.initial.payload = payload
+    datagram.write(packet)
+    check readPacket(datagram).initial.payload == payload
 
   test "reads spin bit from short packet":
-    datagram[0] = 0b01000000
+    var packet = shortPacket()
+    packet.short.spinBit = false
+    datagram.write(packet)
     check readPacket(datagram).short.spinBit == false
-    datagram[0] = 0b01100000
+    packet.short.spinBit = true
+    datagram.write(packet)
     check readPacket(datagram).short.spinBit == true
 
   test "reads key phase from short packet":
-    datagram[0] = 0b01000000
+    var packet = shortPacket()
+    packet.short.keyPhase = false
+    datagram.write(packet)
     check readPacket(datagram).short.keyPhase == false
-    datagram[0] = 0b01000100
+    packet.short.keyPhase = true
+    datagram.write(packet)
     check readPacket(datagram).short.keyPhase == true
 
   test "reads destination id from short packet":
-    const destination = repeat(0xAB'u8, 16)
-    datagram[0] = 0b01000000
-    datagram[1..16] = destination
-    check readPacket(datagram).destination == ConnectionId(destination)
+    const destination = ConnectionId(repeat(0xAB'u8, 16))
+    var packet = shortPacket()
+    packet.destination = destination
+    datagram.write(packet)
+    check readPacket(datagram).destination == destination
 
   test "reads packet number from short packet":
     const packetnumber = 0xABCD'u16
-    datagram[0] = 0b010000_01 # size of packetnumber is 2
-    datagram[17..18] = packetnumber.toBytesBE
-    let packet = readPacket(datagram)
-    check packet.short.packetnumber == packetnumber
+    var packet = shortPacket()
+    packet.short.packetnumber = packetnumber
+    packet.destination = ConnectionId(repeat(0'u8, DefaultConnectionIdLength))
+    datagram.write(packet)
+    check readPacket(datagram).short.packetnumber == packetnumber
 
   test "reads payload from short packet":
     const payload = repeat(0xAB'u8, 1024)
-    datagram[0] = 0b01000000
-    datagram[18..1041] = payload
-    let packet = readPacket(datagram[0..1041])
-    check packet.short.payload == payload
+    var packet = shortPacket()
+    packet.short.payload = payload
+    packet.destination = ConnectionId(repeat(0'u8, DefaultConnectionIdLength))
+    let length = datagram.write(packet)
+    check readPacket(datagram[0..<length]).short.payload == payload
