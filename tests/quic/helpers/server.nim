@@ -60,7 +60,7 @@ proc serverDefaultSettings: ngtcp2_settings =
     result.transport_params.stateless_reset_token[i] = uint8(i)
 
   result.initial_ts = getMonoTime().ticks.uint
-  result.log_printf = log_printf
+  # result.log_printf = log_printf
 
 proc setupServer*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId: ptr ngtcp2_cid): ptr ngtcp2_conn =
   var callbacks: ngtcp2_conn_callbacks

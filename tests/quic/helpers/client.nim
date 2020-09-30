@@ -52,7 +52,7 @@ proc clientDefaultSettings: ngtcp2_settings =
   result.transport_params.active_connection_id_limit = 8
 
   result.initial_ts = getMonoTime().ticks.uint
-  result.log_printf = log_printf
+  # result.log_printf = log_printf
 
 proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId: ptr ngtcp2_cid): ptr ngtcp2_conn =
   var callbacks: ngtcp2_conn_callbacks
