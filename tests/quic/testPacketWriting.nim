@@ -13,37 +13,36 @@ suite "packet writing":
     datagram = newSeq[byte](4096)
 
   test "writes short/long form":
-    datagram.write(Packet(form: formShort))
+    datagram.write(shortPacket())
     check datagram[0].bits[0] == 0
-    datagram.write(Packet(form: formLong))
+    datagram.write(initialPacket())
     check datagram[0].bits[0] == 1
 
   test "writes fixed bit":
-    datagram.write(Packet(form: formShort))
+    datagram.write(shortPacket())
     check datagram[0].bits[1] == 1
-    datagram.write(Packet(form: formLong))
+    datagram.write(initialPacket())
     check datagram[0].bits[1] == 1
 
   test "writes packet type":
-    datagram.write(Packet(form: formLong, kind: packetInitial))
+    datagram.write(initialPacket())
     check datagram[0] == 0b11000000
-    datagram.write(Packet(form: formLong, kind: packet0RTT))
+    datagram.write(zeroRttPacket())
     check datagram[0] == 0b11010000
-    datagram.write(Packet(form: formLong, kind: packetHandshake))
+    datagram.write(handshakePacket())
     check datagram[0] == 0b11100000
-    datagram.write(Packet(form: formLong, kind: packetRetry))
+    datagram.write(retryPacket())
     check datagram[0] == 0b11110000
 
   test "writes version":
-    var packet = Packet(form: formLong, kind: packetInitial)
-    packet.initial.version = 0xAABBCCDD'u32
+    var packet = initialPacket(version = 0xAABBCCDD'u32)
     datagram.write(packet)
     check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
   test "writes source and destination":
     const source = @[1'u8, 2'u8]
     const destination = @[3'u8, 4'u8, 5'u8]
-    var packet = Packet(form: formLong)
+    var packet = initialPacket()
     packet.source = ConnectionId(source)
     packet.destination = ConnectionId(destination)
     datagram.write(packet)
@@ -53,27 +52,25 @@ suite "packet writing":
     check datagram[10..11] == source
 
   test "writes supported version for a version negotiation packet":
-    const supportedVersion = 0xAABBCCDD'u32
-    var packet = Packet(form: formLong, kind: packetVersionNegotiation)
-    packet.negotiation.supportedVersion = supportedVersion
-    datagram.write(packet)
-    check datagram[7..10] == supportedVersion.toBytesBE
+    const version = 0xAABBCCDD'u32
+    datagram.write(versionNegotiationPacket(version = version))
+    check datagram[7..10] == version.toBytesBE
 
   test "writes retry token":
-    var packet = Packet(form: formLong, kind: packetRetry)
+    var packet = retryPacket()
     packet.retry.token = @[1'u8, 2'u8, 3'u8]
     datagram.write(packet)
     check datagram[7..<packet.len-16] == packet.retry.token
 
   test "writes retry integrity tag":
-    var packet = Packet(form: formLong, kind: packetRetry)
+    var packet = retryPacket()
     packet.retry.integrity[0..<16] = repeat(0xB'u8, 16)
     datagram.write(packet)
     check datagram[packet.len-16..<packet.len] == packet.retry.integrity
 
   test "writes handshake packet number":
     const packetnumber = 0xAABBCCDD'u32
-    var packet = Packet(form: formLong, kind: packetHandshake)
+    var packet = handshakePacket()
     packet.handshake.packetnumber = packetnumber
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
@@ -81,7 +78,7 @@ suite "packet writing":
 
   test "writes handshake payload":
     const payload = repeat(0xAB'u8, 1024)
-    var packet = Packet(form: formLong, kind: packetHandshake)
+    var packet = handshakePacket()
     packet.handshake.payload = payload
     datagram.write(packet)
     check datagram[7..8] == payload.len.toVarInt
@@ -89,7 +86,7 @@ suite "packet writing":
 
   test "writes 0-RTT packet number":
     const packetnumber = 0xAABBCCDD'u32
-    var packet = Packet(form: formLong, kind: packet0RTT)
+    var packet = zeroRttPacket()
     packet.rtt.packetnumber = packetnumber
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
@@ -97,7 +94,7 @@ suite "packet writing":
 
   test "writes 0-RTT payload":
     const payload = repeat(0xAB'u8, 1024)
-    var packet = Packet(form: formLong, kind: packet0RTT)
+    var packet = zeroRttPacket()
     packet.rtt.payload = payload
     datagram.write(packet)
     check datagram[7..8] == payload.len.toVarInt
@@ -105,7 +102,7 @@ suite "packet writing":
 
   test "writes initial token":
     const token = repeat(0xAA'u8, 1024)
-    var packet = Packet(form: formLong, kind: packetInitial)
+    var packet = initialPacket()
     packet.initial.token = token
     datagram.write(packet)
     check datagram[7..8] == token.len.toVarInt
@@ -113,7 +110,7 @@ suite "packet writing":
 
   test "writes initial packet number":
     const packetnumber = 0xAABBCCDD'u32
-    var packet = Packet(form: formLong, kind: packetInitial)
+    var packet = initialPacket()
     packet.initial.packetnumber = packetnumber
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
@@ -121,50 +118,61 @@ suite "packet writing":
 
   test "writes initial payload":
     const payload = repeat(0xAB'u8, 1024)
-    var packet = Packet(form: formLong, kind: packetInitial)
+    var packet = initialPacket()
     packet.initial.payload = payload
     datagram.write(packet)
     check datagram[8..9] == payload.len.toVarInt
     check datagram[11..1034] == payload
 
   test "writes spin bit":
-    datagram.write(Packet(form: formShort, short: PacketShort(spinBit: false)))
+    var packet = shortPacket()
+    packet.short.spinBit = false
+    datagram.write(packet)
     check datagram[0].bits[2] == 0
-    datagram.write(Packet(form: formShort, short: PacketShort(spinBit: true)))
+    packet.short.spinBit = true
+    datagram.write(packet)
     check datagram[0].bits[2] == 1
 
   test "writes reserved bits for short packet":
     datagram[0].bits[3] = 1
     datagram[0].bits[4] = 1
-    datagram.write(Packet(form: formShort))
+    datagram.write(shortPacket())
     check datagram[0].bits[3] == 0
     check datagram[0].bits[4] == 0
 
   test "writes key phase for short packet":
-    datagram.write(Packet(form: formShort, short: PacketShort(keyPhase: false)))
+    var packet = shortPacket()
+    packet.short.keyPhase = false
+    datagram.write(packet)
     check datagram[0].bits[5] == 0
-    datagram.write(Packet(form: formShort, short: PacketShort(keyPhase: true)))
+    packet.short.keyPhase = true
+    datagram.write(packet)
     check datagram[0].bits[5] == 1
 
   test "writes destination connection id for short packet":
     const destination = @[1'u8, 2'u8, 3'u8]
-    let packet = Packet(form: formShort, destination: ConnectionId(destination))
+    var packet = shortPacket()
+    packet.destination = ConnectionId(destination)
     datagram.write(packet)
     check datagram[1..3] == destination
 
   test "writes packet number for short packet":
     const packetnumber = 0xAABB'u16
-    datagram.write(Packet(form: formShort, short: PacketShort(packetnumber: packetnumber)))
+    var packet = shortPacket()
+    packet.short.packetnumber = packetnumber
+    datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
     check datagram[1..2] == @[0xAA'u8, 0xBB'u8]
 
   test "writes payload for short packet":
     const payload = repeat(0xAB'u8, 1024)
-    var packet = Packet(form: formShort, short: PacketShort(payload: payload))
+    var packet = shortPacket()
+    packet.short.payload = payload
     datagram.write(packet)
     check datagram[2..1025] == payload
 
   test "returns the number of bytes that were written":
     let payload = repeat(0xAA'u8, 1024)
-    let packet = Packet(form: formShort, short: PacketShort(payload: payload))
+    var packet = shortPacket()
+    packet.short.payload = payload
     check datagram.write(packet) == packet.len
