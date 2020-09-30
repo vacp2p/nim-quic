@@ -68,6 +68,15 @@ suite "packet writing":
     datagram.write(packet)
     check datagram[packet.len-16..<packet.len] == packet.retry.integrity
 
+  test "writes handshake packet length":
+    const packetnumber = 0xAABBCCDD'u32
+    const payload = repeat(0xAB'u8, 1024)
+    var packet = handshakePacket()
+    packet.handshake.packetnumber = packetnumber
+    packet.handshake.payload = payload
+    datagram.write(packet)
+    check datagram[7..8] == (sizeof(packetnumber) + payload.len).toVarInt
+
   test "writes handshake packet number":
     const packetnumber = 0xAABBCCDD'u32
     var packet = handshakePacket()
@@ -81,8 +90,16 @@ suite "packet writing":
     var packet = handshakePacket()
     packet.handshake.payload = payload
     datagram.write(packet)
-    check datagram[7..8] == payload.len.toVarInt
     check datagram[10..1033] == payload
+
+  test "writes 0-RTT packet length":
+    const packetnumber = 0xAABBCCDD'u32
+    const payload = repeat(0xAB'u8, 1024)
+    var packet = zeroRttPacket()
+    packet.rtt.packetnumber = packetnumber
+    packet.rtt.payload = payload
+    datagram.write(packet)
+    check datagram[7..8] == (sizeof(packetnumber) + payload.len).toVarInt
 
   test "writes 0-RTT packet number":
     const packetnumber = 0xAABBCCDD'u32
@@ -97,7 +114,6 @@ suite "packet writing":
     var packet = zeroRttPacket()
     packet.rtt.payload = payload
     datagram.write(packet)
-    check datagram[7..8] == payload.len.toVarInt
     check datagram[10..1033] == payload
 
   test "writes initial token":
@@ -107,6 +123,15 @@ suite "packet writing":
     datagram.write(packet)
     check datagram[7..8] == token.len.toVarInt
     check datagram[9..1032] == token
+
+  test "writes initial packet length":
+    const packetnumber = 0xAABBCCDD'u32
+    const payload = repeat(0xAB'u8, 1024)
+    var packet = initialPacket()
+    packet.initial.packetnumber = packetnumber
+    packet.initial.payload = payload
+    datagram.write(packet)
+    check datagram[8..9] == (sizeof(packetnumber) + payload.len).toVarInt
 
   test "writes initial packet number":
     const packetnumber = 0xAABBCCDD'u32
@@ -121,7 +146,6 @@ suite "packet writing":
     var packet = initialPacket()
     packet.initial.payload = payload
     datagram.write(packet)
-    check datagram[8..9] == payload.len.toVarInt
     check datagram[11..1034] == payload
 
   test "writes spin bit":
