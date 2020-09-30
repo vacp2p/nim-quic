@@ -4,6 +4,7 @@ import ngtcp2
 import helpers/server
 import helpers/client
 import helpers/ids
+import quic
 
 suite "ngtcp2":
 
@@ -50,6 +51,7 @@ suite "ngtcp2":
 
     # handshake client -> server
     check packet.len == client.ngtcp2_conn_write_pkt(addr clientPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+    echo readPackets(@packet)
 
     # check that package is acceptable initial packet
     var packetHeader: ngtcp2_pkt_hd
