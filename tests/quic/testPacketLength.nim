@@ -10,14 +10,14 @@ suite "packet length":
   const token = @[0xA'u8, 0xB'u8, 0xC'u8]
 
   test "knows the length of a version negotiation packet":
-    var packet = Packet(form: formLong, kind: packetVersionNegotiation)
+    var packet = versionNegotiationPacket()
     packet.destination = destination
     packet.source = source
     packet.negotiation.supportedVersion = 42
     check packet.len == 11 + destination.len + source.len
 
   test "knows the length of a retry packet":
-    var packet = Packet(form: formLong, kind: packetRetry)
+    var packet = retryPacket()
     packet.destination = destination
     packet.source = source
     packet.retry.token = token
@@ -25,7 +25,7 @@ suite "packet length":
     check packet.len == 7 + destination.len + source.len + token.len + 16
 
   test "knows the length of a handshake packet":
-    var packet = Packet(form: formLong, kind: packetHandshake)
+    var packet = handshakePacket()
     packet.destination = destination
     packet.source = source
     packet.handshake.packetnumber = 0x00BBCCDD'u32
@@ -38,7 +38,7 @@ suite "packet length":
       1024 # payload
 
   test "knows the length of a 0-RTT packet":
-    var packet = Packet(form: formLong, kind: packet0RTT)
+    var packet = zeroRttPacket()
     packet.destination = destination
     packet.source = source
     packet.rtt.packetnumber = 0x00BBCCDD'u32
@@ -51,7 +51,7 @@ suite "packet length":
       1024 # payload
 
   test "knows the length of an initial packet":
-    var packet = Packet(form: formLong, kind: packetInitial)
+    var packet = initialPacket()
     packet.destination = destination
     packet.source = source
     packet.initial.token = token
@@ -67,7 +67,7 @@ suite "packet length":
       1024 # payload
 
   test "knows the length of a short packet":
-    var packet = Packet(form:formShort)
+    var packet = shortPacket()
     packet.destination = destination
     packet.short.packetnumber = 0x00BBCCDD'u32
     packet.short.payload = repeat(0xEE'u8, 1024)

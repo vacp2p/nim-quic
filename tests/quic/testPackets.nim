@@ -44,14 +44,14 @@ suite "multiple packets":
     datagram = newSeq[byte](4096)
 
   test "writes multiple packets into a datagram":
-    let packet1 = Packet(form: formLong, kind: packetInitial)
-    let packet2 = Packet(form: formLong, kind: packetHandshake)
+    let packet1 = initialPacket()
+    let packet2 = handshakePacket()
     datagram.write(@[packet1, packet2])
     check datagram[0] == 0b11_00_0000 # initial
     check datagram[packet1.len] == 0b11_10_0000 # handshake
 
   test "writes packet number lengths correctly":
-    var packet1, packet2 = Packet(form: formLong)
+    var packet1, packet2 = initialPacket()
     packet1.initial.packetnumber = 0xAABBCC
     packet2.initial.packetnumber = 0xAABBCCDD
     datagram.write(@[packet1, packet2])
@@ -59,14 +59,12 @@ suite "multiple packets":
     check datagram[packet1.len] == 0b110000_11 # packet number length 4
 
   test "returns the number of bytes that were written":
-    let packet1 = Packet(form: formLong, kind: packetInitial)
-    let packet2 = Packet(form: formLong, kind: packetHandshake)
+    let packet1 = initialPacket()
+    let packet2 = handshakePacket()
     check datagram.write(@[packet1, packet2]) == packet1.len + packet2.len
 
   test "reads multiple packets from a datagram":
-    var packet1 = Packet(form: formLong, kind: packetInitial)
-    var packet2 = Packet(form: formLong, kind: packetHandshake)
-    packet1.initial.version = 1
-    packet2.handshake.version = 1
+    var packet1 = initialPacket()
+    var packet2 = handshakePacket()
     let length = datagram.write(@[packet1, packet2])
     check datagram[0..<length].readPackets() == @[packet1, packet2]
