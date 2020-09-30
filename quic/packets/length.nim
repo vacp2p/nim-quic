@@ -1,8 +1,7 @@
 import packet
 import packetnumber
 import ../varints
-
-{.push raises:[].} # avoid exceptions in this module
+include ../noerrors
 
 proc len*(packet: Packet): int =
   case packet.form

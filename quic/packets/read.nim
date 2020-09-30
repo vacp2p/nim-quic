@@ -5,8 +5,7 @@ import datagram
 import packet
 import reader
 export PacketReader
-
-{.push raises:[].} # avoid exceptions in this module
+include ../noerrors
 
 proc readForm*(reader: var PacketReader, datagram: Datagram) =
   reader.packet = Packet(form: PacketForm(datagram[reader.next].bits[0]))
