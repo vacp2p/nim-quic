@@ -11,10 +11,11 @@ suite "packet length":
 
   test "knows the length of a version negotiation packet":
     var packet = versionNegotiationPacket()
+    const versions = @[1'u32, 2'u32, 3'u32]
     packet.destination = destination
     packet.source = source
-    packet.negotiation.supportedVersion = 42
-    check packet.len == 11 + destination.len + source.len
+    packet.negotiation.supportedVersions = versions
+    check packet.len == 7 + destination.len + source.len + 4 * versions.len
 
   test "knows the length of a retry packet":
     var packet = retryPacket()

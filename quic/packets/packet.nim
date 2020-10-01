@@ -38,7 +38,7 @@ type
     token*: seq[byte]
     integrity*: array[16, byte]
   PacketVersionNegotiation* = object
-    supportedVersion*: uint32
+    supportedVersions*: seq[uint32]
   Packet* = object
     case form*: PacketForm
     of formShort:
@@ -72,9 +72,9 @@ proc retryPacket*(version: uint32 = CurrentQuicVersion): Packet =
   result = Packet(form: formLong, kind: packetRetry)
   result.retry.version = version
 
-proc versionNegotiationPacket*(version: uint32 = CurrentQuicVersion): Packet =
+proc versionNegotiationPacket*(versions = @[CurrentQuicVersion]): Packet =
   result = Packet(form: formLong, kind: packetVersionNegotiation)
-  result.negotiation.supportedVersion = version
+  result.negotiation.supportedVersions = versions
 
 proc `==`*(a, b: Packet): bool =
   if a.form != b.form: return false

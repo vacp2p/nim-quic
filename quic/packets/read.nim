@@ -27,9 +27,11 @@ proc `version=`(packet: var Packet, version: uint32) =
 proc readVersion*(reader: var PacketReader, datagram: Datagram) =
   reader.packet.version = fromBytesBE(uint32, reader.read(datagram, 4))
 
-proc readSupportedVersion*(reader: var PacketReader, datagram: Datagram) =
-  let version = fromBytesBE(uint32, reader.read(datagram, 4))
-  reader.packet.negotiation.supportedVersion = version
+proc readSupportedVersions*(reader: var PacketReader, datagram: Datagram) =
+  var versions: seq[uint32]
+  while reader.next < datagram.len:
+    versions.add(fromBytesBE(uint32, reader.read(datagram, 4)))
+  reader.packet.negotiation.supportedVersions = versions
 
 proc readKind*(reader: var PacketReader, datagram: Datagram) =
   var kind: uint8
