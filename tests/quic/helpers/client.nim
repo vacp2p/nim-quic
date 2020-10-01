@@ -6,11 +6,21 @@ import aead
 import hp
 import settings
 
+type
+  InitialKey = object
+    aeadContext: ngtcp2_crypto_aead_ctx
+    iv: array[16, uint8]
+    hpContext: ngtcp2_crypto_cipher_ctx
+  TxKey = object
+    aeadContext: ngtcp2_crypto_aead_ctx
+    iv: array[16, uint8]
+    hpContext: ngtcp2_crypto_cipher_ctx
+    secret: array[16, uint8]
+  RetryAead = object
+    aeadContext: ngtcp2_crypto_aead_ctx
+    aead : ngtcp2_crypto_aead
+
 var cryptoData: array[4096, uint8]
-var retryAead: ngtcp2_crypto_aead
-var aeadContext: ngtcp2_crypto_aead_ctx
-var hpContext: ngtcp2_crypto_cipher_ctx
-var iv: array[16, uint8]
 
 var randomId: ngtcp2_cid
 
@@ -74,18 +84,31 @@ proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     nil
   )
 
+  var initialKey: InitialKey
   assert 0 == ngtcp2_conn_install_initial_key(
     result,
-    addr aeadContext,
-    addr iv[0],
-    addr hpContext,
-    addr aeadContext,
-    addr iv[0],
-    addr hpContext,
-    sizeof(iv).uint
+    addr initialKey.aeadContext,
+    addr initialKey.iv[0],
+    addr initialKey.hpContext,
+    addr initialKey.aeadContext,
+    addr initialKey.iv[0],
+    addr initialKey.hpContext,
+    sizeof(initialKey.iv).uint
   )
 
-  ngtcp2_conn_set_retry_aead(result, addr retryAead, addr aeadContext)
+  var txKey: TxKey
+  assert 0 == ngtcp2_conn_install_tx_key(
+    result,
+    addr txKey.secret[0],
+    txKey.secret.len.uint,
+    addr txKey.aeadContext,
+    addr txKey.iv[0],
+    txKey.iv.len.uint,
+    addr txKey.hpContext
+  )
+
+  var retryAead: RetryAead
+  ngtcp2_conn_set_retry_aead(result, addr retryAead.aead, addr retryAead.aeadContext)
 
   ngtcp2_conn_set_aead_overhead(result, NGTCP2_FAKE_AEAD_OVERHEAD)
 
