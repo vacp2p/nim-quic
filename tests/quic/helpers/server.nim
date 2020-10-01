@@ -23,6 +23,11 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
     addr cryptoData[0],
     sizeof(cryptoData).uint
   )
+
+  var params = clientDefaultSettings().transport_params
+  params.initial_scid = connection.ngtcp2_conn_get_dcid()[]
+  assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
+
   ngtcp2_conn_handshake_completed(connection)
 
 proc receiveStreamData(connection: ptr ngtcp2_conn, flags: uint32, stream_id: int64, offset: uint64, data: ptr uint8, datalen: uint, user_data: pointer, stream_user_data: pointer): cint {.cdecl.} =
