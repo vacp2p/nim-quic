@@ -34,7 +34,7 @@ suite "packet creation":
     let packet = versionNegotiationPacket()
     check packet.form == formLong
     check packet.kind == packetVersionNegotiation
-    check packet.negotiation.supportedVersion == CurrentQuicVersion
+    check packet.negotiation.supportedVersions == @[CurrentQuicVersion]
 
 suite "multiple packets":
 

@@ -44,8 +44,9 @@ proc writeDestination*(writer: var PacketWriter, datagram: var Datagram) =
 proc writeSource*(writer: var PacketWriter, datagram: var Datagram) =
   writer.writeConnectionId(datagram, writer.packet.source)
 
-proc writeSupportedVersion*(writer: var PacketWriter, datagram: var Datagram) =
-  writer.write(datagram, writer.packet.negotiation.supportedVersion.toBytesBE)
+proc writeSupportedVersions*(writer: var PacketWriter, datagram: var Datagram) =
+  for version in writer.packet.negotiation.supportedVersions:
+    writer.write(datagram, version.toBytesBE)
 
 proc `token`(packet: Packet): seq[byte] =
   case packet.kind

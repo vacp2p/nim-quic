@@ -52,9 +52,10 @@ suite "packet writing":
     check datagram[10..11] == source
 
   test "writes supported version for a version negotiation packet":
-    const version = 0xAABBCCDD'u32
-    datagram.write(versionNegotiationPacket(version = version))
-    check datagram[7..10] == version.toBytesBE
+    const versions = @[0xAABBCCDD'u32, 0x11223344'u32]
+    datagram.write(versionNegotiationPacket(versions = versions))
+    check datagram[7..10] == versions[0].toBytesBE
+    check datagram[11..14] == versions[1].toBytesBE
 
   test "writes retry token":
     var packet = retryPacket()

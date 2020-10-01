@@ -13,9 +13,10 @@ proc len*(packet: Packet): int =
   of formLong:
     case packet.kind:
     of packetVersionNegotiation:
-      return 11 +
+      return 7 +
         packet.destination.len +
-        packet.source.len
+        packet.source.len +
+        packet.negotiation.supportedVersions.len * 4
     of packetRetry:
       return 23 +
         packet.destination.len +

@@ -24,7 +24,7 @@ proc read(reader: var PacketReader, datagram: Datagram): Packet =
     reader.readSource(datagram)
     case reader.packet.kind
     of packetVersionNegotiation:
-      reader.readSupportedVersion(datagram)
+      reader.readSupportedVersions(datagram)
     of packetRetry:
       reader.readRetryToken(datagram)
       reader.readIntegrity(datagram)
@@ -62,7 +62,7 @@ proc write(writer: var PacketWriter, datagram: var Datagram) =
     writer.writeSource(datagram)
     case writer.packet.kind
     of packetVersionNegotiation:
-      writer.writeSupportedVersion(datagram)
+      writer.writeSupportedVersions(datagram)
     of packetRetry:
       writer.writeToken(datagram)
       writer.writeIntegrity(datagram)

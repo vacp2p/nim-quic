@@ -33,8 +33,8 @@ suite "packet reading":
     check readPacket(datagram).kind == packetRetry
 
   test "reads version negotiation packet":
-    datagram.write(versionNegotiationPacket())
-    check readPacket(datagram).kind == packetVersionNegotiation
+    let length = datagram.write(versionNegotiationPacket())
+    check readPacket(datagram[0..<length]).kind == packetVersionNegotiation
 
   test "reads version":
     const version = 0xAABBCCDD'u32
@@ -55,10 +55,10 @@ suite "packet reading":
     datagram.write(packet)
     check readPacket(datagram).destination == destination
 
-  test "reads supported version in version negotiation packet":
-    const version = 0xAABBCCDD'u32
-    datagram.write(versionNegotiationPacket(version = version))
-    check readPacket(datagram).negotiation.supportedVersion == version
+  test "reads supported versions in version negotiation packet":
+    const versions = @[0xAABBCCDD'u32, 0x11223344'u32]
+    let length = datagram.write(versionNegotiationPacket(versions = versions))
+    check readPacket(datagram[0..<length]).negotiation.supportedVersions == versions
 
   test "reads token from retry packet":
     const token = @[1'u8, 2'u8, 3'u8]
