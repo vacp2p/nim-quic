@@ -1,11 +1,10 @@
-import std/monotimes
 import ngtcp2
 import ids
 import encrypt
 import decrypt
 import aead
 import hp
-import log
+import settings
 
 var cryptoData: array[4096, uint8]
 var retryAead: ngtcp2_crypto_aead
@@ -37,22 +36,6 @@ proc handshakeConfirmed(conn: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.
 
 proc handshakeCompleted(conn: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
   echo "CLIENT: HANDSHAKE COMPLETED"
-
-proc clientDefaultSettings: ngtcp2_settings =
-  result.initial_rtt = NGTCP2_DEFAULT_INITIAL_RTT
-  result.transport_params.initial_max_stream_data_bidi_local = 65535
-  result.transport_params.initial_max_stream_data_bidi_remote = 65535
-  result.transport_params.initial_max_stream_data_uni = 65535
-  result.transport_params.initial_max_data = 128 * 1024
-  result.transport_params.initial_max_streams_bidi = 0
-  result.transport_params.initial_max_streams_uni = 2
-  result.transport_params.max_idle_timeout = 60
-  result.transport_params.max_udp_payload_size = 65535
-  result.transport_params.stateless_reset_token_present = 0
-  result.transport_params.active_connection_id_limit = 8
-
-  result.initial_ts = getMonoTime().ticks.uint
-  # result.log_printf = log_printf
 
 proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId: ptr ngtcp2_cid): ptr ngtcp2_conn =
   var callbacks: ngtcp2_conn_callbacks
