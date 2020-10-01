@@ -56,19 +56,19 @@ type
 proc shortPacket*: Packet =
   Packet(form: formShort)
 
-proc initialPacket*(version: uint32 = CurrentQuicVersion): Packet =
+proc initialPacket*(version = CurrentQuicVersion): Packet =
   result = Packet(form: formLong, kind: packetInitial)
   result.initial.version = version
 
-proc zeroRttPacket*(version: uint32 = CurrentQuicVersion): Packet =
+proc zeroRttPacket*(version = CurrentQuicVersion): Packet =
   result = Packet(form: formLong, kind: packet0RTT)
   result.rtt.version = version
 
-proc handshakePacket*(version: uint32 = CurrentQuicVersion): Packet =
+proc handshakePacket*(version = CurrentQuicVersion): Packet =
   result = Packet(form: formLong, kind: packetHandshake)
   result.handshake.version = version
 
-proc retryPacket*(version: uint32 = CurrentQuicVersion): Packet =
+proc retryPacket*(version = CurrentQuicVersion): Packet =
   result = Packet(form: formLong, kind: packetRetry)
   result.retry.version = version
 
