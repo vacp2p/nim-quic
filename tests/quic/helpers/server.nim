@@ -36,7 +36,7 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
     sizeof(cryptoData).uint
   )
 
-  var params = clientDefaultSettings().transport_params
+  var params = defaultSettings().transport_params
   params.initial_scid = connection.ngtcp2_conn_get_dcid()[]
   assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
 
@@ -97,7 +97,7 @@ proc setupServer*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
   callbacks.handshake_confirmed = handshakeConfirmed
   callbacks.handshake_completed = handshakeCompleted
 
-  var settings = serverDefaultSettings()
+  var settings = defaultSettings()
 
   assert 0 == ngtcp2_conn_server_new(
     addr result,
