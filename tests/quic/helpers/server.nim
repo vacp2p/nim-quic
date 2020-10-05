@@ -19,6 +19,24 @@ proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, use
     addr earlyKey.hpContext
   )
 
+  var rxHandshakeKey: Key
+  assert 0 == ngtcp2_conn_install_rx_handshake_key(
+    connection,
+    addr rxHandshakeKey.aeadContext,
+    addr rxHandshakeKey.iv[0],
+    sizeof(rxHandshakeKey.iv).uint,
+    addr rxHandshakeKey.hpContext
+  )
+
+  var txHandshakeKey: Key
+  assert 0 == ngtcp2_conn_install_tx_handshake_key(
+    connection,
+    addr txHandshakeKey.aeadContext,
+    addr txHandshakeKey.iv[0],
+    sizeof(txHandshakeKey.iv).uint,
+    addr txHandshakeKey.hpContext
+  )
+
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
   assert 0 == ngtcp2_conn_submit_crypto_data(
     connection,
@@ -112,24 +130,6 @@ proc setupServer*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     addr initialKey.iv[0],
     addr initialKey.hpContext,
     sizeof(initialKey.iv).uint
-  )
-
-  var rxHandshakeKey: Key
-  assert 0 == ngtcp2_conn_install_rx_handshake_key(
-    result,
-    addr rxHandshakeKey.aeadContext,
-    addr rxHandshakeKey.iv[0],
-    sizeof(rxHandshakeKey.iv).uint,
-    addr rxHandshakeKey.hpContext
-  )
-
-  var txHandshakeKey: Key
-  assert 0 == ngtcp2_conn_install_tx_handshake_key(
-    result,
-    addr txHandshakeKey.aeadContext,
-    addr txHandshakeKey.iv[0],
-    sizeof(txHandshakeKey.iv).uint,
-    addr txHandshakeKey.hpContext
   )
 
   ngtcp2_conn_set_aead_overhead(result, NGTCP2_FAKE_AEAD_OVERHEAD)
