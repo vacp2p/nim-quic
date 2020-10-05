@@ -16,6 +16,11 @@ type
     iv: array[16, uint8]
     hpContext: ngtcp2_crypto_cipher_ctx
     secret: array[16, uint8]
+  RxKey = object
+    aeadContext: ngtcp2_crypto_aead_ctx
+    iv: array[16, uint8]
+    hpContext: ngtcp2_crypto_cipher_ctx
+    secret: array[16, uint8]
   RetryAead = object
     aeadContext: ngtcp2_crypto_aead_ctx
     aead : ngtcp2_crypto_aead
@@ -32,10 +37,34 @@ proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdec
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
   echo "CLIENT: RECEIVE CRYPTO DATA"
+
   var params = serverDefaultSettings().transport_params
   params.initial_scid = connection.ngtcp2_conn_get_dcid()[]
   params.original_dcid = randomId
   assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
+
+  var rxKey: RxKey
+  assert 0 == ngtcp2_conn_install_rx_key(
+    connection,
+    addr rxKey.secret[0],
+    rxKey.secret.len.uint,
+    addr rxKey.aeadContext,
+    addr rxKey.iv[0],
+    rxKey.iv.len.uint,
+    addr rxKey.hpContext
+  )
+
+  var txKey: TxKey
+  assert 0 == ngtcp2_conn_install_tx_key(
+    connection,
+    addr txKey.secret[0],
+    txKey.secret.len.uint,
+    addr txKey.aeadContext,
+    addr txKey.iv[0],
+    txKey.iv.len.uint,
+    addr txKey.hpContext
+  )
+
   ngtcp2_conn_handshake_completed(connection)
 
 proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
@@ -94,17 +123,6 @@ proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     addr initialKey.iv[0],
     addr initialKey.hpContext,
     sizeof(initialKey.iv).uint
-  )
-
-  var txKey: TxKey
-  assert 0 == ngtcp2_conn_install_tx_key(
-    result,
-    addr txKey.secret[0],
-    txKey.secret.len.uint,
-    addr txKey.aeadContext,
-    addr txKey.iv[0],
-    txKey.iv.len.uint,
-    addr txKey.hpContext
   )
 
   var retryAead: RetryAead
