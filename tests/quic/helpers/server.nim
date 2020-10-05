@@ -8,13 +8,17 @@ import keys
 import settings
 
 var cryptoData: array[4096, uint8]
-var aeadContext: ngtcp2_crypto_aead_ctx
-var hpContext: ngtcp2_crypto_cipher_ctx
-var iv: array[16, uint8]
 
 proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
   echo "SERVER: RECEIVE CLIENT INITIAL"
-  assert 0 == ngtcp2_conn_install_early_key(connection, addr aeadContext, addr iv[0], sizeof(iv).uint, addr hpContext)
+  var earlyKey: Key
+  assert 0 == ngtcp2_conn_install_early_key(
+    connection,
+    addr earlyKey.aeadContext,
+    addr earlyKey.iv[0],
+    sizeof(earlyKey.iv).uint,
+    addr earlyKey.hpContext
+  )
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
   echo "SERVER: RECEIVE CRYPTO DATA"
@@ -100,31 +104,34 @@ proc setupServer*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     nil
   )
 
+  var initialKey: Key
   assert 0 == ngtcp2_conn_install_initial_key(
     result,
-    addr aeadContext,
-    addr iv[0],
-    addr hpContext,
-    addr aeadContext,
-    addr iv[0],
-    addr hpContext,
-    sizeof(iv).uint
+    addr initialKey.aeadContext,
+    addr initialKey.iv[0],
+    addr initialKey.hpContext,
+    addr initialKey.aeadContext,
+    addr initialKey.iv[0],
+    addr initialKey.hpContext,
+    sizeof(initialKey.iv).uint
   )
 
+  var rxHandshakeKey: Key
   assert 0 == ngtcp2_conn_install_rx_handshake_key(
     result,
-    addr aeadContext,
-    addr iv[0],
-    sizeof(iv).uint,
-    addr hpContext
+    addr rxHandshakeKey.aeadContext,
+    addr rxHandshakeKey.iv[0],
+    sizeof(rxHandshakeKey.iv).uint,
+    addr rxHandshakeKey.hpContext
   )
 
+  var txHandshakeKey: Key
   assert 0 == ngtcp2_conn_install_tx_handshake_key(
     result,
-    addr aeadContext,
-    addr iv[0],
-    sizeof(iv).uint,
-    addr hpContext
+    addr txHandshakeKey.aeadContext,
+    addr txHandshakeKey.iv[0],
+    sizeof(txHandshakeKey.iv).uint,
+    addr txHandshakeKey.hpContext
   )
 
   ngtcp2_conn_set_aead_overhead(result, NGTCP2_FAKE_AEAD_OVERHEAD)
