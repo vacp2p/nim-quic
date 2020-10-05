@@ -10,15 +10,6 @@ import settings
 var cryptoData: array[4096, uint8]
 
 proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
-  var earlyKey: Key
-  assert 0 == ngtcp2_conn_install_early_key(
-    connection,
-    addr earlyKey.aeadContext,
-    addr earlyKey.iv[0],
-    sizeof(earlyKey.iv).uint,
-    addr earlyKey.hpContext
-  )
-
   var rxHandshakeKey: Key
   assert 0 == ngtcp2_conn_install_rx_handshake_key(
     connection,
