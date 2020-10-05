@@ -15,9 +15,7 @@ suite "ngtcp2":
     check settings.transport_params.active_connection_id_limit > 0
 
   test "open connection":
-    var clientId = randomConnectionId()
-    var randomId = randomConnectionId()
-    var serverId = randomConnectionId()
+    var clientId, randomId, serverId = randomConnectionId()
 
     let client = setupClient(addr zeroPath, addr clientId, addr randomId)
     defer: ngtcp2_conn_del(client)
