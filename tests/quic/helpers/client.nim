@@ -17,14 +17,11 @@ var cryptoData: array[4096, uint8]
 var randomId: ngtcp2_cid
 
 proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdecl.} =
-  echo "CLIENT: CLIENT INITIAL"
   assert 0 == ngtcp2_conn_submit_crypto_data(
     connection, NGTCP2_CRYPTO_LEVEL_INITIAL, addr cryptoData[0], sizeof(cryptoData).uint
   )
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
-  echo "CLIENT: RECEIVE CRYPTO DATA"
-
   var params = defaultSettings().transport_params
   params.initial_scid = connection.ngtcp2_conn_get_dcid()[]
   params.original_dcid = randomId
@@ -55,19 +52,19 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
   ngtcp2_conn_handshake_completed(connection)
 
 proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
-  echo "CLIENT: RECEIVE CLIENT INITIAL"
+  discard
 
 proc random(dest: ptr uint8, destlen: uint, rand_ctx: ptr ngtcp2_rand_ctx, usage: ngtcp2_rand_usage): cint {.cdecl.} =
-  echo "CLIENT: RANDOM"
+  discard
 
 proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8, rx_aead_ctx: ptr ngtcp2_crypto_aead_ctx, rx_iv: ptr uint8, tx_aead_ctx: ptr ngtcp2_crypto_aead_ctx, tx_iv: ptr uint8, current_rx_secret: ptr uint8, current_tx_secret: ptr uint8, secretlen: uint, user_data: pointer): cint {.cdecl} =
-  echo "CLIENT: UPDATE KEY"
+  discard
 
 proc handshakeConfirmed(conn: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
-  echo "CLIENT: HANDSHAKE CONFIRMED"
+  discard
 
 proc handshakeCompleted(conn: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
-  echo "CLIENT: HANDSHAKE COMPLETED"
+  discard
 
 proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId: ptr ngtcp2_cid): ptr ngtcp2_conn =
   randomId = destinationId[]

@@ -10,7 +10,6 @@ proc dummyDecrypt*(dest: ptr uint8,
                    noncelen: uint,
                    ad: ptr uint8,
                    adlen: uint): cint {.cdecl.} =
-  echo "DECRYPT"
   assert ciphertextlen >= NGTCP2_FAKE_AEAD_OVERHEAD
   moveMem(dest, ciphertext, ciphertextlen - NGTCP2_FAKE_AEAD_OVERHEAD)
 
