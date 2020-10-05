@@ -4,7 +4,6 @@ import ngtcp2
 import helpers/server
 import helpers/client
 import helpers/ids
-import quic
 
 suite "ngtcp2":
 
@@ -50,8 +49,8 @@ suite "ngtcp2":
     var packetInfo: ngtcp2_pkt_info
 
     # handshake client -> server
-    check packet.len == client.ngtcp2_conn_write_pkt(addr clientPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
-    echo readPackets(@packet)
+    echo "--- CLIENT 1>>> SERVER"
+    check packet.len == client.ngtcp2_conn_write_stream(addr clientPath, addr packetInfo, addr packet[0], packet.len.uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
 
     # check that package is acceptable initial packet
     var packetHeader: ngtcp2_pkt_hd
@@ -71,4 +70,27 @@ suite "ngtcp2":
     let server = setupServer(addr serverPath, addr serverId, addr serverDestinationId)
     defer: ngtcp2_conn_del(server)
 
+    echo "--- CLIENT >>>1 SERVER"
     check 0 == server.ngtcp2_conn_read_pkt(addr serverPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+
+    echo "--- CLIENT <<<2 SERVER"
+    var offset = 0
+    block:
+      var length = 1
+      offset = 0
+      while length > 0:
+        length = server.ngtcp2_conn_write_stream(addr serverPath, addr packetInfo, addr packet[offset], (packet.len - offset).uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
+        offset = offset + length
+
+    echo "--- CLIENT 2<<< SERVER"
+    check 0 == client.ngtcp2_conn_read_pkt(addr clientPath, addr packetInfo, addr packet[0], offset.uint, getMonoTime().ticks.uint)
+
+    echo "--- CLIENT 3>>> SERVER"
+    check packet.len == client.ngtcp2_conn_write_pkt(addr clientPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+
+    check client.ngtcp2_conn_get_handshake_completed().bool
+
+    echo "--- CLIENT >>>3 SERVER"
+    check 0 == server.ngtcp2_conn_read_pkt(addr serverPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+
+    check server.ngtcp2_conn_get_handshake_completed().bool
