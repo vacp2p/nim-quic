@@ -9,5 +9,4 @@ proc dummyEncrypt*(dest: ptr uint8,
                    noncelen: uint,
                    ad: ptr uint8,
                    adlen: uint): cint{.cdecl.} =
-  if plaintextlen.bool and plaintext != dest:
-    copyMem(dest, plaintext, plaintextlen)
+  moveMem(dest, plaintext, plaintextlen)
