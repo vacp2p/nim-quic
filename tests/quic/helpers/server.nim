@@ -7,38 +7,12 @@ import ids
 import keys
 import settings
 
+let zeroKey = Key()
 var cryptoData: array[4096, uint8]
 
 proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
-  var initialKey: Key
-  assert 0 == ngtcp2_conn_install_initial_key(
-    connection,
-    addr initialKey.aeadContext,
-    addr initialKey.iv[0],
-    addr initialKey.hpContext,
-    addr initialKey.aeadContext,
-    addr initialKey.iv[0],
-    addr initialKey.hpContext,
-    sizeof(initialKey.iv).uint
-  )
-
-  var rxHandshakeKey: Key
-  assert 0 == ngtcp2_conn_install_rx_handshake_key(
-    connection,
-    addr rxHandshakeKey.aeadContext,
-    addr rxHandshakeKey.iv[0],
-    sizeof(rxHandshakeKey.iv).uint,
-    addr rxHandshakeKey.hpContext
-  )
-
-  var txHandshakeKey: Key
-  assert 0 == ngtcp2_conn_install_tx_handshake_key(
-    connection,
-    addr txHandshakeKey.aeadContext,
-    addr txHandshakeKey.iv[0],
-    sizeof(txHandshakeKey.iv).uint,
-    addr txHandshakeKey.hpContext
-  )
+  connection.install0RttKey(zeroKey)
+  connection.installHandshakeKeys(zeroKey, zeroKey)
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
   assert 0 == ngtcp2_conn_submit_crypto_data(
@@ -58,27 +32,7 @@ proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8
   discard
 
 proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
-  var txKey: Key
-  assert 0 == ngtcp2_conn_install_tx_key(
-    connection,
-    addr txKey.secret[0],
-    txKey.secret.len.uint,
-    addr txKey.aeadContext,
-    addr txKey.iv[0],
-    txKey.iv.len.uint,
-    addr txKey.hpContext
-  )
-
-  var rxKey: Key
-  assert 0 == ngtcp2_conn_install_rx_key(
-    connection,
-    addr rxKey.secret[0],
-    rxKey.secret.len.uint,
-    addr rxKey.aeadContext,
-    addr rxKey.iv[0],
-    rxKey.iv.len.uint,
-    addr rxKey.hpContext
-  )
+  connection.install1RttKeys(zeroKey, zeroKey)
 
 proc setupServer*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId: ptr ngtcp2_cid): ptr ngtcp2_conn =
   var callbacks: ngtcp2_conn_callbacks
