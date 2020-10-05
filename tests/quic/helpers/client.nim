@@ -17,6 +17,18 @@ var cryptoData: array[4096, uint8]
 var randomId: ngtcp2_cid
 
 proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdecl.} =
+  var initialKey: Key
+  assert 0 == ngtcp2_conn_install_initial_key(
+    connection,
+    addr initialKey.aeadContext,
+    addr initialKey.iv[0],
+    addr initialKey.hpContext,
+    addr initialKey.aeadContext,
+    addr initialKey.iv[0],
+    addr initialKey.hpContext,
+    sizeof(initialKey.iv).uint
+  )
+
   assert 0 == ngtcp2_conn_submit_crypto_data(
     connection, NGTCP2_CRYPTO_LEVEL_INITIAL, addr cryptoData[0], sizeof(cryptoData).uint
   )
@@ -95,18 +107,6 @@ proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     addr settings,
     nil,
     nil
-  )
-
-  var initialKey: Key
-  assert 0 == ngtcp2_conn_install_initial_key(
-    result,
-    addr initialKey.aeadContext,
-    addr initialKey.iv[0],
-    addr initialKey.hpContext,
-    addr initialKey.aeadContext,
-    addr initialKey.iv[0],
-    addr initialKey.hpContext,
-    sizeof(initialKey.iv).uint
   )
 
   var rxHandshakeKey: Key
