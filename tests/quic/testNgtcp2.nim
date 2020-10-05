@@ -4,6 +4,7 @@ import ngtcp2
 import helpers/server
 import helpers/client
 import helpers/ids
+import helpers/path
 
 suite "ngtcp2":
 
@@ -14,35 +15,11 @@ suite "ngtcp2":
     check settings.transport_params.active_connection_id_limit > 0
 
   test "open connection":
-    var serverLocalAddress, serverRemoteAddress: SocketAddress
-    serverLocalAddress.ipv4.sin_family = AF_INET
-    serverLocalAddress.ipv4.sin_addr.s_addr = 1
-    serverLocalAddress.ipv4.sin_port = Port(1000)
-    serverRemoteAddress.ipv4.sin_family = AF_INET
-    serverRemoteAddress.ipv4.sin_addr.s_addr = 2
-    serverRemoteAddress.ipv4.sin_port = Port(2000)
-    var serverPath = ngtcp2_path(
-      local: ngtcp2_addr(`addr`: addr serverLocalAddress.address, addrlen: sizeof(SocketAddress).uint),
-      remote: ngtcp2_addr(`addr`: addr serverRemoteAddress.address, addrlen: sizeof(SocketAddress).uint)
-    )
-
-    var clientLocalAddress, clientRemoteAddress: SocketAddress
-    clientLocalAddress.ipv4.sin_family = AF_INET
-    clientLocalAddress.ipv4.sin_addr.s_addr = 2
-    clientLocalAddress.ipv4.sin_port = Port(2000)
-    clientRemoteAddress.ipv4.sin_family = AF_INET
-    clientRemoteAddress.ipv4.sin_addr.s_addr = 1
-    clientRemoteAddress.ipv4.sin_port = Port(1000)
-    var clientPath = ngtcp2_path(
-      local: ngtcp2_addr(`addr`: addr clientLocalAddress.address, addrlen: sizeof(SocketAddress).uint),
-      remote: ngtcp2_addr(`addr`: addr clientRemoteAddress.address, addrlen: sizeof(SocketAddress).uint)
-    )
-
     var clientId = randomConnectionId()
     var randomId = randomConnectionId()
     var serverId = randomConnectionId()
 
-    let client = setupClient(addr clientPath, addr clientId, addr randomId)
+    let client = setupClient(addr zeroPath, addr clientId, addr randomId)
     defer: ngtcp2_conn_del(client)
 
     var packet: array[16348, uint8]
@@ -50,7 +27,7 @@ suite "ngtcp2":
 
     # handshake client -> server
     echo "--- CLIENT 1>>> SERVER"
-    check packet.len == client.ngtcp2_conn_write_stream(addr clientPath, addr packetInfo, addr packet[0], packet.len.uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
+    check packet.len == client.ngtcp2_conn_write_stream(addr zeroPath, addr packetInfo, addr packet[0], packet.len.uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
 
     # check that package is acceptable initial packet
     var packetHeader: ngtcp2_pkt_hd
@@ -67,11 +44,11 @@ suite "ngtcp2":
     check serverDestinationId == clientId
 
     # setup server connection using received id
-    let server = setupServer(addr serverPath, addr serverId, addr serverDestinationId)
+    let server = setupServer(addr zeroPath, addr serverId, addr serverDestinationId)
     defer: ngtcp2_conn_del(server)
 
     echo "--- CLIENT >>>1 SERVER"
-    check 0 == server.ngtcp2_conn_read_pkt(addr serverPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+    check 0 == server.ngtcp2_conn_read_pkt(addr zeroPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
 
     echo "--- CLIENT <<<2 SERVER"
     var offset = 0
@@ -79,18 +56,18 @@ suite "ngtcp2":
       var length = 1
       offset = 0
       while length > 0:
-        length = server.ngtcp2_conn_write_stream(addr serverPath, addr packetInfo, addr packet[offset], (packet.len - offset).uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
+        length = server.ngtcp2_conn_write_stream(addr zeroPath, addr packetInfo, addr packet[offset], (packet.len - offset).uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
         offset = offset + length
 
     echo "--- CLIENT 2<<< SERVER"
-    check 0 == client.ngtcp2_conn_read_pkt(addr clientPath, addr packetInfo, addr packet[0], offset.uint, getMonoTime().ticks.uint)
+    check 0 == client.ngtcp2_conn_read_pkt(addr zeroPath, addr packetInfo, addr packet[0], offset.uint, getMonoTime().ticks.uint)
 
     echo "--- CLIENT 3>>> SERVER"
-    check packet.len == client.ngtcp2_conn_write_pkt(addr clientPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+    check packet.len == client.ngtcp2_conn_write_pkt(addr zeroPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
 
     check client.ngtcp2_conn_get_handshake_completed().bool
 
     echo "--- CLIENT >>>3 SERVER"
-    check 0 == server.ngtcp2_conn_read_pkt(addr serverPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+    check 0 == server.ngtcp2_conn_read_pkt(addr zeroPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
 
     check server.ngtcp2_conn_get_handshake_completed().bool
