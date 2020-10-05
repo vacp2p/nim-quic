@@ -46,7 +46,7 @@ suite "ngtcp2":
     let client = setupClient(addr clientPath, addr clientId, addr randomId)
     defer: ngtcp2_conn_del(client)
 
-    var packet: array[4096, uint8]
+    var packet: array[16348, uint8]
     var packetInfo: ngtcp2_pkt_info
 
     # handshake client -> server
