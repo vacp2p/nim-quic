@@ -4,19 +4,8 @@ import decrypt
 import aead
 import hp
 import ids
+import keys
 import settings
-
-type
-  RxKey = object
-    aeadContext: ngtcp2_crypto_aead_ctx
-    iv: array[16, uint8]
-    hpContext: ngtcp2_crypto_cipher_ctx
-    secret: array[16, uint8]
-  TxKey = object
-    aeadContext: ngtcp2_crypto_aead_ctx
-    iv: array[16, uint8]
-    hpContext: ngtcp2_crypto_cipher_ctx
-    secret: array[16, uint8]
 
 var cryptoData: array[4096, uint8]
 var aeadContext: ngtcp2_crypto_aead_ctx
@@ -40,7 +29,7 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
   params.initial_scid = connection.ngtcp2_conn_get_dcid()[]
   assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
 
-  var rxKey: RxKey
+  var rxKey: Key
   assert 0 == ngtcp2_conn_install_rx_key(
     connection,
     addr rxKey.secret[0],
@@ -51,7 +40,7 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
     addr rxKey.hpContext
   )
 
-  var txKey: TxKey
+  var txKey: Key
   assert 0 == ngtcp2_conn_install_tx_key(
     connection,
     addr txKey.secret[0],
