@@ -7,11 +7,6 @@ import hp
 import keys
 import settings
 
-type
-  RetryAead = object
-    aeadContext: ngtcp2_crypto_aead_ctx
-    aead : ngtcp2_crypto_aead
-
 var cryptoData: array[4096, uint8]
 
 var randomId: ngtcp2_cid
@@ -124,9 +119,6 @@ proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     nil,
     nil
   )
-
-  var retryAead: RetryAead
-  ngtcp2_conn_set_retry_aead(result, addr retryAead.aead, addr retryAead.aeadContext)
 
   ngtcp2_conn_set_aead_overhead(result, NGTCP2_FAKE_AEAD_OVERHEAD)
 
