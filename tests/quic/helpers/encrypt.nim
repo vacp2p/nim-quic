@@ -1,5 +1,4 @@
 import ngtcp2
-import aead
 
 proc dummyEncrypt*(dest: ptr uint8,
                    aead: ptr ngtcp2_crypto_aead,
@@ -12,4 +11,3 @@ proc dummyEncrypt*(dest: ptr uint8,
                    adlen: uint): cint{.cdecl.} =
   if plaintextlen.bool and plaintext != dest:
     copyMem(dest, plaintext, plaintextlen)
-  zeroMem(cast[ptr uint8](cast[ByteAddress](dest) + ByteAddress(plaintextlen)), NGTCP2_FAKE_AEAD_OVERHEAD)
