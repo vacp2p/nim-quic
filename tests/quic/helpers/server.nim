@@ -10,6 +10,18 @@ import settings
 var cryptoData: array[4096, uint8]
 
 proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
+  var initialKey: Key
+  assert 0 == ngtcp2_conn_install_initial_key(
+    connection,
+    addr initialKey.aeadContext,
+    addr initialKey.iv[0],
+    addr initialKey.hpContext,
+    addr initialKey.aeadContext,
+    addr initialKey.iv[0],
+    addr initialKey.hpContext,
+    sizeof(initialKey.iv).uint
+  )
+
   var rxHandshakeKey: Key
   assert 0 == ngtcp2_conn_install_rx_handshake_key(
     connection,
@@ -109,18 +121,6 @@ proc setupServer*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     addr settings,
     nil,
     nil
-  )
-
-  var initialKey: Key
-  assert 0 == ngtcp2_conn_install_initial_key(
-    result,
-    addr initialKey.aeadContext,
-    addr initialKey.iv[0],
-    addr initialKey.hpContext,
-    addr initialKey.aeadContext,
-    addr initialKey.iv[0],
-    addr initialKey.hpContext,
-    sizeof(initialKey.iv).uint
   )
 
   ngtcp2_conn_set_aead_overhead(result, NGTCP2_FAKE_AEAD_OVERHEAD)
