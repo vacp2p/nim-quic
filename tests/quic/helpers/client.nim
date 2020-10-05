@@ -4,27 +4,10 @@ import encrypt
 import decrypt
 import aead
 import hp
+import keys
 import settings
 
 type
-  InitialKey = object
-    aeadContext: ngtcp2_crypto_aead_ctx
-    iv: array[16, uint8]
-    hpContext: ngtcp2_crypto_cipher_ctx
-  HandshakeKey = object
-    aeadContext: ngtcp2_crypto_aead_ctx
-    iv: array[16, uint8]
-    hpContext: ngtcp2_crypto_cipher_ctx
-  TxKey = object
-    aeadContext: ngtcp2_crypto_aead_ctx
-    iv: array[16, uint8]
-    hpContext: ngtcp2_crypto_cipher_ctx
-    secret: array[16, uint8]
-  RxKey = object
-    aeadContext: ngtcp2_crypto_aead_ctx
-    iv: array[16, uint8]
-    hpContext: ngtcp2_crypto_cipher_ctx
-    secret: array[16, uint8]
   RetryAead = object
     aeadContext: ngtcp2_crypto_aead_ctx
     aead : ngtcp2_crypto_aead
@@ -47,7 +30,7 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
   params.original_dcid = randomId
   assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
 
-  var rxKey: RxKey
+  var rxKey: Key
   assert 0 == ngtcp2_conn_install_rx_key(
     connection,
     addr rxKey.secret[0],
@@ -58,7 +41,7 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
     addr rxKey.hpContext
   )
 
-  var txKey: TxKey
+  var txKey: Key
   assert 0 == ngtcp2_conn_install_tx_key(
     connection,
     addr txKey.secret[0],
@@ -117,7 +100,7 @@ proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     nil
   )
 
-  var initialKey: InitialKey
+  var initialKey: Key
   assert 0 == ngtcp2_conn_install_initial_key(
     result,
     addr initialKey.aeadContext,
@@ -129,7 +112,7 @@ proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     sizeof(initialKey.iv).uint
   )
 
-  var rxHandshakeKey: HandshakeKey
+  var rxHandshakeKey: Key
   assert 0 == ngtcp2_conn_install_rx_handshake_key(
     result,
     addr rxHandshakeKey.aeadContext,
@@ -138,7 +121,7 @@ proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     addr rxHandshakeKey.hpContext
   )
 
-  var txHandshakeKey: HandshakeKey
+  var txHandshakeKey: Key
   assert 0 == ngtcp2_conn_install_tx_handshake_key(
     result,
     addr txHandshakeKey.aeadContext,
