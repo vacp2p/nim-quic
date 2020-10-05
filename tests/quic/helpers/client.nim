@@ -11,6 +11,10 @@ type
     aeadContext: ngtcp2_crypto_aead_ctx
     iv: array[16, uint8]
     hpContext: ngtcp2_crypto_cipher_ctx
+  HandshakeKey = object
+    aeadContext: ngtcp2_crypto_aead_ctx
+    iv: array[16, uint8]
+    hpContext: ngtcp2_crypto_cipher_ctx
   TxKey = object
     aeadContext: ngtcp2_crypto_aead_ctx
     iv: array[16, uint8]
@@ -124,6 +128,25 @@ proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
     addr initialKey.hpContext,
     sizeof(initialKey.iv).uint
   )
+
+  var rxHandshakeKey: HandshakeKey
+  assert 0 == ngtcp2_conn_install_rx_handshake_key(
+    result,
+    addr rxHandshakeKey.aeadContext,
+    addr rxHandshakeKey.iv[0],
+    sizeof(rxHandshakeKey.iv).uint,
+    addr rxHandshakeKey.hpContext
+  )
+
+  var txHandshakeKey: HandshakeKey
+  assert 0 == ngtcp2_conn_install_tx_handshake_key(
+    result,
+    addr txHandshakeKey.aeadContext,
+    addr txHandshakeKey.iv[0],
+    sizeof(txHandshakeKey.iv).uint,
+    addr txHandshakeKey.hpContext
+  )
+
 
   var retryAead: RetryAead
   ngtcp2_conn_set_retry_aead(result, addr retryAead.aead, addr retryAead.aeadContext)
