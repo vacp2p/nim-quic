@@ -42,7 +42,7 @@ proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdec
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
   echo "CLIENT: RECEIVE CRYPTO DATA"
 
-  var params = serverDefaultSettings().transport_params
+  var params = defaultSettings().transport_params
   params.initial_scid = connection.ngtcp2_conn_get_dcid()[]
   params.original_dcid = randomId
   assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
@@ -103,7 +103,7 @@ proc setupClient*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
   callbacks.handshake_completed = handshakeCompleted
   callbacks.handshake_confirmed = handshakeConfirmed
 
-  var settings = clientDefaultSettings()
+  var settings = defaultSettings()
 
   assert 0 == ngtcp2_conn_client_new(
     addr result,
