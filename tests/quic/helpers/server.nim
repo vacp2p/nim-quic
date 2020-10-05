@@ -52,28 +52,6 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
   params.initial_scid = connection.ngtcp2_conn_get_dcid()[]
   assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
 
-  var rxKey: Key
-  assert 0 == ngtcp2_conn_install_rx_key(
-    connection,
-    addr rxKey.secret[0],
-    rxKey.secret.len.uint,
-    addr rxKey.aeadContext,
-    addr rxKey.iv[0],
-    rxKey.iv.len.uint,
-    addr rxKey.hpContext
-  )
-
-  var txKey: Key
-  assert 0 == ngtcp2_conn_install_tx_key(
-    connection,
-    addr txKey.secret[0],
-    txKey.secret.len.uint,
-    addr txKey.aeadContext,
-    addr txKey.iv[0],
-    txKey.iv.len.uint,
-    addr txKey.hpContext
-  )
-
   ngtcp2_conn_handshake_completed(connection)
 
 proc receiveStreamData(connection: ptr ngtcp2_conn, flags: uint32, stream_id: int64, offset: uint64, data: ptr uint8, datalen: uint, user_data: pointer, stream_user_data: pointer): cint {.cdecl.} =
@@ -91,8 +69,28 @@ proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8
 proc handshakeConfirmed(conn: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
   discard
 
-proc handshakeCompleted(conn: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
-  discard
+proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
+  var txKey: Key
+  assert 0 == ngtcp2_conn_install_tx_key(
+    connection,
+    addr txKey.secret[0],
+    txKey.secret.len.uint,
+    addr txKey.aeadContext,
+    addr txKey.iv[0],
+    txKey.iv.len.uint,
+    addr txKey.hpContext
+  )
+
+  var rxKey: Key
+  assert 0 == ngtcp2_conn_install_rx_key(
+    connection,
+    addr rxKey.secret[0],
+    rxKey.secret.len.uint,
+    addr rxKey.aeadContext,
+    addr rxKey.iv[0],
+    rxKey.iv.len.uint,
+    addr rxKey.hpContext
+  )
 
 proc setupServer*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId: ptr ngtcp2_cid): ptr ngtcp2_conn =
   var callbacks: ngtcp2_conn_callbacks
