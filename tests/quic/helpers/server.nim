@@ -1,3 +1,4 @@
+import quic/openarray
 import ngtcp2
 import encrypt
 import decrypt
@@ -5,25 +6,20 @@ import hp
 import ids
 import keys
 import settings
+import params
+import crypto
 
 let zeroKey = Key()
-var cryptoData: array[4096, uint8]
 
 proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
   connection.install0RttKey(zeroKey)
   connection.installHandshakeKeys(zeroKey, zeroKey)
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
-  assert 0 == ngtcp2_conn_submit_crypto_data(
-    connection,
-    if level == NGTCP2_CRYPTO_LEVEL_INITIAL: NGTCP2_CRYPTO_LEVEL_INITIAL else: NGTCP2_CRYPTO_LEVEL_HANDSHAKE,
-    addr cryptoData[0],
-    sizeof(cryptoData).uint
-  )
-
-  var params = defaultSettings().transport_params
-  params.initial_scid = connection.ngtcp2_conn_get_dcid()[]
+  var params = decodeTransportParameters(toOpenArray(data, datalen))
   assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
+
+  connection.submitCryptoData()
 
   ngtcp2_conn_handshake_completed(connection)
 

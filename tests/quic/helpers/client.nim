@@ -1,3 +1,4 @@
+import quic/openarray
 import ngtcp2
 import ids
 import encrypt
@@ -5,21 +6,18 @@ import decrypt
 import hp
 import keys
 import settings
+import params
+import crypto
 
 let zeroKey = Key()
-var cryptoData: array[4096, uint8]
 var randomId: ngtcp2_cid
 
 proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdecl.} =
   connection.install0RttKey(zeroKey)
-
-  assert 0 == ngtcp2_conn_submit_crypto_data(
-    connection, NGTCP2_CRYPTO_LEVEL_INITIAL, addr cryptoData[0], sizeof(cryptoData).uint
-  )
+  connection.submitCryptoData()
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
-  var params = defaultSettings().transport_params
-  params.initial_scid = connection.ngtcp2_conn_get_dcid()[]
+  var params = decodeTransportParameters(toOpenArray(data, datalen))
   params.original_dcid = randomId
   assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
 
