@@ -8,6 +8,7 @@ import ids
 import keys
 import settings
 import crypto
+import connection
 
 let zeroKey = Key()
 
@@ -26,7 +27,7 @@ proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8
 proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
   connection.install1RttKeys(zeroKey, zeroKey)
 
-proc setupServer*(path: ngtcp2_path, server, source, destination: ngtcp2_cid): ptr ngtcp2_conn =
+proc setupServer*(path: ngtcp2_path, server, source, destination: ngtcp2_cid): Connection =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.recv_client_initial = receiveClientInitial
   callbacks.recv_crypto_data = receiveCryptoData
@@ -40,8 +41,9 @@ proc setupServer*(path: ngtcp2_path, server, source, destination: ngtcp2_cid): p
   var settings = defaultSettings()
   settings.transport_params.original_dcid = destination
 
+  var conn: ptr ngtcp2_conn
   assert 0 == ngtcp2_conn_server_new(
-    addr result,
+    addr conn,
     unsafeAddr source,
     unsafeAddr server,
     unsafeAddr path,
@@ -51,6 +53,7 @@ proc setupServer*(path: ngtcp2_path, server, source, destination: ngtcp2_cid): p
     nil,
     nil
   )
+  Connection(conn: conn)
 
 proc extractIds(datagram: Datagram): tuple[source, destination: ngtcp2_cid] =
   var packetVersion: uint32
@@ -62,6 +65,6 @@ proc extractIds(datagram: Datagram): tuple[source, destination: ngtcp2_cid] =
   result.source = connectionId(packetSourceId, packetSourceIdLen)
   result.destination = connectionId(packetDestinationId, packetDestinationIdLen)
 
-proc setupServer*(path: ngtcp2_path, id: ngtcp2_cid, datagram: Datagram): ptr ngtcp2_conn =
+proc setupServer*(path: ngtcp2_path, id: ngtcp2_cid, datagram: Datagram): Connection =
   let (source, destination) = extractIds(datagram)
   setupServer(path, id, source, destination)
