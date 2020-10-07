@@ -2,7 +2,6 @@ import unittest
 import ngtcp2
 import helpers/server
 import helpers/client
-import helpers/ids
 import helpers/path
 import helpers/udp
 import helpers/handshake
@@ -20,10 +19,10 @@ suite "ngtcp2":
     var datagramInfo: ngtcp2_pkt_info
     var datagramLength = 0
 
-    let client = setupClient(zeroPath, randomConnectionId(), randomConnectionId())
+    let client = setupClient(zeroPath)
     datagramLength = client.write(datagram, datagramInfo)
 
-    let server = setupServer(zeroPath, randomConnectionId(), datagram)
+    let server = setupServer(zeroPath, datagram)
     server.read(datagram[0..<datagramLength], datagramInfo)
 
     datagramLength = server.write(datagram, datagramInfo)
