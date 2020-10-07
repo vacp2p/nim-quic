@@ -29,7 +29,7 @@ proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8
 proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
   connection.install1RttKeys(zeroKey, zeroKey)
 
-proc setupServer*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId: ptr ngtcp2_cid): ptr ngtcp2_conn =
+proc setupServer*(path: ngtcp2_path, source, destination: ngtcp2_cid): ptr ngtcp2_conn =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.recv_client_initial = receiveClientInitial
   callbacks.recv_crypto_data = receiveCryptoData
@@ -44,9 +44,9 @@ proc setupServer*(path: ptr ngtcp2_path, sourceId: ptr ngtcp2_cid, destinationId
 
   assert 0 == ngtcp2_conn_server_new(
     addr result,
-    destinationId,
-    sourceId,
-    path,
+    unsafeAddr destination,
+    unsafeAddr source,
+    unsafeAddr path,
     cast[uint32](NGTCP2_PROTO_VER),
     addr callbacks,
     addr settings,
