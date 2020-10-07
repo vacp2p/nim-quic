@@ -38,11 +38,12 @@ suite "ngtcp2":
     var packetSourceId: ptr uint8
     var packetSourceIdLen: uint
     assert 0 == ngtcp2_pkt_decode_version_cid(addr packetVersion, addr packetDestinationId, addr packetDestinationIdLen, addr packetSourceId, addr packetSourceIdLen, addr packet[0], packet.len.uint, 18)
-    var serverDestinationId = connectionId(packetSourceId, packetSourceIdLen)
-    check serverDestinationId == clientId
+    let source = connectionId(packetSourceId, packetSourceIdLen)
+    let destination = connectionId(packetDestinationId, packetDestinationIdLen)
+    check source == clientId
 
     # setup server connection using received id
-    let server = setupServer(zeroPath, serverId, serverDestinationId)
+    let server = setupServer(zeroPath, serverId, source, destination)
     defer: ngtcp2_conn_del(server)
 
     echo "--- CLIENT >>>1 SERVER"
