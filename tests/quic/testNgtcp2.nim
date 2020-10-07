@@ -15,37 +15,22 @@ suite "ngtcp2":
     check settings.transport_params.max_udp_payload_size > 0
     check settings.transport_params.active_connection_id_limit > 0
 
-  test "open connection":
-    var clientId, randomId, serverId = randomConnectionId()
-
-    let client = setupClient(zeroPath, clientId, randomId)
-
+  test "performs handshake":
     var datagram: array[16348, uint8]
     var datagramInfo: ngtcp2_pkt_info
     var datagramLength = 0
 
-    # handshake client -> server
-    echo "--- CLIENT 1>>> SERVER"
+    let client = setupClient(zeroPath, randomConnectionId(), randomConnectionId())
     datagramLength = client.write(datagram, datagramInfo)
 
-    # setup server connection using received datagram
-    let server = setupServer(zeroPath, serverId, datagram)
-
-    echo "--- CLIENT >>>1 SERVER"
+    let server = setupServer(zeroPath, randomConnectionId(), datagram)
     server.read(datagram[0..<datagramLength], datagramInfo)
 
-    echo "--- CLIENT <<<2 SERVER"
     datagramLength = server.write(datagram, datagramInfo)
-
-    echo "--- CLIENT 2<<< SERVER"
     client.read(datagram[0..<datagramLength], datagramInfo)
 
-    echo "--- CLIENT 3>>> SERVER"
     datagramLength = client.write(datagram, datagramInfo)
-
-    check client.isHandshakeCompleted
-
-    echo "--- CLIENT >>>3 SERVER"
     server.read(datagram[0..<datagramLength], datagramInfo)
 
+    check client.isHandshakeCompleted
     check server.isHandshakeCompleted
