@@ -27,23 +27,8 @@ suite "ngtcp2":
     echo "--- CLIENT 1>>> SERVER"
     check packet.len == client.ngtcp2_conn_write_stream(addr zeroPath, addr packetInfo, addr packet[0], packet.len.uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
 
-    # check that package is acceptable initial packet
-    var packetHeader: ngtcp2_pkt_hd
-    check 0 == ngtcp2_accept(addr packetHeader, addr packet[0], packet.len.uint)
-
-    # extract version number, source and destination id
-    var packetVersion: uint32
-    var packetDestinationId: ptr uint8
-    var packetDestinationIdLen: uint
-    var packetSourceId: ptr uint8
-    var packetSourceIdLen: uint
-    assert 0 == ngtcp2_pkt_decode_version_cid(addr packetVersion, addr packetDestinationId, addr packetDestinationIdLen, addr packetSourceId, addr packetSourceIdLen, addr packet[0], packet.len.uint, 18)
-    let source = connectionId(packetSourceId, packetSourceIdLen)
-    let destination = connectionId(packetDestinationId, packetDestinationIdLen)
-    check source == clientId
-
-    # setup server connection using received id
-    let server = setupServer(zeroPath, serverId, source, destination)
+    # setup server connection using received datagram
+    let server = setupServer(zeroPath, serverId, packet)
     defer: ngtcp2_conn_del(server)
 
     echo "--- CLIENT >>>1 SERVER"

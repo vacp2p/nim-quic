@@ -1,3 +1,4 @@
+import quic
 import quic/openarray
 import ngtcp2
 import encrypt
@@ -50,3 +51,17 @@ proc setupServer*(path: ngtcp2_path, server, source, destination: ngtcp2_cid): p
     nil,
     nil
   )
+
+proc extractIds(datagram: Datagram): tuple[source, destination: ngtcp2_cid] =
+  var packetVersion: uint32
+  var packetDestinationId: ptr uint8
+  var packetDestinationIdLen: uint
+  var packetSourceId: ptr uint8
+  var packetSourceIdLen: uint
+  assert 0 == ngtcp2_pkt_decode_version_cid(addr packetVersion, addr packetDestinationId, addr packetDestinationIdLen, addr packetSourceId, addr packetSourceIdLen, unsafeAddr datagram[0], datagram.len.uint, DefaultConnectionIdLength)
+  result.source = connectionId(packetSourceId, packetSourceIdLen)
+  result.destination = connectionId(packetDestinationId, packetDestinationIdLen)
+
+proc setupServer*(path: ngtcp2_path, id: ngtcp2_cid, datagram: Datagram): ptr ngtcp2_conn =
+  let (source, destination) = extractIds(datagram)
+  setupServer(path, id, source, destination)
