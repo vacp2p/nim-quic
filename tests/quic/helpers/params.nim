@@ -7,7 +7,7 @@ proc encodeTransportParameters*(connection: ptr ngtcp2_conn): seq[byte] =
   let length = ngtcp2_encode_transport_params(
     addr buffer[0],
     buffer.len.uint,
-    NGTCP2_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,
+    NGTCP2_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,
     addr params
   )
   buffer[0..<length]
@@ -15,7 +15,7 @@ proc encodeTransportParameters*(connection: ptr ngtcp2_conn): seq[byte] =
 proc decodeTransportParameters*(bytes: openArray[byte]): ngtcp2_transport_params =
   assert 0 == ngtcp2_decode_transport_params(
     addr result,
-    NGTCP2_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,
+    NGTCP2_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,
     unsafeAddr bytes[0],
     bytes.len.uint
   )

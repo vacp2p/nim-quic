@@ -10,7 +10,6 @@ import params
 import crypto
 
 let zeroKey = Key()
-var randomId: ngtcp2_cid
 
 proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdecl.} =
   connection.install0RttKey(zeroKey)
@@ -18,7 +17,6 @@ proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdec
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
   var params = decodeTransportParameters(toOpenArray(data, datalen))
-  params.original_dcid = randomId
   assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
 
   connection.installHandshakeKeys(zeroKey, zeroKey)
@@ -32,8 +30,6 @@ proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.
   connection.install1RttKeys(zeroKey, zeroKey)
 
 proc setupClient*(path: ngtcp2_path, source, destination: ngtcp2_cid): ptr ngtcp2_conn =
-  randomId = destination
-
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = clientInitial
   callbacks.recv_crypto_data = receiveCryptoData
