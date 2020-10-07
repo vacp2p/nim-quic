@@ -20,19 +20,19 @@ suite "ngtcp2":
     let client = setupClient(zeroPath, clientId, randomId)
     defer: ngtcp2_conn_del(client)
 
-    var packet: array[16348, uint8]
-    var packetInfo: ngtcp2_pkt_info
+    var datagram: array[16348, uint8]
+    var datagramInfo: ngtcp2_pkt_info
 
     # handshake client -> server
     echo "--- CLIENT 1>>> SERVER"
-    check packet.len == client.ngtcp2_conn_write_stream(addr zeroPath, addr packetInfo, addr packet[0], packet.len.uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
+    check datagram.len == client.ngtcp2_conn_write_stream(addr zeroPath, addr datagramInfo, addr datagram[0], datagram.len.uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
 
     # setup server connection using received datagram
-    let server = setupServer(zeroPath, serverId, packet)
+    let server = setupServer(zeroPath, serverId, datagram)
     defer: ngtcp2_conn_del(server)
 
     echo "--- CLIENT >>>1 SERVER"
-    check 0 == server.ngtcp2_conn_read_pkt(addr zeroPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+    check 0 == server.ngtcp2_conn_read_pkt(addr zeroPath, addr datagramInfo, addr datagram[0], datagram.len.uint, getMonoTime().ticks.uint)
 
     echo "--- CLIENT <<<2 SERVER"
     var offset = 0
@@ -40,18 +40,18 @@ suite "ngtcp2":
       var length = 1
       offset = 0
       while length > 0:
-        length = server.ngtcp2_conn_write_stream(addr zeroPath, addr packetInfo, addr packet[offset], (packet.len - offset).uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
+        length = server.ngtcp2_conn_write_stream(addr zeroPath, addr datagramInfo, addr datagram[offset], (datagram.len - offset).uint, nil, NGTCP2_WRITE_STREAM_FLAG_MORE.uint32, -1, nil, 0, getMonoTime().ticks.uint)
         offset = offset + length
 
     echo "--- CLIENT 2<<< SERVER"
-    check 0 == client.ngtcp2_conn_read_pkt(addr zeroPath, addr packetInfo, addr packet[0], offset.uint, getMonoTime().ticks.uint)
+    check 0 == client.ngtcp2_conn_read_pkt(addr zeroPath, addr datagramInfo, addr datagram[0], offset.uint, getMonoTime().ticks.uint)
 
     echo "--- CLIENT 3>>> SERVER"
-    check packet.len == client.ngtcp2_conn_write_pkt(addr zeroPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+    check datagram.len == client.ngtcp2_conn_write_pkt(addr zeroPath, addr datagramInfo, addr datagram[0], datagram.len.uint, getMonoTime().ticks.uint)
 
     check client.ngtcp2_conn_get_handshake_completed().bool
 
     echo "--- CLIENT >>>3 SERVER"
-    check 0 == server.ngtcp2_conn_read_pkt(addr zeroPath, addr packetInfo, addr packet[0], packet.len.uint, getMonoTime().ticks.uint)
+    check 0 == server.ngtcp2_conn_read_pkt(addr zeroPath, addr datagramInfo, addr datagram[0], datagram.len.uint, getMonoTime().ticks.uint)
 
     check server.ngtcp2_conn_get_handshake_completed().bool
