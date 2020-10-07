@@ -4,8 +4,8 @@ import helpers/server
 import helpers/client
 import helpers/ids
 import helpers/path
-import helpers/connection
 import helpers/udp
+import helpers/handshake
 
 suite "ngtcp2":
 
@@ -43,9 +43,9 @@ suite "ngtcp2":
     echo "--- CLIENT 3>>> SERVER"
     datagramLength = client.write(datagram, datagramInfo)
 
-    check client.conn.ngtcp2_conn_get_handshake_completed().bool
+    check client.isHandshakeCompleted
 
     echo "--- CLIENT >>>3 SERVER"
     server.read(datagram[0..<datagramLength], datagramInfo)
 
-    check server.conn.ngtcp2_conn_get_handshake_completed().bool
+    check server.isHandshakeCompleted
