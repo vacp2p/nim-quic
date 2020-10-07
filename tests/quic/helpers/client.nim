@@ -6,7 +6,6 @@ import decrypt
 import hp
 import keys
 import settings
-import params
 import crypto
 
 let zeroKey = Key()
@@ -16,11 +15,8 @@ proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdec
   connection.submitCryptoData()
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
-  var params = decodeTransportParameters(toOpenArray(data, datalen))
-  assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
-
+  connection.handleCryptoData(toOpenArray(data, datalen))
   connection.installHandshakeKeys(zeroKey, zeroKey)
-
   ngtcp2_conn_handshake_completed(connection)
 
 proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8, rx_aead_ctx: ptr ngtcp2_crypto_aead_ctx, rx_iv: ptr uint8, tx_aead_ctx: ptr ngtcp2_crypto_aead_ctx, tx_iv: ptr uint8, current_rx_secret: ptr uint8, current_tx_secret: ptr uint8, secretlen: uint, user_data: pointer): cint {.cdecl} =
