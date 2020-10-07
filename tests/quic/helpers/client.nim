@@ -52,4 +52,4 @@ proc setupClient*(path: ngtcp2_path, source, destination: ngtcp2_cid): Connectio
     nil,
     nil
   )
-  Connection(conn: conn)
+  Connection(conn: conn, path: path)
