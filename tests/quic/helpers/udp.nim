@@ -2,12 +2,14 @@ import std/monotimes
 import quic
 import ngtcp2
 import path
+import connection
 
-proc write*(connection: ptr ngtcp2_conn, datagram: var Datagram, datagramInfo: var ngtcp2_pkt_info): int =
+proc write*(connection: Connection, datagram: var Datagram, datagramInfo: var ngtcp2_pkt_info): int =
   var offset = 0
   var length = 1
   while length > 0 and offset < datagram.len:
-    length = connection.ngtcp2_conn_write_stream(
+    length = ngtcp2_conn_write_stream(
+      connection.conn,
       addr zeroPath,
       addr datagramInfo,
       addr datagram[offset],
@@ -22,8 +24,9 @@ proc write*(connection: ptr ngtcp2_conn, datagram: var Datagram, datagramInfo: v
     offset = offset + length
   offset
 
-proc read*(connection: ptr ngtcp2_conn, datagram: Datagram, datagramInfo: ngtcp2_pkt_info) =
-  assert 0 == connection.ngtcp2_conn_read_pkt(
+proc read*(connection: Connection, datagram: Datagram, datagramInfo: ngtcp2_pkt_info) =
+  assert 0 == ngtcp2_conn_read_pkt(
+    connection.conn,
     addr zeroPath,
     unsafeAddr datagramInfo,
     unsafeAddr datagram[0],

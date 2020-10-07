@@ -4,6 +4,7 @@ import helpers/server
 import helpers/client
 import helpers/ids
 import helpers/path
+import helpers/connection
 import helpers/udp
 
 suite "ngtcp2":
@@ -18,7 +19,6 @@ suite "ngtcp2":
     var clientId, randomId, serverId = randomConnectionId()
 
     let client = setupClient(zeroPath, clientId, randomId)
-    defer: ngtcp2_conn_del(client)
 
     var datagram: array[16348, uint8]
     var datagramInfo: ngtcp2_pkt_info
@@ -30,7 +30,6 @@ suite "ngtcp2":
 
     # setup server connection using received datagram
     let server = setupServer(zeroPath, serverId, datagram)
-    defer: ngtcp2_conn_del(server)
 
     echo "--- CLIENT >>>1 SERVER"
     server.read(datagram[0..<datagramLength], datagramInfo)
@@ -44,9 +43,9 @@ suite "ngtcp2":
     echo "--- CLIENT 3>>> SERVER"
     datagramLength = client.write(datagram, datagramInfo)
 
-    check client.ngtcp2_conn_get_handshake_completed().bool
+    check client.conn.ngtcp2_conn_get_handshake_completed().bool
 
     echo "--- CLIENT >>>3 SERVER"
     server.read(datagram[0..<datagramLength], datagramInfo)
 
-    check server.ngtcp2_conn_get_handshake_completed().bool
+    check server.conn.ngtcp2_conn_get_handshake_completed().bool

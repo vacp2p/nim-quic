@@ -1,0 +1,9 @@
+import ngtcp2
+
+type Connection* = object
+  conn*: ptr ngtcp2_conn
+
+proc `=destroy`*(connection: var Connection) =
+  if connection.conn != nil:
+    ngtcp2_conn_del(connection.conn)
+  connection.conn = nil

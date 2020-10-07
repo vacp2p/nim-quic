@@ -7,6 +7,7 @@ import hp
 import keys
 import settings
 import crypto
+import connection
 
 let zeroKey = Key()
 
@@ -25,7 +26,7 @@ proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8
 proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
   connection.install1RttKeys(zeroKey, zeroKey)
 
-proc setupClient*(path: ngtcp2_path, source, destination: ngtcp2_cid): ptr ngtcp2_conn =
+proc setupClient*(path: ngtcp2_path, source, destination: ngtcp2_cid): Connection =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = clientInitial
   callbacks.recv_crypto_data = receiveCryptoData
@@ -39,8 +40,9 @@ proc setupClient*(path: ngtcp2_path, source, destination: ngtcp2_cid): ptr ngtcp
 
   var settings = defaultSettings()
 
+  var conn: ptr ngtcp2_conn
   assert 0 == ngtcp2_conn_client_new(
-    addr result,
+    addr conn,
     unsafeAddr destination,
     unsafeAddr source,
     unsafeAddr path,
@@ -50,4 +52,4 @@ proc setupClient*(path: ngtcp2_path, source, destination: ngtcp2_cid): ptr ngtcp
     nil,
     nil
   )
-
+  Connection(conn: conn)
