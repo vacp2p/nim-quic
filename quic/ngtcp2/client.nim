@@ -1,4 +1,4 @@
-import quic/openarray
+import ../openarray
 import ngtcp2
 import ids
 import encrypt
@@ -26,7 +26,7 @@ proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8
 proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
   connection.install1RttKeys(zeroKey, zeroKey)
 
-proc setupClient*(path: ngtcp2_path): Connection =
+proc newClientConnection*(path: ngtcp2_path): Connection =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = clientInitial
   callbacks.recv_crypto_data = receiveCryptoData

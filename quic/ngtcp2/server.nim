@@ -1,5 +1,5 @@
-import quic
-import quic/openarray
+import ../packets
+import ../openarray
 import ngtcp2
 import encrypt
 import decrypt
@@ -68,6 +68,6 @@ proc extractIds(datagram: Datagram): tuple[source, destination: ngtcp2_cid] =
   result.source = connectionId(packetSourceId, packetSourceIdLen)
   result.destination = connectionId(packetDestinationId, packetDestinationIdLen)
 
-proc setupServer*(path: ngtcp2_path, datagram: Datagram): Connection =
+proc newServerConnection*(path: ngtcp2_path, datagram: Datagram): Connection =
   let (source, destination) = extractIds(datagram)
   setupServer(path, source, destination)
