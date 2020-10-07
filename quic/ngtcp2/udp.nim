@@ -1,5 +1,5 @@
 import std/monotimes
-import quic
+import ../packets
 import ngtcp2
 import connection
 
