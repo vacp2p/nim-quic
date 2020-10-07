@@ -53,7 +53,7 @@ proc setupServer*(path: ngtcp2_path, server, source, destination: ngtcp2_cid): C
     nil,
     nil
   )
-  Connection(conn: conn)
+  Connection(conn: conn, path: path)
 
 proc extractIds(datagram: Datagram): tuple[source, destination: ngtcp2_cid] =
   var packetVersion: uint32
