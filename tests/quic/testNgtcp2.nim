@@ -17,7 +17,7 @@ suite "ngtcp2":
   test "open connection":
     var clientId, randomId, serverId = randomConnectionId()
 
-    let client = setupClient(addr zeroPath, addr clientId, addr randomId)
+    let client = setupClient(zeroPath, clientId, randomId)
     defer: ngtcp2_conn_del(client)
 
     var packet: array[16348, uint8]
@@ -42,7 +42,7 @@ suite "ngtcp2":
     check serverDestinationId == clientId
 
     # setup server connection using received id
-    let server = setupServer(addr zeroPath, addr serverId, addr serverDestinationId)
+    let server = setupServer(zeroPath, serverId, serverDestinationId)
     defer: ngtcp2_conn_del(server)
 
     echo "--- CLIENT >>>1 SERVER"
