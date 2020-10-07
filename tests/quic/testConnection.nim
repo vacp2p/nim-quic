@@ -1,26 +1,25 @@
 import unittest
 import quic
-import ngtcp2
 import helpers/path
 
 suite "connection":
 
   test "performs handshake":
     var datagram: array[16348, uint8]
-    var datagramInfo: ngtcp2_pkt_info
     var datagramLength = 0
+    var ecn: ECN
 
     let client = newClientConnection(zeroPath)
-    datagramLength = client.write(datagram, datagramInfo)
+    datagramLength = client.write(datagram, ecn)
 
     let server = newServerConnection(zeroPath, datagram)
-    server.read(datagram[0..<datagramLength], datagramInfo)
+    server.read(datagram[0..<datagramLength], ecn)
 
-    datagramLength = server.write(datagram, datagramInfo)
-    client.read(datagram[0..<datagramLength], datagramInfo)
+    datagramLength = server.write(datagram, ecn)
+    client.read(datagram[0..<datagramLength], ecn)
 
-    datagramLength = client.write(datagram, datagramInfo)
-    server.read(datagram[0..<datagramLength], datagramInfo)
+    datagramLength = client.write(datagram, ecn)
+    server.read(datagram[0..<datagramLength], ecn)
 
     check client.isHandshakeCompleted
     check server.isHandshakeCompleted
