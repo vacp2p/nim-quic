@@ -11,6 +11,7 @@ import settings
 import crypto
 import connection
 import path
+import errors
 
 let zeroKey = Key()
 
@@ -67,7 +68,7 @@ proc extractIds(datagram: Datagram): tuple[source, destination: ngtcp2_cid] =
   var packetDestinationIdLen: uint
   var packetSourceId: ptr uint8
   var packetSourceIdLen: uint
-  assert 0 == ngtcp2_pkt_decode_version_cid(addr packetVersion, addr packetDestinationId, addr packetDestinationIdLen, addr packetSourceId, addr packetSourceIdLen, unsafeAddr datagram[0], datagram.len.uint, DefaultConnectionIdLength)
+  checkResult ngtcp2_pkt_decode_version_cid(addr packetVersion, addr packetDestinationId, addr packetDestinationIdLen, addr packetSourceId, addr packetSourceIdLen, unsafeAddr datagram[0], datagram.len.uint, DefaultConnectionIdLength)
   result.source = toCid(packetSourceId, packetSourceIdLen)
   result.destination = toCid(packetDestinationId, packetDestinationIdLen)
 
