@@ -6,11 +6,16 @@ suite "connection":
 
   const zeroAddress = initTAddress("0.0.0.0:0")
 
-  test "performs handshake":
-    var datagram: array[16348, uint8]
-    var datagramLength = 0
-    var ecn: ECN
+  var datagram: array[16348, uint8]
+  var datagramLength: int
+  var ecn: ECN
 
+  setup:
+    datagram = (typeof datagram).default
+    datagramLength = 0
+    ecn = ECN.default
+
+  test "performs handshake":
     let client = newClientConnection(zeroAddress, zeroAddress)
     datagramLength = client.write(datagram, ecn)
 
@@ -25,3 +30,9 @@ suite "connection":
 
     check client.isHandshakeCompleted
     check server.isHandshakeCompleted
+
+  test "raises when reading datagram fails":
+    let server = newServerConnection(zeroAddress, zeroAddress, datagram)
+
+    expect IOError:
+      server.read(datagram, ecn)
