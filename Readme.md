@@ -29,21 +29,21 @@ implemenation. They are bound to change over time.
 
 - [ ] Wrap existing C library for QUIC, to test Nim implementation against
   - [x] Wrap C library with Nimterop
-  - [ ] Dummy TLS implementation
-  - [ ] Open connection
-  - [ ] Complete handshake
+  - [x] Dummy TLS implementation
+  - [x] Open connection
+  - [x] Complete handshake
   - [ ] Create uni-directional stream
   - [ ] Send data over stream
   - [ ] Close stream
   - [ ] Close connection
   - [ ] Interface with real TLS library
-- [ ] [Packet formats](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17)
-  - [ ] [Initial packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.2)
-  - [ ] [0-RTT packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.3)
-  - [ ] [Handshake packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.4)
-  - [ ] [Retry packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.5)
-  - [ ] [Version negotiation packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.1)
-  - [ ] [Short header packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.3)
+- [x] [Packet formats](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17)
+  - [x] [Initial packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.2)
+  - [x] [0-RTT packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.3)
+  - [x] [Handshake packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.4)
+  - [x] [Retry packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.5)
+  - [x] [Version negotiation packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.1)
+  - [x] [Short header packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.3)
 - [ ] [Frames](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-12.4)
   - [ ] Initial & Handshake frames
     - [ ] [Padding](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-19.1)
