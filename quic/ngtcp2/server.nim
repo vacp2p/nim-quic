@@ -68,8 +68,8 @@ proc extractIds(datagram: Datagram): tuple[source, destination: ngtcp2_cid] =
   var packetSourceId: ptr uint8
   var packetSourceIdLen: uint
   assert 0 == ngtcp2_pkt_decode_version_cid(addr packetVersion, addr packetDestinationId, addr packetDestinationIdLen, addr packetSourceId, addr packetSourceIdLen, unsafeAddr datagram[0], datagram.len.uint, DefaultConnectionIdLength)
-  result.source = connectionId(packetSourceId, packetSourceIdLen)
-  result.destination = connectionId(packetDestinationId, packetDestinationIdLen)
+  result.source = toCid(packetSourceId, packetSourceIdLen)
+  result.destination = toCid(packetDestinationId, packetDestinationIdLen)
 
 proc newServerConnection*(local, remote: TransportAddress, datagram: Datagram): Connection =
   let (source, destination) = extractIds(datagram)

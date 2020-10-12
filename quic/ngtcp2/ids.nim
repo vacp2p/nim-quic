@@ -1,12 +1,12 @@
 import ngtcp2
 import ../connectionid
 
-proc connectionId*(bytes: ptr uint8, length: uint): ngtcp2_cid =
+proc toCid*(bytes: ptr uint8, length: uint): ngtcp2_cid =
   ngtcp2_cid_init(addr result, bytes, length)
 
 proc toCid*(id: ConnectionId): ngtcp2_cid =
   let bytes = seq[byte](id)
-  ngtcp2_cid_init(addr result, unsafeAddr bytes[0], bytes.len.uint)
+  toCid(unsafeAddr bytes[0], bytes.len.uint)
 
 var nextConnectionId = 1'u8
 
