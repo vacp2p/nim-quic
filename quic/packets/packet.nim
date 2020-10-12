@@ -1,6 +1,6 @@
-import connectionid
-import packetnumber
+import ../connectionid
 import ../version
+import packetnumber
 export connectionid
 export PacketNumber
 include ../noerrors
