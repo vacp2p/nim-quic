@@ -1,18 +1,20 @@
 import unittest
+import chronos
 import quic
-import helpers/path
 
 suite "connection":
+
+  const zeroAddress = initTAddress("0.0.0.0:0")
 
   test "performs handshake":
     var datagram: array[16348, uint8]
     var datagramLength = 0
     var ecn: ECN
 
-    let client = newClientConnection(zeroPath)
+    let client = newClientConnection(zeroAddress, zeroAddress)
     datagramLength = client.write(datagram, ecn)
 
-    let server = newServerConnection(zeroPath, datagram)
+    let server = newServerConnection(zeroAddress, zeroAddress, datagram)
     server.read(datagram[0..<datagramLength], ecn)
 
     datagramLength = server.write(datagram, ecn)

@@ -1,5 +1,6 @@
-import ../openarray
+import chronos
 import ngtcp2
+import ../openarray
 import ids
 import encrypt
 import decrypt
@@ -8,6 +9,7 @@ import keys
 import settings
 import crypto
 import connection
+import path
 
 let zeroKey = Key()
 
@@ -26,7 +28,7 @@ proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8
 proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
   connection.install1RttKeys(zeroKey, zeroKey)
 
-proc newClientConnection*(path: ngtcp2_path): Connection =
+proc newClientConnection*(local, remote: TransportAddress): Connection =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = clientInitial
   callbacks.recv_crypto_data = receiveCryptoData
@@ -41,13 +43,14 @@ proc newClientConnection*(path: ngtcp2_path): Connection =
   let settings = defaultSettings()
   let source = randomConnectionId()
   let destination = randomConnectionId()
+  let path = newPath(local, remote)
 
   var conn: ptr ngtcp2_conn
   assert 0 == ngtcp2_conn_client_new(
     addr conn,
     unsafeAddr destination,
     unsafeAddr source,
-    unsafeAddr path,
+    path.toPathPtr,
     cast[uint32](NGTCP2_PROTO_VER),
     addr callbacks,
     unsafeAddr settings,
