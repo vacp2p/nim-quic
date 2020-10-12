@@ -3,7 +3,7 @@ import quic/testPacketWriting
 import quic/testPacketReading
 import quic/testPacketLength
 import quic/testPackets
-import quic/testNgtcp2
+import quic/testTransportParameters
 import quic/testVarInts
 import quic/testPacketNumber
 import quic/testConnection
