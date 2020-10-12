@@ -11,5 +11,5 @@ proc submitCryptoData*(connection: ptr ngtcp2_conn) =
   )
 
 proc handleCryptoData*(connection: ptr ngtcp2_conn, data: openArray[byte]) =
-  var params = decodeTransportParameters(data)
-  assert 0 == ngtcp2_conn_set_remote_transport_params(connection, addr params)
+  let parameters = decodeTransportParameters(data)
+  connection.setRemoteTransportParameters(parameters)
