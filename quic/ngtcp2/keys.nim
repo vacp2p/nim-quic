@@ -9,7 +9,7 @@ type
 
 proc install0RttKey*(connection: ptr ngtcp2_conn, key: Key) =
   var key = key
-  assert 0 == connection.ngtcp2_conn_install_initial_key(
+  doAssert 0 == connection.ngtcp2_conn_install_initial_key(
     addr key.aeadContext,
     addr key.iv[0],
     addr key.hpContext,
@@ -21,7 +21,7 @@ proc install0RttKey*(connection: ptr ngtcp2_conn, key: Key) =
 
 proc installHandshakeKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
   var rx = rx
-  assert 0 == ngtcp2_conn_install_rx_handshake_key(
+  doAssert 0 == ngtcp2_conn_install_rx_handshake_key(
     connection,
     addr rx.aeadContext,
     addr rx.iv[0],
@@ -29,7 +29,7 @@ proc installHandshakeKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
     addr rx.hpContext
   )
   var tx = tx
-  assert 0 == ngtcp2_conn_install_tx_handshake_key(
+  doAssert 0 == ngtcp2_conn_install_tx_handshake_key(
     connection,
     addr tx.aeadContext,
     addr tx.iv[0],
@@ -39,7 +39,7 @@ proc installHandshakeKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
 
 proc install1RttKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
   var rx = rx
-  assert 0 == ngtcp2_conn_install_rx_key(
+  doAssert 0 == ngtcp2_conn_install_rx_key(
     connection,
     addr rx.secret[0],
     rx.secret.len.uint,
@@ -49,7 +49,7 @@ proc install1RttKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
     addr rx.hpContext
   )
   var tx = tx
-  assert 0 == ngtcp2_conn_install_tx_key(
+  doAssert 0 == ngtcp2_conn_install_tx_key(
     connection,
     addr tx.secret[0],
     tx.secret.len.uint,
