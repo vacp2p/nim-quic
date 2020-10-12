@@ -31,8 +31,14 @@ suite "connection":
     check client.isHandshakeCompleted
     check server.isHandshakeCompleted
 
-  test "raises when reading datagram fails":
+  test "raises error when reading datagram fails":
     let server = newServerConnection(zeroAddress, zeroAddress, datagram)
 
     expect IOError:
       server.read(datagram, ecn)
+
+  test "raises error when datagram that starts server connection is invalid":
+    let invalid = datagram[0..<1]
+
+    expect IOError:
+      discard  newServerConnection(zeroAddress, zeroAddress, invalid)
