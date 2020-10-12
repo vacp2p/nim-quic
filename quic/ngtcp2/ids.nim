@@ -1,13 +1,12 @@
 import ngtcp2
-import sysrandom
+import ../connectionid
 
 proc connectionId*(bytes: ptr uint8, length: uint): ngtcp2_cid =
   ngtcp2_cid_init(addr result, bytes, length)
 
-proc randomConnectionId*(): ngtcp2_cid =
-  var bytes: array[18, uint8]
-  getRandomBytes(addr bytes[0], bytes.len)
-  ngtcp2_cid_init(addr result, addr bytes[0], bytes.len.uint)
+proc toCid*(id: ConnectionId): ngtcp2_cid =
+  let bytes = seq[byte](id)
+  ngtcp2_cid_init(addr result, unsafeAddr bytes[0], bytes.len.uint)
 
 var nextConnectionId = 1'u8
 

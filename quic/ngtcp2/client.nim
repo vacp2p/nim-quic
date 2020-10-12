@@ -1,5 +1,6 @@
 import chronos
 import ngtcp2
+import ../connectionid
 import ../openarray
 import ids
 import encrypt
@@ -41,8 +42,8 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
   callbacks.handshake_completed = handshakeCompleted
 
   let settings = defaultSettings()
-  let source = randomConnectionId()
-  let destination = randomConnectionId()
+  let source = randomConnectionId().toCid
+  let destination = randomConnectionId().toCid
   let path = newPath(local, remote)
 
   var conn: ptr ngtcp2_conn
