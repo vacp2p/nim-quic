@@ -3,6 +3,7 @@ import ../packets
 import ../congestion
 import ngtcp2
 import connection
+import path
 
 proc write*(connection: Connection, datagram: var Datagram, ecn: var ECN): int =
   var offset = 0
@@ -31,7 +32,7 @@ proc read*(connection: Connection, datagram: Datagram, ecn: ECN) =
   packetInfo.ecn = ecn.uint32
   assert 0 == ngtcp2_conn_read_pkt(
     connection.conn,
-    unsafeAddr connection.path,
+    connection.path.toPathPtr,
     unsafeAddr packetInfo,
     unsafeAddr datagram[0],
     datagram.len.uint,
