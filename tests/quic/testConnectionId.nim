@@ -1,7 +1,7 @@
 import unittest
 import quic/connectionid
 
-suite "Connection Ids":
+suite "connection ids":
 
   test "generates random ids":
     check randomConnectionId() != randomConnectionId()
