@@ -8,3 +8,6 @@ suite "Connection Ids":
 
   test "random ids are of the correct length":
     check randomConnectionId().len == DefaultConnectionIdLength
+
+  test "random ids can have custom length":
+    check randomConnectionId(5).len == 5

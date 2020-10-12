@@ -11,5 +11,5 @@ proc `len`*(x: ConnectionId): int {.borrow.}
 proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
 
-proc randomConnectionId*: ConnectionId =
-  ConnectionId(@(getRandomBytes(DefaultConnectionIdLength)))
+proc randomConnectionId*(len = DefaultConnectionIdLength): ConnectionId =
+  ConnectionId(@(getRandomBytes(len)))
