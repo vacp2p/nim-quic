@@ -43,7 +43,7 @@ proc newServerConnection(local, remote: TransportAddress, source, destination: n
   var settings = defaultSettings()
   settings.transport_params.original_dcid = destination
 
-  let id = randomConnectionId()
+  let id = randomConnectionId().toCid
   let path = newPath(local, remote)
 
   var conn: ptr ngtcp2_conn
