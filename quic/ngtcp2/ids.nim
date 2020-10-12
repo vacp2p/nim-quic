@@ -9,11 +9,6 @@ proc randomConnectionId*(): ngtcp2_cid =
   getRandomBytes(addr bytes[0], bytes.len)
   ngtcp2_cid_init(addr result, addr bytes[0], bytes.len.uint)
 
-var clientSourceId* = randomConnectionId()
-var clientDestinationId* = randomConnectionId()
-var serverSourceId* = randomConnectionId()
-var serverDestinationId* = randomConnectionId()
-
 var nextConnectionId = 1'u8
 
 proc getNewConnectionId*(connection: ptr ngtcp2_conn, id: ptr ngtcp2_cid, token: ptr uint8, cidlen: uint, userData: pointer): cint {.cdecl.} =
