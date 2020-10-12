@@ -47,7 +47,7 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
   let path = newPath(local, remote)
 
   var conn: ptr ngtcp2_conn
-  assert 0 == ngtcp2_conn_client_new(
+  doAssert 0 == ngtcp2_conn_client_new(
     addr conn,
     unsafeAddr destination,
     unsafeAddr source,
