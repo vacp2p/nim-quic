@@ -28,7 +28,11 @@ proc write*(connection: Connection, datagram: var Datagram, ecn: var ECN): int =
     offset = offset + length
   offset
 
-proc read*(connection: Connection, datagram: Datagram, ecn: ECN) =
+proc write*(connection: Connection, datagram: var Datagram): int =
+  var ecn: ECN
+  write(connection, datagram, ecn)
+
+proc read*(connection: Connection, datagram: Datagram, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
   packetInfo.ecn = ecn.uint32
   checkResult ngtcp2_conn_read_pkt(
