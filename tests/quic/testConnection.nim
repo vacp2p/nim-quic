@@ -31,6 +31,27 @@ suite "connection":
     check client.isHandshakeCompleted
     check server.isHandshakeCompleted
 
+  test "opens uni-directional streams":
+    let client = newClientConnection(zeroAddress, zeroAddress)
+    datagramLength = client.write(datagram, ecn)
+
+    let server = newServerConnection(zeroAddress, zeroAddress, datagram)
+    server.read(datagram[0..<datagramLength], ecn)
+
+    datagramLength = server.write(datagram, ecn)
+    client.read(datagram[0..<datagramLength], ecn)
+
+    datagramLength = client.write(datagram, ecn)
+    server.read(datagram[0..<datagramLength], ecn)
+
+    check client.openStream() != client.openStream()
+
+  test "raises error when opening uni-directional stream fails":
+    let client = newClientConnection(zeroAddress, zeroAddress)
+
+    expect IOError:
+      discard client.openStream()
+
   test "raises error when reading datagram fails":
     let server = newServerConnection(zeroAddress, zeroAddress, datagram)
 
