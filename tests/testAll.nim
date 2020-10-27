@@ -8,5 +8,6 @@ import quic/testVarInts
 import quic/testPacketNumber
 import quic/testConnection
 import quic/testConnectionId
+import quic/testStreams
 
 {.warning[UnusedImport]:off.}
