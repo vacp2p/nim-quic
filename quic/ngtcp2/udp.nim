@@ -10,7 +10,7 @@ proc write*(connection: Connection, datagram: var Datagram, ecn: var ECN): int =
   var packetInfo: ngtcp2_pkt_info
   result = ngtcp2_conn_write_stream(
     connection.conn,
-    nil,
+    connection.path.toPathPtr,
     addr packetInfo,
     addr datagram[0],
     datagram.len.uint,
