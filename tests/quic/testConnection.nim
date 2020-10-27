@@ -1,34 +1,11 @@
 import unittest
+import sequtils
 import chronos
 import quic
+import ../helpers/connections
+import ../helpers/addresses
 
 suite "connection":
-
-  const zeroAddress = initTAddress("0.0.0.0:0")
-
-  var datagram: array[16348, uint8]
-  var datagramLength: int
-  var ecn: ECN
-
-  setup:
-    datagram = (typeof datagram).default
-    datagramLength = 0
-    ecn = ECN.default
-
-  proc performHandshake: tuple[client, server: Connection] =
-    let client = newClientConnection(zeroAddress, zeroAddress)
-    datagramLength = client.write(datagram, ecn)
-
-    let server = newServerConnection(zeroAddress, zeroAddress, datagram)
-    server.read(datagram[0..<datagramLength], ecn)
-
-    datagramLength = server.write(datagram, ecn)
-    client.read(datagram[0..<datagramLength], ecn)
-
-    datagramLength = client.write(datagram, ecn)
-    server.read(datagram[0..<datagramLength], ecn)
-
-    (client, server)
 
   test "performs handshake":
     let (client, server) = performHandshake()
@@ -48,13 +25,14 @@ suite "connection":
       discard client.openStream()
 
   test "raises error when reading datagram fails":
+    let datagram = repeat(0'u8, 4096)
     let server = newServerConnection(zeroAddress, zeroAddress, datagram)
 
     expect IOError:
-      server.read(datagram, ecn)
+      server.read(datagram)
 
   test "raises error when datagram that starts server connection is invalid":
-    let invalid = datagram[0..<1]
+    let invalid = @[0'u8]
 
     expect IOError:
       discard  newServerConnection(zeroAddress, zeroAddress, invalid)
