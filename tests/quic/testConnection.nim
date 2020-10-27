@@ -15,7 +15,7 @@ suite "connection":
     datagramLength = 0
     ecn = ECN.default
 
-  test "performs handshake":
+  proc performHandshake: tuple[client, server: Connection] =
     let client = newClientConnection(zeroAddress, zeroAddress)
     datagramLength = client.write(datagram, ecn)
 
@@ -27,22 +27,17 @@ suite "connection":
 
     datagramLength = client.write(datagram, ecn)
     server.read(datagram[0..<datagramLength], ecn)
+
+    (client, server)
+
+  test "performs handshake":
+    let (client, server) = performHandshake()
 
     check client.isHandshakeCompleted
     check server.isHandshakeCompleted
 
   test "opens uni-directional streams":
-    let client = newClientConnection(zeroAddress, zeroAddress)
-    datagramLength = client.write(datagram, ecn)
-
-    let server = newServerConnection(zeroAddress, zeroAddress, datagram)
-    server.read(datagram[0..<datagramLength], ecn)
-
-    datagramLength = server.write(datagram, ecn)
-    client.read(datagram[0..<datagramLength], ecn)
-
-    datagramLength = client.write(datagram, ecn)
-    server.read(datagram[0..<datagramLength], ecn)
+    let (client, _) = performHandshake()
 
     check client.openStream() != client.openStream()
 
