@@ -9,5 +9,6 @@ import quic/testPacketNumber
 import quic/testConnection
 import quic/testConnectionId
 import quic/testStreams
+import quic/testUdp
 
 {.warning[UnusedImport]:off.}

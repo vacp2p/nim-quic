@@ -7,26 +7,21 @@ import path
 import errors
 
 proc write*(connection: Connection, datagram: var Datagram, ecn: var ECN): int =
-  var offset = 0
-  var length = 1
-  while length > 0 and offset < datagram.len:
-    var packetInfo: ngtcp2_pkt_info
-    length = ngtcp2_conn_write_stream(
-      connection.conn,
-      nil,
-      addr packetInfo,
-      addr datagram[offset],
-      (datagram.len - offset).uint,
-      nil,
-      NGTCP2_WRITE_STREAM_FLAG_MORE.uint32,
-      -1,
-      nil,
-      0,
-      getMonoTime().ticks.uint
-    )
-    ecn = ECN(packetInfo.ecn)
-    offset = offset + length
-  offset
+  var packetInfo: ngtcp2_pkt_info
+  result = ngtcp2_conn_write_stream(
+    connection.conn,
+    nil,
+    addr packetInfo,
+    addr datagram[0],
+    datagram.len.uint,
+    nil,
+    0,
+    -1,
+    nil,
+    0,
+    getMonoTime().ticks.uint
+  )
+  ecn = ECN(packetInfo.ecn)
 
 proc write*(connection: Connection, datagram: var Datagram): int =
   var ecn: ECN
