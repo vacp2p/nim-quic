@@ -1,4 +1,4 @@
-import unittest
+import std/unittest
 import quic/connectionid
 
 suite "connection ids":

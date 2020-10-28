@@ -1,5 +1,5 @@
-import unittest
-import math
+import std/unittest
+import std/math
 import quic/packets/packetnumber
 
 suite "packet numbers":

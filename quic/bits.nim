@@ -1,4 +1,4 @@
-import bitops
+import std/bitops
 
 type
   Bit* = range[0'u8..1'u8]
