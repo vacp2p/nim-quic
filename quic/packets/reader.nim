@@ -1,5 +1,5 @@
+import ../datagram
 import packet
-import datagram
 
 type
   PacketReader* = object

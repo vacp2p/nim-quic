@@ -1,10 +1,10 @@
 import stew/endians2
-import datagram
+import ../datagram
+import ../bits
+import ../varints
 import packet
 import packetnumber
 import writer
-import ../bits
-import ../varints
 export writer
 
 proc writeForm*(writer: var PacketWriter, datagram: var Datagram) =

@@ -1,11 +1,11 @@
-import packets/datagram
 import packets/packet
 import packets/length
 import packets/read
 import packets/write
-export datagram
+import datagram
 export packet
 export length
+export datagram
 include noerrors
 
 proc read(reader: var PacketReader, datagram: Datagram): Packet =

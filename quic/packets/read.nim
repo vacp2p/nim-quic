@@ -1,7 +1,7 @@
 import stew/endians2
 import ../bits
 import ../varints
-import datagram
+import ../datagram
 import packet
 import reader
 export reader
