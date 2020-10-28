@@ -1,4 +1,4 @@
-import math
+import std/math
 import stew/endians2
 
 type

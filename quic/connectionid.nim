@@ -1,4 +1,4 @@
-import strutils
+import std/strutils
 import sysrandom
 
 type ConnectionId* = distinct seq[byte]

@@ -1,4 +1,4 @@
-import nativesockets
+import std/nativesockets
 import chronos
 import ngtcp2
 
