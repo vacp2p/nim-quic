@@ -12,5 +12,6 @@ export read, write
 export isHandshakeCompleted
 export Stream
 export openStream
+export close
 export write
 
