@@ -1,6 +1,6 @@
-import packet
-import datagram
+import ../datagram
 import ../openarray
+import packet
 
 type
   PacketWriter* = object
