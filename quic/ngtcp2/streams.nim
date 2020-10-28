@@ -13,7 +13,10 @@ proc openStream*(connection: Connection): Stream =
   checkResult ngtcp2_conn_open_uni_stream(connection.conn, addr result.id, nil)
   result.connection = connection
 
-proc write*(stream: Stream, message: seq[byte], datagram: var Datagram) : int =
+proc close*(stream: Stream) =
+  checkResult ngtcp2_conn_shutdown_stream(stream.connection.conn, stream.id, 0)
+
+proc write*(stream: Stream, message: seq[byte], datagram: var Datagram): int =
   result = ngtcp2_conn_write_stream(
     stream.connection.conn,
     stream.connection.path.toPathPtr,
@@ -27,3 +30,4 @@ proc write*(stream: Stream, message: seq[byte], datagram: var Datagram) : int =
     message.len.uint,
     getMonoTime().ticks.uint
   )
+  checkResult result.cint
