@@ -21,3 +21,9 @@ suite "udp":
 
     expect IOError:
       server.read(datagram)
+
+  test "raises error when reading empty datagram":
+    let client = newClientConnection(zeroAddress, zeroAddress)
+
+    expect IOError:
+      client.read(@[])
