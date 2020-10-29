@@ -1,5 +1,6 @@
 import std/monotimes
 import ngtcp2
+import ../openarray
 import ../datagram
 import ../congestion
 import connection
@@ -28,7 +29,7 @@ proc write*(stream: Stream, message: seq[byte]): Datagram =
     nil,
     0,
     stream.id,
-    unsafeAddr message[0],
+    message.toUnsafePtr,
     message.len.uint,
     getMonoTime().ticks.uint
   )

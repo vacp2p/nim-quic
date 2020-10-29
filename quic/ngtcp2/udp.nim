@@ -1,4 +1,5 @@
 import std/monotimes
+import ../openarray
 import ../packets
 import ../congestion
 import ngtcp2
@@ -31,7 +32,7 @@ proc read*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable
     connection.conn,
     connection.path.toPathPtr,
     unsafeAddr packetInfo,
-    unsafeAddr datagram[0],
+    datagram.toUnsafePtr,
     datagram.len.uint,
     getMonoTime().ticks.uint
   )

@@ -27,6 +27,10 @@ suite "streams":
     let datagram = stream.write(message)
     check datagram.data.contains(message)
 
+  test "writes zero-length message":
+    let stream = performHandshake().client.openStream()
+    check stream.write(@[]).len > 0
+
   test "raises when stream could not be written to":
     let stream = performHandshake().client.openStream()
     stream.close()
