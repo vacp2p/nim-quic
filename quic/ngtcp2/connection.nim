@@ -6,6 +6,7 @@ type
   ConnectionObj = object
     conn*: ptr ngtcp2_conn
     path*: Path
+    buffer*: array[4096, byte]
 
 proc `=destroy`*(connection: var ConnectionObj) =
   if connection.conn != nil:

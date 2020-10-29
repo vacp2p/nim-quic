@@ -24,14 +24,12 @@ suite "streams":
   test "writes to stream":
     let stream = performHandshake().client.openStream()
     let message = @[1'u8, 2'u8, 3'u8]
-    var datagram: array[4096, byte]
-    let length = stream.write(message, datagram)
-    check datagram[0..<length].contains(message)
+    let datagram = stream.write(message)
+    check datagram.contains(message)
 
   test "raises when stream could not be written to":
     let stream = performHandshake().client.openStream()
     stream.close()
 
     expect IOError:
-      var datagram: array[4096, byte]
-      discard stream.write(@[1'u8, 2'u8, 3'u8], datagram)
+      discard stream.write(@[1'u8, 2'u8, 3'u8])
