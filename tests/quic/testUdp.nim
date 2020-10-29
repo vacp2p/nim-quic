@@ -7,7 +7,7 @@ suite "udp":
 
   test "writes packets to datagrams":
     let client = newClientConnection(zeroAddress, zeroAddress)
-    check client.write().data.len > 0
+    check client.write().len > 0
 
   test "reads packets from datagram":
     let client = newClientConnection(zeroAddress, zeroAddress)
