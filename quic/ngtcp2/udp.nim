@@ -28,7 +28,7 @@ proc write*(connection: Connection): seq[byte] =
   var ecn: ECN
   write(connection, ecn)
 
-proc read*(connection: Connection, datagram: Datagram, ecn = ecnNonCapable) =
+proc read*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
   packetInfo.ecn = ecn.uint32
   checkResult ngtcp2_conn_read_pkt(
