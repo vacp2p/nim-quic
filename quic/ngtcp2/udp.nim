@@ -6,14 +6,14 @@ import connection
 import path
 import errors
 
-proc write*(connection: Connection, datagram: var Datagram, ecn: var ECN): int =
+proc write*(connection: Connection, ecn: var ECN): seq[byte] =
   var packetInfo: ngtcp2_pkt_info
-  result = ngtcp2_conn_write_stream(
+  let length = ngtcp2_conn_write_stream(
     connection.conn,
     connection.path.toPathPtr,
     addr packetInfo,
-    addr datagram[0],
-    datagram.len.uint,
+    addr connection.buffer[0],
+    connection.buffer.len.uint,
     nil,
     0,
     -1,
@@ -22,10 +22,11 @@ proc write*(connection: Connection, datagram: var Datagram, ecn: var ECN): int =
     getMonoTime().ticks.uint
   )
   ecn = ECN(packetInfo.ecn)
+  connection.buffer[0..<length]
 
-proc write*(connection: Connection, datagram: var Datagram): int =
+proc write*(connection: Connection): seq[byte] =
   var ecn: ECN
-  write(connection, datagram, ecn)
+  write(connection, ecn)
 
 proc read*(connection: Connection, datagram: Datagram, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info

@@ -1,6 +1,5 @@
 import std/monotimes
 import ngtcp2
-import ../datagram
 import connection
 import errors
 import path
@@ -16,13 +15,13 @@ proc openStream*(connection: Connection): Stream =
 proc close*(stream: Stream) =
   checkResult ngtcp2_conn_shutdown_stream(stream.connection.conn, stream.id, 0)
 
-proc write*(stream: Stream, message: seq[byte], datagram: var Datagram): int =
-  result = ngtcp2_conn_write_stream(
+proc write*(stream: Stream, message: seq[byte]): seq[byte] =
+  let length = ngtcp2_conn_write_stream(
     stream.connection.conn,
     stream.connection.path.toPathPtr,
     nil,
-    addr datagram[0],
-    datagram.len.uint,
+    addr stream.connection.buffer[0],
+    stream.connection.buffer.len.uint,
     nil,
     0,
     stream.id,
@@ -30,4 +29,5 @@ proc write*(stream: Stream, message: seq[byte], datagram: var Datagram): int =
     message.len.uint,
     getMonoTime().ticks.uint
   )
-  checkResult result.cint
+  checkResult length.cint
+  stream.connection.buffer[0..<length]
