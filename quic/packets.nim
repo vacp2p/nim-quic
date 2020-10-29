@@ -8,7 +8,7 @@ export length
 export datagram
 include noerrors
 
-proc read(reader: var PacketReader, datagram: Datagram): Packet =
+proc read(reader: var PacketReader, datagram: DatagramBuffer): Packet =
   reader.readForm(datagram)
   reader.readFixedBit(datagram)
   case reader.packet.form
@@ -35,17 +35,17 @@ proc read(reader: var PacketReader, datagram: Datagram): Packet =
       reader.readPacketNumberAndPayload(datagram)
   reader.packet
 
-proc readPacket*(datagram: Datagram): Packet =
+proc readPacket*(datagram: DatagramBuffer): Packet =
   var reader = PacketReader()
   reader.read(datagram)
 
-proc readPackets*(datagram: Datagram): seq[Packet] =
+proc readPackets*(datagram: DatagramBuffer): seq[Packet] =
   var reader = PacketReader()
   while reader.next < datagram.len:
     reader.nextPacket()
     result.add(reader.read(datagram))
 
-proc write(writer: var PacketWriter, datagram: var Datagram) =
+proc write(writer: var PacketWriter, datagram: var DatagramBuffer) =
   writer.writeForm(datagram)
   writer.writeFixedBit(datagram)
   case writer.packet.form
@@ -73,12 +73,12 @@ proc write(writer: var PacketWriter, datagram: var Datagram) =
       writer.writeToken(datagram)
       writer.writePacketNumberAndPayload(datagram)
 
-proc write*(datagram: var Datagram, packet: Packet): int {.discardable.} =
+proc write*(datagram: var DatagramBuffer, packet: Packet): int {.discardable.} =
   var writer = PacketWriter(packet: packet)
   writer.write(datagram)
   writer.bytesWritten
 
-proc write*(datagram: var Datagram, packets: seq[Packet]): int {.discardable.} =
+proc write*(datagram: var DatagramBuffer, packets: seq[Packet]): int {.discardable.} =
   var writer = PacketWriter()
   for packet in packets:
     writer.nextPacket(packet)

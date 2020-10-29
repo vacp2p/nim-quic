@@ -1,1 +1,1 @@
-type Datagram* = openArray[byte]
+type DatagramBuffer* = openArray[byte]

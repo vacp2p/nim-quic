@@ -62,7 +62,7 @@ proc newServerConnection(local, remote: TransportAddress, source, destination: n
 
   Connection(conn: conn, path: path)
 
-proc extractIds(datagram: Datagram): tuple[source, destination: ngtcp2_cid] =
+proc extractIds(datagram: DatagramBuffer): tuple[source, destination: ngtcp2_cid] =
   var packetVersion: uint32
   var packetDestinationId: ptr uint8
   var packetDestinationIdLen: uint
@@ -72,6 +72,6 @@ proc extractIds(datagram: Datagram): tuple[source, destination: ngtcp2_cid] =
   result.source = toCid(packetSourceId, packetSourceIdLen)
   result.destination = toCid(packetDestinationId, packetDestinationIdLen)
 
-proc newServerConnection*(local, remote: TransportAddress, datagram: Datagram): Connection =
+proc newServerConnection*(local, remote: TransportAddress, datagram: DatagramBuffer): Connection =
   let (source, destination) = extractIds(datagram)
   newServerConnection(local, remote, source, destination)
