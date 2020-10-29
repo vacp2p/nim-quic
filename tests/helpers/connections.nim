@@ -3,19 +3,18 @@ import addresses
 
 proc performHandshake*: tuple[client, server: Connection] =
 
-  var datagram: seq[byte]
-  var ecn: ECN
+  var datagram: Datagram
 
   let client = newClientConnection(zeroAddress, zeroAddress)
-  datagram = client.write(ecn)
+  datagram = client.write()
 
-  let server = newServerConnection(zeroAddress, zeroAddress, datagram)
-  server.read(datagram, ecn)
+  let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
+  server.read(datagram)
 
-  datagram = server.write(ecn)
-  client.read(datagram, ecn)
+  datagram = server.write()
+  client.read(datagram)
 
-  datagram = client.write(ecn)
-  server.read(datagram, ecn)
+  datagram = client.write()
+  server.read(datagram)
 
   (client, server)
