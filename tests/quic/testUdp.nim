@@ -5,20 +5,15 @@ import ../helpers/addresses
 
 suite "udp":
 
-  var ecn: ECN
-
-  setup:
-    ecn = ECN.default
-
   test "writes packets to datagrams":
     let client = newClientConnection(zeroAddress, zeroAddress)
-    check client.write(ecn).len > 0
+    check client.write().data.len > 0
 
   test "reads packets from datagram":
     let client = newClientConnection(zeroAddress, zeroAddress)
-    let datagram = client.write(ecn)
-    let server = newServerConnection(zeroAddress, zeroAddress, datagram)
-    server.read(datagram, ecn)
+    let datagram = client.write()
+    let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
+    server.read(datagram)
 
   test "raises error when reading datagram fails":
     let datagram = repeat(0'u8, 4096)

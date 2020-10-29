@@ -25,7 +25,7 @@ suite "streams":
     let stream = performHandshake().client.openStream()
     let message = @[1'u8, 2'u8, 3'u8]
     let datagram = stream.write(message)
-    check datagram.contains(message)
+    check datagram.data.contains(message)
 
   test "raises when stream could not be written to":
     let stream = performHandshake().client.openStream()
