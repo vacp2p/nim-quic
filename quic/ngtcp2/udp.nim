@@ -1,13 +1,14 @@
 import std/monotimes
+import chronos
+import ngtcp2
 import ../openarray
 import ../packets
 import ../congestion
-import ngtcp2
 import connection
 import path
 import errors
 
-proc write*(connection: Connection) =
+proc write*(connection: Connection) {.async.} =
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream(
     connection.conn,
@@ -22,10 +23,10 @@ proc write*(connection: Connection) =
     0,
     getMonoTime().ticks.uint
   )
-  var result: Datagram
-  result.data = connection.buffer[0..<length]
-  result.ecn = ECN(packetInfo.ecn)
-  connection.outgoing.insert(result)
+  let data = connection.buffer[0..<length]
+  let ecn = ECN(packetInfo.ecn)
+  let datagram = Datagram(data: data, ecn: ecn)
+  await connection.outgoing.put(datagram)
 
 proc read*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info

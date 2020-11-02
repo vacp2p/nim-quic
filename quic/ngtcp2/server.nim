@@ -60,7 +60,9 @@ proc newServerConnection(local, remote: TransportAddress, source, destination: n
     nil
   )
 
-  Connection(conn: conn, path: path)
+  result = newConnection()
+  result.conn = conn
+  result.path = path
 
 proc extractIds(datagram: DatagramBuffer): tuple[source, destination: ngtcp2_cid] =
   var packetVersion: uint32

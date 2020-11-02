@@ -1,13 +1,15 @@
 import std/unittest
+import chronos
 import quic
+import ../helpers/asynctest
 import ../helpers/connections
 import ../helpers/addresses
 import ../helpers/contains
 
 suite "streams":
 
-  test "opens uni-directional streams":
-    let (client, _) = performHandshake()
+  asynctest "opens uni-directional streams":
+    let (client, _) = await performHandshake()
 
     check client.openStream() != client.openStream()
 
@@ -17,22 +19,26 @@ suite "streams":
     expect IOError:
       discard client.openStream()
 
-  test "closes stream":
-    let stream = performHandshake().client.openStream()
+  asynctest "closes stream":
+    let (client, _) = await performHandshake()
+    let stream = client.openStream()
     stream.close()
 
-  test "writes to stream":
-    let stream = performHandshake().client.openStream()
+  asynctest "writes to stream":
+    let (client, _) = await performHandshake()
+    let stream = client.openStream()
     let message = @[1'u8, 2'u8, 3'u8]
     let datagram = stream.write(message)
     check datagram.data.contains(message)
 
-  test "writes zero-length message":
-    let stream = performHandshake().client.openStream()
+  asynctest "writes zero-length message":
+    let (client, _) = await performHandshake()
+    let stream = client.openStream()
     check stream.write(@[]).len > 0
 
-  test "raises when stream could not be written to":
-    let stream = performHandshake().client.openStream()
+  asynctest "raises when stream could not be written to":
+    let (client, _) = await performHandshake()
+    let stream = client.openStream()
     stream.close()
 
     expect IOError:
