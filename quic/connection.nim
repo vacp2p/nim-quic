@@ -8,7 +8,7 @@ import ngtcp2/streams
 export Connection
 export newClientConnection
 export newServerConnection
-export read, write
+export receive, write
 export isHandshakeCompleted
 export waitForHandshake
 export Stream

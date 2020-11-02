@@ -5,7 +5,7 @@ import addresses
 proc sendLoop(source, destination: Connection) {.async.} =
   while true:
     let datagram = await source.outgoing.get()
-    destination.read(datagram)
+    destination.receive(datagram)
 
 proc performHandshake*: Future[tuple[client, server: Connection]] {.async.} =
 
@@ -15,7 +15,7 @@ proc performHandshake*: Future[tuple[client, server: Connection]] {.async.} =
   let datagram = await client.outgoing.get()
 
   let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
-  server.read(datagram)
+  server.receive(datagram)
   let serverHandshake = server.waitForHandshake()
 
   let clientLoop = sendLoop(client, server)

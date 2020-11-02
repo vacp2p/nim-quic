@@ -13,22 +13,22 @@ suite "udp":
     let datagram = await client.outgoing.get()
     check datagram.len > 0
 
-  asynctest "reads packets from datagram":
+  asynctest "processes received datagrams":
     let client = newClientConnection(zeroAddress, zeroAddress)
     await client.write()
     let datagram = await client.outgoing.get()
     let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
-    server.read(datagram)
+    server.receive(datagram)
 
-  test "raises error when reading datagram fails":
+  test "raises error when receiving bad datagram":
     let datagram = repeat(0'u8, 4096)
     let server = newServerConnection(zeroAddress, zeroAddress, datagram)
 
     expect IOError:
-      server.read(datagram)
+      server.receive(datagram)
 
-  test "raises error when reading empty datagram":
+  test "raises error when receiving empty datagram":
     let client = newClientConnection(zeroAddress, zeroAddress)
 
     expect IOError:
-      client.read(@[])
+      client.receive(@[])
