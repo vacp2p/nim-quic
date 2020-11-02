@@ -7,15 +7,15 @@ import ../helpers/addresses
 
 suite "udp":
 
-  asynctest "writes packets to datagrams":
+  asynctest "sends outgoing datagrams":
     let client = newClientConnection(zeroAddress, zeroAddress)
-    await client.write()
+    await client.send()
     let datagram = await client.outgoing.get()
     check datagram.len > 0
 
   asynctest "processes received datagrams":
     let client = newClientConnection(zeroAddress, zeroAddress)
-    await client.write()
+    await client.send()
     let datagram = await client.outgoing.get()
     let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
     server.receive(datagram)
