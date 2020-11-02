@@ -1,4 +1,5 @@
 import std/monotimes
+import chronos
 import ngtcp2
 import ../openarray
 import ../datagram
@@ -18,7 +19,7 @@ proc openStream*(connection: Connection): Stream =
 proc close*(stream: Stream) =
   checkResult ngtcp2_conn_shutdown_stream(stream.connection.conn, stream.id, 0)
 
-proc write*(stream: Stream, message: seq[byte]): Datagram =
+proc write*(stream: Stream, message: seq[byte]) {.async.} =
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream(
     stream.connection.conn,
@@ -34,5 +35,7 @@ proc write*(stream: Stream, message: seq[byte]): Datagram =
     getMonoTime().ticks.uint
   )
   checkResult length.cint
-  result.data = stream.connection.buffer[0..<length]
-  result.ecn = ECN(packetInfo.ecn)
+  let data = stream.connection.buffer[0..<length]
+  let ecn = ECN(packetInfo.ecn)
+  let datagram = Datagram(data: data, ecn: ecn)
+  await stream.connection.outgoing.put(datagram)
