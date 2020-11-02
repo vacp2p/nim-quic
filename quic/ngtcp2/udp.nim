@@ -9,7 +9,7 @@ import path
 import errors
 import handshake
 
-proc tryWrite(connection: Connection): Datagram =
+proc trySend(connection: Connection): Datagram =
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream(
     connection.conn,
@@ -28,17 +28,17 @@ proc tryWrite(connection: Connection): Datagram =
   let ecn = ECN(packetInfo.ecn)
   Datagram(data: data, ecn: ecn)
 
-proc write*(connection: Connection) {.async.} =
-  var datagram = connection.tryWrite()
+proc send*(connection: Connection) {.async.} =
+  var datagram = connection.trySend()
   while datagram.data.len == 0:
     connection.flowing.clear()
     await connection.flowing.wait()
-    datagram = connection.tryWrite()
+    datagram = connection.trySend()
   await connection.outgoing.put(datagram)
 
 proc waitForHandshake*(connection: Connection) {.async.} =
   while not connection.isHandshakeCompleted:
-    await connection.write()
+    await connection.send()
 
 proc receive*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
