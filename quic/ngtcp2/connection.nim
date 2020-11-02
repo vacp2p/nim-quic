@@ -10,6 +10,7 @@ type
     path*: Path
     buffer*: array[4096, byte]
     outgoing*: AsyncQueue[Datagram]
+    flowing*: AsyncEvent
 
 proc `=destroy`*(connection: var ConnectionObj) =
   if connection.conn != nil:
@@ -19,3 +20,5 @@ proc `=destroy`*(connection: var ConnectionObj) =
 proc newConnection*: Connection =
   new result
   result.outgoing = newAsyncQueue[Datagram]()
+  result.flowing = newAsyncEvent()
+  result.flowing.fire()

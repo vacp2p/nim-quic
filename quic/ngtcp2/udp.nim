@@ -7,8 +7,9 @@ import ../congestion
 import connection
 import path
 import errors
+import handshake
 
-proc write*(connection: Connection) {.async.} =
+proc tryWrite(connection: Connection): Datagram =
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream(
     connection.conn,
@@ -25,8 +26,19 @@ proc write*(connection: Connection) {.async.} =
   )
   let data = connection.buffer[0..<length]
   let ecn = ECN(packetInfo.ecn)
-  let datagram = Datagram(data: data, ecn: ecn)
+  Datagram(data: data, ecn: ecn)
+
+proc write*(connection: Connection) {.async.} =
+  var datagram = connection.tryWrite()
+  while datagram.data.len == 0:
+    connection.flowing.clear()
+    await connection.flowing.wait()
+    datagram = connection.tryWrite()
   await connection.outgoing.put(datagram)
+
+proc waitForHandshake*(connection: Connection) {.async.} =
+  while not connection.isHandshakeCompleted:
+    await connection.write()
 
 proc read*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
@@ -39,6 +51,7 @@ proc read*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable
     datagram.len.uint,
     getMonoTime().ticks.uint
   )
+  connection.flowing.fire()
 
 proc read*(connection: Connection, datagram: Datagram) =
   connection.read(datagram.data, datagram.ecn)
