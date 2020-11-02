@@ -40,7 +40,7 @@ proc waitForHandshake*(connection: Connection) {.async.} =
   while not connection.isHandshakeCompleted:
     await connection.write()
 
-proc read*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
+proc receive*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
   packetInfo.ecn = ecn.uint32
   checkResult ngtcp2_conn_read_pkt(
@@ -53,5 +53,5 @@ proc read*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable
   )
   connection.flowing.fire()
 
-proc read*(connection: Connection, datagram: Datagram) =
-  connection.read(datagram.data, datagram.ecn)
+proc receive*(connection: Connection, datagram: Datagram) =
+  connection.receive(datagram.data, datagram.ecn)
