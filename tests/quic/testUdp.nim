@@ -1,20 +1,22 @@
 import std/unittest
 import std/sequtils
+import chronos
 import quic
+import ../helpers/asynctest
 import ../helpers/addresses
 
 suite "udp":
 
-  test "writes packets to datagrams":
+  asynctest "writes packets to datagrams":
     let client = newClientConnection(zeroAddress, zeroAddress)
-    client.write()
-    let datagram = client.outgoing.pop()
+    await client.write()
+    let datagram = await client.outgoing.get()
     check datagram.len > 0
 
-  test "reads packets from datagram":
+  asynctest "reads packets from datagram":
     let client = newClientConnection(zeroAddress, zeroAddress)
-    client.write()
-    let datagram = client.outgoing.pop()
+    await client.write()
+    let datagram = await client.outgoing.get()
     let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
     server.read(datagram)
 

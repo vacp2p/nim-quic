@@ -59,4 +59,6 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
     nil
   )
 
-  Connection(conn: conn, path: path)
+  result = newConnection()
+  result.conn = conn
+  result.path = path

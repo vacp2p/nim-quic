@@ -1,13 +1,14 @@
 import std/unittest
 import chronos
 import quic
+import ../helpers/asynctest
 import ../helpers/connections
 import ../helpers/addresses
 
 suite "connection":
 
-  test "performs handshake":
-    let (client, server) = performHandshake()
+  asynctest "performs handshake":
+    let (client, server) = await performHandshake()
 
     check client.isHandshakeCompleted
     check server.isHandshakeCompleted

@@ -1,23 +1,24 @@
+import chronos
 import quic
 import addresses
 
-proc performHandshake*: tuple[client, server: Connection] =
+proc performHandshake*: Future[tuple[client, server: Connection]] {.async.} =
 
   var datagram: Datagram
 
   let client = newClientConnection(zeroAddress, zeroAddress)
-  client.write()
-  datagram = client.outgoing.pop()
+  await client.write()
+  datagram = await client.outgoing.get()
 
   let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
   server.read(datagram)
 
-  server.write()
-  datagram = server.outgoing.pop()
+  await server.write()
+  datagram = await server.outgoing.get()
   client.read(datagram)
 
-  client.write()
-  datagram = client.outgoing.pop()
+  await client.write()
+  datagram = await client.outgoing.get()
   server.read(datagram)
 
-  (client, server)
+  result = (client, server)
