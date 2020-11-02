@@ -28,13 +28,16 @@ suite "streams":
     let (client, _) = await performHandshake()
     let stream = client.openStream()
     let message = @[1'u8, 2'u8, 3'u8]
-    let datagram = stream.write(message)
+    await stream.write(message)
+    let datagram = await client.outgoing.get()
     check datagram.data.contains(message)
 
   asynctest "writes zero-length message":
     let (client, _) = await performHandshake()
     let stream = client.openStream()
-    check stream.write(@[]).len > 0
+    await stream.write(@[])
+    let datagram = await client.outgoing.get()
+    check datagram.len > 0
 
   asynctest "raises when stream could not be written to":
     let (client, _) = await performHandshake()
@@ -42,4 +45,4 @@ suite "streams":
     stream.close()
 
     expect IOError:
-      discard stream.write(@[1'u8, 2'u8, 3'u8])
+      await stream.write(@[1'u8, 2'u8, 3'u8])
