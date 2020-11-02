@@ -2,23 +2,28 @@ import chronos
 import quic
 import addresses
 
+proc sendLoop(source, destination: Connection) {.async.} =
+  while true:
+    let datagram = await source.outgoing.get()
+    destination.read(datagram)
+
 proc performHandshake*: Future[tuple[client, server: Connection]] {.async.} =
 
-  var datagram: Datagram
-
   let client = newClientConnection(zeroAddress, zeroAddress)
-  await client.write()
-  datagram = await client.outgoing.get()
+  let clientHandshake = client.waitForHandshake()
+
+  let datagram = await client.outgoing.get()
 
   let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
   server.read(datagram)
+  let serverHandshake = server.waitForHandshake()
 
-  await server.write()
-  datagram = await server.outgoing.get()
-  client.read(datagram)
+  let clientLoop = sendLoop(client, server)
+  let serverLoop = sendLoop(server, client)
 
-  await client.write()
-  datagram = await client.outgoing.get()
-  server.read(datagram)
+  await allFutures(clientHandshake, serverHandshake)
+
+  serverLoop.cancel()
+  clientLoop.cancel()
 
   result = (client, server)
