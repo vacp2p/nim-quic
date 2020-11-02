@@ -6,15 +6,18 @@ proc performHandshake*: tuple[client, server: Connection] =
   var datagram: Datagram
 
   let client = newClientConnection(zeroAddress, zeroAddress)
-  datagram = client.write()
+  client.write()
+  datagram = client.outgoing.pop()
 
   let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
   server.read(datagram)
 
-  datagram = server.write()
+  server.write()
+  datagram = server.outgoing.pop()
   client.read(datagram)
 
-  datagram = client.write()
+  client.write()
+  datagram = client.outgoing.pop()
   server.read(datagram)
 
   (client, server)

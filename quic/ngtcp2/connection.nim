@@ -1,4 +1,5 @@
 import ngtcp2
+import ../datagram
 import path
 
 type
@@ -7,6 +8,7 @@ type
     conn*: ptr ngtcp2_conn
     path*: Path
     buffer*: array[4096, byte]
+    outgoing*: seq[Datagram]
 
 proc `=destroy`*(connection: var ConnectionObj) =
   if connection.conn != nil:
