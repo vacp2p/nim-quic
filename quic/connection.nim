@@ -10,7 +10,7 @@ export newClientConnection
 export newServerConnection
 export receive, send
 export isHandshakeCompleted
-export waitForHandshake
+export handshake
 export Stream
 export openStream
 export close

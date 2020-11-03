@@ -7,7 +7,6 @@ import ../congestion
 import connection
 import path
 import errors
-import handshake
 
 proc trySend(connection: Connection): Datagram =
   var packetInfo: ngtcp2_pkt_info
@@ -35,10 +34,6 @@ proc send*(connection: Connection) {.async.} =
     await connection.flowing.wait()
     datagram = connection.trySend()
   await connection.outgoing.put(datagram)
-
-proc waitForHandshake*(connection: Connection) {.async.} =
-  while not connection.isHandshakeCompleted:
-    await connection.send()
 
 proc receive*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
