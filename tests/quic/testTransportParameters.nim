@@ -1,6 +1,8 @@
 import std/unittest
 import ngtcp2
+import ../helpers/addresses
 import quic/ngtcp2/params
+import quic/ngtcp2/client
 
 suite "transport parameters":
 
@@ -22,8 +24,8 @@ suite "transport parameters":
       discard decodeTransportParameters(encoded)
 
   test "raises when setting remote parameters fails":
-    var connection: ngtcp2_conn
+    let connection = newClientConnection(zeroAddress, zeroAddress)
     settings.transport_params.active_connection_id_limit = 0
 
     expect IOError:
-      (addr connection).setRemoteTransportParameters(settings.transport_params)
+      connection.conn.setRemoteTransportParameters(settings.transport_params)
