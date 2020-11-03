@@ -12,6 +12,7 @@ import crypto
 import connection
 import path
 import errors
+import streams
 
 let zeroKey = Key()
 
@@ -40,6 +41,7 @@ proc newServerConnection(local, remote: TransportAddress, source, destination: n
   callbacks.get_new_connection_id = getNewConnectionId
   callbacks.update_key = updateKey
   callbacks.handshake_completed = handshakeCompleted
+  callbacks.recv_stream_data = receiveStreamData
 
   var settings = defaultSettings()
   settings.transport_params.original_dcid = destination
