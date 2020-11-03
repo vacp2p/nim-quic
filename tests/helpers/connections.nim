@@ -10,13 +10,13 @@ proc sendLoop(source, destination: Connection) {.async.} =
 proc performHandshake*: Future[tuple[client, server: Connection]] {.async.} =
 
   let client = newClientConnection(zeroAddress, zeroAddress)
-  let clientHandshake = client.waitForHandshake()
+  let clientHandshake = client.handshake()
 
   let datagram = await client.outgoing.get()
 
   let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
   server.receive(datagram)
-  let serverHandshake = server.waitForHandshake()
+  let serverHandshake = server.handshake()
 
   let clientLoop = sendLoop(client, server)
   let serverLoop = sendLoop(server, client)
