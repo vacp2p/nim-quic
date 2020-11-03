@@ -11,6 +11,7 @@ import settings
 import crypto
 import connection
 import path
+import streams
 
 let zeroKey = Key()
 
@@ -40,6 +41,7 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
   callbacks.recv_crypto_data = receiveCryptoData
   callbacks.update_key = updateKey
   callbacks.handshake_completed = handshakeCompleted
+  callbacks.recv_stream_data = receiveStreamData
 
   let settings = defaultSettings()
   let source = randomConnectionId().toCid

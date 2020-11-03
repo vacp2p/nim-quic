@@ -39,3 +39,7 @@ proc write*(stream: Stream, message: seq[byte]) {.async.} =
   let ecn = ECN(packetInfo.ecn)
   let datagram = Datagram(data: data, ecn: ecn)
   await stream.connection.outgoing.put(datagram)
+
+proc receiveStreamData*(connection: ptr ngtcp2_conn, flags: uint32, stream_id: int64, offset: uint64, data: ptr uint8, datalen: uint, user_data: pointer, stream_user_data: pointer): cint{.cdecl.} =
+  checkResult connection.ngtcp2_conn_extend_max_stream_offset(stream_id, datalen)
+  connection.ngtcp2_conn_extend_max_offset(datalen)
