@@ -2,7 +2,7 @@ import chronos
 import quic
 import addresses
 
-proc sendLoop(source, destination: Connection) {.async.} =
+proc networkLoop(source, destination: Connection) {.async.} =
   while true:
     let datagram = await source.outgoing.get()
     destination.receive(datagram)
@@ -18,8 +18,8 @@ proc performHandshake*: Future[tuple[client, server: Connection]] {.async.} =
   server.receive(datagram)
   let serverHandshake = server.handshake()
 
-  let clientLoop = sendLoop(client, server)
-  let serverLoop = sendLoop(server, client)
+  let clientLoop = networkLoop(client, server)
+  let serverLoop = networkLoop(server, client)
 
   await allFutures(clientHandshake, serverHandshake)
 
