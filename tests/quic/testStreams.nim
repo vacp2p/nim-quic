@@ -9,9 +9,13 @@ import ../helpers/contains
 
 suite "streams":
 
-  asynctest "opens uni-directional streams":
-    let (client, _) = await performHandshake()
+  var client {.threadvar.}: Connection
+  var server {.threadvar.}: Connection
 
+  asyncsetup:
+    (client, server) = await performHandshake()
+
+  asynctest "opens uni-directional streams":
     check client.openStream() != client.openStream()
 
   test "raises error when opening uni-directional stream fails":
@@ -21,12 +25,10 @@ suite "streams":
       discard client.openStream()
 
   asynctest "closes stream":
-    let (client, _) = await performHandshake()
     let stream = client.openStream()
     stream.close()
 
   asynctest "writes to stream":
-    let (client, _) = await performHandshake()
     let stream = client.openStream()
     let message = @[1'u8, 2'u8, 3'u8]
     await stream.write(message)
@@ -34,14 +36,12 @@ suite "streams":
     check datagram.data.contains(message)
 
   asynctest "writes zero-length message":
-    let (client, _) = await performHandshake()
     let stream = client.openStream()
     await stream.write(@[])
     let datagram = await client.outgoing.get()
     check datagram.len > 0
 
   asynctest "raises when stream could not be written to":
-    let (client, _) = await performHandshake()
     let stream = client.openStream()
     stream.close()
 
@@ -50,7 +50,6 @@ suite "streams":
 
   asynctest "writes long messages to stream":
     let messageCounter = Counter()
-    let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server, messageCounter)
     defer: simulation.cancel()
 
@@ -61,7 +60,6 @@ suite "streams":
     check messageCounter.count > 100
 
   asynctest "accepts incoming streams":
-    let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
     defer: simulation.cancel()
 
@@ -72,7 +70,6 @@ suite "streams":
     check clientStream.id == serverStream.id
 
   asynctest "reads from stream":
-    let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
     defer: simulation.cancel()
 
