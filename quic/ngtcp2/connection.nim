@@ -10,7 +10,11 @@ type
     path*: Path
     buffer*: array[4096, byte]
     outgoing*: AsyncQueue[Datagram]
+    incoming*: AsyncQueue[Stream]
     flowing*: AsyncEvent
+  Stream* = object
+    id*: int64
+    connection*: Connection
 
 proc `=destroy`*(connection: var ConnectionObj) =
   if connection.conn != nil:
@@ -20,5 +24,6 @@ proc `=destroy`*(connection: var ConnectionObj) =
 proc newConnection*: Connection =
   new result
   result.outgoing = newAsyncQueue[Datagram]()
+  result.incoming = newAsyncQueue[Stream]()
   result.flowing = newAsyncEvent()
   result.flowing.fire()

@@ -41,12 +41,15 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
   callbacks.recv_crypto_data = receiveCryptoData
   callbacks.update_key = updateKey
   callbacks.handshake_completed = handshakeCompleted
+  callbacks.stream_open = streamOpen
   callbacks.recv_stream_data = receiveStreamData
 
   let settings = defaultSettings()
   let source = randomConnectionId().toCid
   let destination = randomConnectionId().toCid
   let path = newPath(local, remote)
+
+  result = newConnection()
 
   var conn: ptr ngtcp2_conn
   doAssert 0 == ngtcp2_conn_client_new(
@@ -58,9 +61,8 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
     addr callbacks,
     unsafeAddr settings,
     nil,
-    nil
+    addr result[]
   )
 
-  result = newConnection()
   result.conn = conn
   result.path = path
