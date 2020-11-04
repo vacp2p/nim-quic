@@ -70,3 +70,16 @@ suite "streams":
 
     let serverStream = await server.incomingStream()
     check clientStream.id == serverStream.id
+
+  asynctest "reads from stream":
+    let (client, server) = await performHandshake()
+    let simulation = simulateNetwork(client, server)
+    defer: simulation.cancel()
+
+    let message = @[1'u8, 2'u8, 3'u8]
+    await client.openStream().write(message)
+
+    let stream = await server.incomingStream()
+    let incoming = await stream.read()
+
+    check incoming == message

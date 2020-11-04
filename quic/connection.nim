@@ -14,5 +14,5 @@ export handshake
 export Stream
 export openStream
 export close
-export write
+export read, write
 export incomingStream
