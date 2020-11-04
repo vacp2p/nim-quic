@@ -35,6 +35,10 @@ proc send*(connection: Connection) {.async.} =
     datagram = connection.trySend()
   await connection.outgoing.put(datagram)
 
+proc sendLoop*(connection: Connection) {.async.} =
+  while true:
+    await connection.send()
+
 proc receive*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
   packetInfo.ecn = ecn.uint32

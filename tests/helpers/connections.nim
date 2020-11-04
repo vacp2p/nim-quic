@@ -2,10 +2,22 @@ import chronos
 import quic
 import addresses
 
-proc networkLoop(source, destination: Connection) {.async.} =
+type Counter* = ref object
+  count*: int
+
+proc networkLoop*(source, destination: Connection, counter = Counter()) {.async.} =
   while true:
     let datagram = await source.outgoing.get()
     destination.receive(datagram)
+    inc counter.count
+
+proc simulateNetwork*(a, b: Connection, messageCounter = Counter()) {.async.} =
+  await allFutures(
+    networkLoop(a, b, messageCounter),
+    networkLoop(b, a, messageCounter),
+    sendLoop(a),
+    sendLoop(b)
+  )
 
 proc performHandshake*: Future[tuple[client, server: Connection]] {.async.} =
 

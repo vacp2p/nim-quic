@@ -1,4 +1,5 @@
 import std/unittest
+import std/sequtils
 import chronos
 import quic
 import ../helpers/asynctest
@@ -46,3 +47,15 @@ suite "streams":
 
     expect IOError:
       await stream.write(@[1'u8, 2'u8, 3'u8])
+
+  asynctest "writes long messages to stream":
+    let messageCounter = Counter()
+    let (client, server) = await performHandshake()
+    let simulation = simulateNetwork(client, server, messageCounter)
+    defer: simulation.cancel()
+
+    let stream = client.openStream()
+    let message = repeat(42'u8, 100 * sizeof(client.buffer))
+    await stream.write(message)
+
+    check messageCounter.count > 100
