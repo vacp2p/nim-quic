@@ -15,4 +15,4 @@ export Stream
 export openStream
 export close
 export write
-
+export incomingStream

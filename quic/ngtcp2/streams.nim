@@ -9,10 +9,6 @@ import errors
 import path
 import pointers
 
-type Stream* = object
-  id: int64
-  connection: Connection
-
 proc openStream*(connection: Connection): Stream =
   checkResult ngtcp2_conn_open_uni_stream(connection.conn, addr result.id, nil)
   result.connection = connection
@@ -57,6 +53,13 @@ proc write*(stream: Stream, message: seq[byte]) {.async.} =
     messagePtr = messagePtr + written
     messageLen = messageLen - written.uint
     done = messageLen == 0
+
+proc streamOpen*(conn: ptr ngtcp2_conn, stream_id: int64; user_data: pointer): cint {.cdecl.} =
+  let connection = cast[Connection](user_data)
+  connection.incoming.putNoWait(Stream(connection: connection, id: stream_id))
+
+proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
+  result = await connection.incoming.get()
 
 proc receiveStreamData*(connection: ptr ngtcp2_conn, flags: uint32, stream_id: int64, offset: uint64, data: ptr uint8, datalen: uint, user_data: pointer, stream_user_data: pointer): cint{.cdecl.} =
   checkResult connection.ngtcp2_conn_extend_max_stream_offset(stream_id, datalen)

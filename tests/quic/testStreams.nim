@@ -59,3 +59,14 @@ suite "streams":
     await stream.write(message)
 
     check messageCounter.count > 100
+
+  asynctest "accepts incoming streams":
+    let (client, server) = await performHandshake()
+    let simulation = simulateNetwork(client, server)
+    defer: simulation.cancel()
+
+    let clientStream = client.openStream()
+    await clientStream.write(@[])
+
+    let serverStream = await server.incomingStream()
+    check clientStream.id == serverStream.id

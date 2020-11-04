@@ -41,6 +41,7 @@ proc newServerConnection(local, remote: TransportAddress, source, destination: n
   callbacks.get_new_connection_id = getNewConnectionId
   callbacks.update_key = updateKey
   callbacks.handshake_completed = handshakeCompleted
+  callbacks.stream_open = streamOpen
   callbacks.recv_stream_data = receiveStreamData
 
   var settings = defaultSettings()
@@ -48,6 +49,8 @@ proc newServerConnection(local, remote: TransportAddress, source, destination: n
 
   let id = randomConnectionId().toCid
   let path = newPath(local, remote)
+
+  result = newConnection()
 
   var conn: ptr ngtcp2_conn
   doAssert 0 == ngtcp2_conn_server_new(
@@ -59,10 +62,9 @@ proc newServerConnection(local, remote: TransportAddress, source, destination: n
     addr callbacks,
     addr settings,
     nil,
-    nil
+    addr result[]
   )
 
-  result = newConnection()
   result.conn = conn
   result.path = path
 
