@@ -10,8 +10,10 @@ import path
 import pointers
 
 proc openStream*(connection: Connection): Stream =
-  checkResult ngtcp2_conn_open_uni_stream(connection.conn, addr result.id, nil)
-  result.connection = connection
+  var id: int64
+  checkResult ngtcp2_conn_open_uni_stream(connection.conn, addr id, nil)
+  result = newStream(connection, id)
+  checkResult ngtcp2_conn_set_stream_user_data(connection.conn, id, addr result)
 
 proc close*(stream: Stream) =
   checkResult ngtcp2_conn_shutdown_stream(stream.connection.conn, stream.id, 0)
@@ -56,11 +58,18 @@ proc write*(stream: Stream, message: seq[byte]) {.async.} =
 
 proc streamOpen*(conn: ptr ngtcp2_conn, stream_id: int64; user_data: pointer): cint {.cdecl.} =
   let connection = cast[Connection](user_data)
-  connection.incoming.putNoWait(Stream(connection: connection, id: stream_id))
+  connection.incoming.putNoWait(newStream(connection, stream_id))
 
 proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
   result = await connection.incoming.get()
 
 proc receiveStreamData*(connection: ptr ngtcp2_conn, flags: uint32, stream_id: int64, offset: uint64, data: ptr uint8, datalen: uint, user_data: pointer, stream_user_data: pointer): cint{.cdecl.} =
+  let stream = cast[Stream](stream_user_data)
+  var bytes = newSeqUninitialized[byte](datalen)
+  copyMem(bytes.toUnsafePtr, data, datalen)
+  stream.incoming.putNoWait(bytes)
   checkResult connection.ngtcp2_conn_extend_max_stream_offset(stream_id, datalen)
   connection.ngtcp2_conn_extend_max_offset(datalen)
+
+proc read*(stream: Stream): Future[seq[byte]] {.async.} =
+  result = await stream.incoming.get()

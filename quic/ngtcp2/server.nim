@@ -50,11 +50,10 @@ proc newServerConnection(local, remote: TransportAddress, source, destination: n
   let id = randomConnectionId().toCid
   let path = newPath(local, remote)
 
-  result = newConnection()
+  result = newConnection(path)
 
-  var conn: ptr ngtcp2_conn
   doAssert 0 == ngtcp2_conn_server_new(
-    addr conn,
+    addr result.conn,
     unsafeAddr source,
     unsafeAddr id,
     path.toPathPtr,
@@ -64,9 +63,6 @@ proc newServerConnection(local, remote: TransportAddress, source, destination: n
     nil,
     addr result[]
   )
-
-  result.conn = conn
-  result.path = path
 
 proc extractIds(datagram: DatagramBuffer): tuple[source, destination: ngtcp2_cid] =
   var packetVersion: uint32

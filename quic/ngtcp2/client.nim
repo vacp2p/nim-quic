@@ -49,11 +49,10 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
   let destination = randomConnectionId().toCid
   let path = newPath(local, remote)
 
-  result = newConnection()
+  result = newConnection(path)
 
-  var conn: ptr ngtcp2_conn
   doAssert 0 == ngtcp2_conn_client_new(
-    addr conn,
+    addr result.conn,
     unsafeAddr destination,
     unsafeAddr source,
     path.toPathPtr,
@@ -63,6 +62,3 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
     nil,
     addr result[]
   )
-
-  result.conn = conn
-  result.path = path
