@@ -29,6 +29,7 @@ proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8
 
 proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
   connection.install1RttKeys(zeroKey, zeroKey)
+  cast[Connection](userData).handshake.fire()
 
 proc newClientConnection*(local, remote: TransportAddress): Connection =
   var callbacks: ngtcp2_conn_callbacks

@@ -8,7 +8,7 @@ import ngtcp2/streams
 export Connection
 export newClientConnection
 export newServerConnection
-export receive, send, sendLoop
+export receive, send
 export isHandshakeCompleted
 export handshake
 export Stream
