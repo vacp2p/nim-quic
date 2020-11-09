@@ -1,4 +1,3 @@
-import std/monotimes
 import chronos
 import ngtcp2
 import ../openarray
@@ -8,6 +7,7 @@ import connection
 import errors
 import path
 import pointers
+import timestamp
 
 proc openStream*(connection: Connection): Stream =
   var id: int64
@@ -31,7 +31,7 @@ proc trySend(stream: Stream, messagePtr: ptr byte, messageLen: uint, written: va
     stream.id,
     messagePtr,
     messageLen,
-    getMonoTime().ticks.uint
+    now()
   )
   checkResult length.cint
   let data = stream.connection.buffer[0..<length]
