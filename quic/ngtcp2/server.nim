@@ -13,6 +13,7 @@ import connection
 import path
 import errors
 import streams
+import timestamp
 
 let zeroKey = dummyKey()
 
@@ -47,6 +48,7 @@ proc newServerConnection(local, remote: TransportAddress, source, destination: n
 
   var settings = defaultSettings()
   settings.transport_params.original_dcid = destination
+  settings.initial_ts = now()
 
   let id = randomConnectionId().toCid
   let path = newPath(local, remote)

@@ -12,6 +12,7 @@ import crypto
 import connection
 import path
 import streams
+import timestamp
 
 var zeroKey = dummyKey()
 
@@ -45,7 +46,8 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
   callbacks.stream_open = streamOpen
   callbacks.recv_stream_data = receiveStreamData
 
-  let settings = defaultSettings()
+  var settings = defaultSettings()
+  settings.initial_ts = now()
   let source = randomConnectionId().toCid
   let destination = randomConnectionId().toCid
   let path = newPath(local, remote)

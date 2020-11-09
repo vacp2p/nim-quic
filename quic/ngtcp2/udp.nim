@@ -1,4 +1,3 @@
-import std/monotimes
 import chronos
 import ngtcp2
 import ../openarray
@@ -7,6 +6,7 @@ import ../congestion
 import connection
 import path
 import errors
+import timestamp
 
 proc trySend(connection: Connection): Datagram =
   var packetInfo: ngtcp2_pkt_info
@@ -21,7 +21,7 @@ proc trySend(connection: Connection): Datagram =
     -1,
     nil,
     0,
-    getMonoTime().ticks.uint
+    now()
   )
   checkResult length.cint
   let data = connection.buffer[0..<length]
@@ -46,7 +46,7 @@ proc receive*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapa
     unsafeAddr packetInfo,
     datagram.toUnsafePtr,
     datagram.len.uint,
-    getMonoTime().ticks.uint
+    now()
   )
   connection.send()
   connection.flowing.fire()
