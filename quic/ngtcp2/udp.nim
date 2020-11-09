@@ -28,17 +28,14 @@ proc trySend(connection: Connection): Datagram =
   let ecn = ECN(packetInfo.ecn)
   Datagram(data: data, ecn: ecn)
 
-proc send*(connection: Connection) {.async.} =
-  var datagram = connection.trySend()
-  while datagram.data.len == 0:
-    connection.flowing.clear()
-    await connection.flowing.wait()
-    datagram = connection.trySend()
-  await connection.outgoing.put(datagram)
-
-proc sendLoop*(connection: Connection) {.async.} =
-  while true:
-    await connection.send()
+proc send*(connection: Connection) =
+  var done = false
+  while not done:
+    let datagram = connection.trySend()
+    if datagram.data.len > 0:
+      connection.outgoing.putNoWait(datagram)
+    else:
+      done = true
 
 proc receive*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
@@ -51,6 +48,7 @@ proc receive*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapa
     datagram.len.uint,
     getMonoTime().ticks.uint
   )
+  connection.send()
   connection.flowing.fire()
 
 proc receive*(connection: Connection, datagram: Datagram) =

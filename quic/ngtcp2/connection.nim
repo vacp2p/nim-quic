@@ -13,6 +13,7 @@ type
     outgoing*: AsyncQueue[Datagram]
     incoming*: AsyncQueue[Stream]
     flowing*: AsyncEvent
+    handshake*: AsyncEvent
   Stream* = ref object
     id*: int64
     connection*: Connection
@@ -29,6 +30,7 @@ proc newConnection*(path: Path): Connection =
   result.outgoing = newAsyncQueue[Datagram]()
   result.incoming = newAsyncQueue[Stream]()
   result.flowing = newAsyncEvent()
+  result.handshake = newAsyncEvent()
   result.flowing.fire()
 
 proc newStream*(connection: Connection, id: int64): Stream =
