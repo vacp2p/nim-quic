@@ -13,7 +13,7 @@ import connection
 import path
 import streams
 
-let zeroKey = Key()
+var zeroKey = dummyKey()
 
 proc clientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdecl.} =
   connection.install0RttKey(zeroKey)
@@ -56,7 +56,7 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
     unsafeAddr destination,
     unsafeAddr source,
     path.toPathPtr,
-    cast[uint32](NGTCP2_PROTO_VER),
+    cast[uint32](NGTCP2_PROTO_VER_MAX),
     addr callbacks,
     unsafeAddr settings,
     nil,

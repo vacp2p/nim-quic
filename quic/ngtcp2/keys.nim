@@ -2,10 +2,14 @@ import ngtcp2
 
 type
   Key* = object
+    cryptoContext*: ngtcp2_crypto_ctx
     aeadContext*: ngtcp2_crypto_aead_ctx
     hpContext*: ngtcp2_crypto_cipher_ctx
     iv*: array[16, uint8]
     secret*: array[16, uint8]
+
+proc dummyKey*: Key =
+  result.cryptoContext.max_encryption = 1000
 
 proc install0RttKey*(connection: ptr ngtcp2_conn, key: Key) =
   var key = key
@@ -18,6 +22,7 @@ proc install0RttKey*(connection: ptr ngtcp2_conn, key: Key) =
     addr key.hpContext,
     key.iv.len.uint
   )
+  connection.ngtcp2_conn_set_initial_crypto_ctx(addr key.cryptoContext)
 
 proc installHandshakeKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
   var rx = rx
@@ -36,6 +41,7 @@ proc installHandshakeKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
     tx.iv.len.uint,
     addr tx.hpContext
   )
+  connection.ngtcp2_conn_set_crypto_ctx(addr rx.cryptoContext)
 
 proc install1RttKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
   var rx = rx
@@ -58,3 +64,4 @@ proc install1RttKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
     tx.iv.len.uint,
     addr tx.hpContext
   )
+  connection.ngtcp2_conn_set_crypto_ctx(addr rx.cryptoContext)
