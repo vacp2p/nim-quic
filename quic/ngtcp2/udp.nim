@@ -23,6 +23,7 @@ proc trySend(connection: Connection): Datagram =
     0,
     getMonoTime().ticks.uint
   )
+  checkResult length.cint
   let data = connection.buffer[0..<length]
   let ecn = ECN(packetInfo.ecn)
   Datagram(data: data, ecn: ecn)
