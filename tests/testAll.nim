@@ -10,5 +10,6 @@ import quic/testConnection
 import quic/testConnectionId
 import quic/testStreams
 import quic/testUdp
+import quic/testTimeout
 
 {.warning[UnusedImport]:off.}
