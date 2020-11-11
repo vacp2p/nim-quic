@@ -43,3 +43,22 @@ suite "timeout":
     await sleepAsync(5.milliseconds)
     check not expiry.finished()
     expiry.cancel()
+
+  asynctest "calls callback after expiry":
+    var called = false
+    proc callback = called = true
+    let timeout = newTimeout(10.milliseconds, callback)
+    await sleepAsync(5.milliseconds)
+    check not called
+    await sleepAsync(5.milliseconds)
+    check called
+    timeout.stop()
+
+  asynctest "calls callback multiple times":
+    var count = 0
+    proc callback = inc count
+    let timeout = newTimeout(10.milliseconds, callback)
+    await timeout.expired()
+    timeout.reset(10.milliseconds)
+    await timeout.expired()
+    check count == 2

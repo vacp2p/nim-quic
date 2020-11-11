@@ -2,16 +2,21 @@ import chronos
 
 type Timeout* = ref object
   timer: TimerCallback
+  callback: proc () {.gcsafe.}
   expired: AsyncEvent
 
 proc setTimer(timeout: Timeout, duration: Duration) =
   proc onTimeout(_: pointer) =
     timeout.expired.fire()
+    timeout.callback()
   timeout.timer = setTimer(Moment.fromNow(duration), onTimeout)
 
-proc newTimeout*(duration: Duration): Timeout =
+const skip = proc () = discard
+
+proc newTimeout*(duration: Duration, callback: proc {.gcsafe.} = skip): Timeout =
   new result
   result.expired = newAsyncEvent()
+  result.callback = callback
   result.setTimer(duration)
 
 proc reset*(timeout: Timeout, duration: Duration) =
