@@ -10,14 +10,15 @@ suite "timeout":
     body
     Moment.now() - start
 
-  proc `~=`(actual, expected: Duration, precision = 5.milliseconds): bool =
-    expected <= actual and actual < expected + precision
+  template checkDuration(duration, minimum: Duration, overshoot = 5.milliseconds) =
+    check duration > minimum
+    check duration < minimum + overshoot
 
   asynctest "can expire":
     let duration = measure:
       let timeout = newTimeout(10.milliseconds)
       await timeout.expired()
-    check duration ~= 10.milliseconds
+    checkDuration duration, 10.milliseconds
 
   asynctest "can be reset before expiry":
     let duration = measure:
@@ -25,7 +26,7 @@ suite "timeout":
       await sleepAsync(5.milliseconds)
       timeout.reset(10.milliseconds)
       await timeout.expired()
-    check duration ~= 15.milliseconds
+    checkDuration duration, 15.milliseconds
 
   asynctest "can be reset after expiry":
     let duration = measure:
@@ -33,7 +34,7 @@ suite "timeout":
       await timeout.expired()
       timeout.reset(10.milliseconds)
       await timeout.expired()
-    check duration ~= 20.milliseconds
+    checkDuration duration, 20.milliseconds
 
   asynctest "can be stopped":
     let timeout = newTimeout(10.milliseconds)
