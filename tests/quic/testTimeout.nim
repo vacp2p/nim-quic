@@ -16,28 +16,32 @@ suite "timeout":
 
   asynctest "can expire":
     let duration = measure:
-      let timeout = newTimeout(10.milliseconds)
+      let timeout = newTimeout()
+      timeout.set(10.milliseconds)
       await timeout.expired()
     checkDuration duration, 10.milliseconds
 
   asynctest "can be reset before expiry":
     let duration = measure:
-      let timeout = newTimeout(10.milliseconds)
+      let timeout = newTimeout()
+      timeout.set(10.milliseconds)
       await sleepAsync(5.milliseconds)
-      timeout.reset(10.milliseconds)
+      timeout.set(10.milliseconds)
       await timeout.expired()
     checkDuration duration, 15.milliseconds
 
   asynctest "can be reset after expiry":
     let duration = measure:
-      let timeout = newTimeout(10.milliseconds)
+      let timeout = newTimeout()
+      timeout.set(10.milliseconds)
       await timeout.expired()
-      timeout.reset(10.milliseconds)
+      timeout.set(10.milliseconds)
       await timeout.expired()
     checkDuration duration, 20.milliseconds
 
   asynctest "can be stopped":
-    let timeout = newTimeout(10.milliseconds)
+    let timeout = newTimeout()
+    timeout.set(10.milliseconds)
     let expiry = timeout.expired()
     await sleepAsync(5.milliseconds)
     timeout.stop()
@@ -48,7 +52,8 @@ suite "timeout":
   asynctest "calls callback after expiry":
     var called = false
     proc callback = called = true
-    let timeout = newTimeout(10.milliseconds, callback)
+    let timeout = newTimeout(callback)
+    timeout.set(10.milliseconds)
     await sleepAsync(5.milliseconds)
     check not called
     await sleepAsync(5.milliseconds)
@@ -58,8 +63,9 @@ suite "timeout":
   asynctest "calls callback multiple times":
     var count = 0
     proc callback = inc count
-    let timeout = newTimeout(10.milliseconds, callback)
+    let timeout = newTimeout(callback)
+    timeout.set(10.milliseconds)
     await timeout.expired()
-    timeout.reset(10.milliseconds)
+    timeout.set(10.milliseconds)
     await timeout.expired()
     check count == 2
