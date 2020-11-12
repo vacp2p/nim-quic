@@ -3,6 +3,7 @@ import ngtcp2
 import ../datagram
 import ../openarray
 import ../congestion
+import ../timeout
 import path
 import errors
 import timestamp
@@ -17,24 +18,30 @@ type
     incoming*: AsyncQueue[Stream]
     flowing*: AsyncEvent
     handshake*: AsyncEvent
+    timeout*: Timeout
   Stream* = ref object
     id*: int64
     connection*: Connection
     incoming*: AsyncQueue[seq[byte]]
 
 proc `=destroy`*(connection: var ConnectionObj) =
+  connection.timeout.stop()
   if connection.conn != nil:
     ngtcp2_conn_del(connection.conn)
     connection.conn = nil
 
+proc handleTimeout(connection: Connection) {.gcsafe.}
+
 proc newConnection*(path: Path): Connection =
-  new result
-  result.path = path
-  result.outgoing = newAsyncQueue[Datagram]()
-  result.incoming = newAsyncQueue[Stream]()
-  result.flowing = newAsyncEvent()
-  result.handshake = newAsyncEvent()
-  result.flowing.fire()
+  let connection = Connection()
+  connection.path = path
+  connection.outgoing = newAsyncQueue[Datagram]()
+  connection.incoming = newAsyncQueue[Stream]()
+  connection.flowing = newAsyncEvent()
+  connection.handshake = newAsyncEvent()
+  connection.timeout = newTimeout(proc = connection.handleTimeout())
+  connection.flowing.fire()
+  connection
 
 proc newStream*(connection: Connection, id: int64): Stream =
   new result
@@ -42,6 +49,13 @@ proc newStream*(connection: Connection, id: int64): Stream =
   result.id = id
   result.incoming = newAsyncQueue[seq[byte]]()
   checkResult ngtcp2_conn_set_stream_user_data(connection.conn, id, addr result[])
+
+proc updateTimeout*(connection: Connection) =
+  let expiry = ngtcp2_conn_get_expiry(connection.conn)
+  if expiry != uint64.high:
+    connection.timeout.set(Moment.init(expiry.int64, 1.nanoseconds))
+  else:
+    connection.timeout.stop()
 
 proc trySend(connection: Connection): Datagram =
   var packetInfo: ngtcp2_pkt_info
@@ -66,6 +80,7 @@ proc send*(connection: Connection) =
       connection.outgoing.putNoWait(datagram)
     else:
       done = true
+  connection.updateTimeout()
 
 proc receive*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
@@ -83,3 +98,7 @@ proc receive*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapa
 
 proc receive*(connection: Connection, datagram: Datagram) =
   connection.receive(datagram.data, datagram.ecn)
+
+proc handleTimeout(connection: Connection) =
+  checkResult ngtcp2_conn_handle_expiry(connection.conn, now())
+  connection.send()

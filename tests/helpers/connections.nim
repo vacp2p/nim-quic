@@ -1,3 +1,4 @@
+import std/random
 import chronos
 import quic
 import addresses
@@ -15,6 +16,18 @@ proc simulateNetwork*(a, b: Connection, messageCounter = Counter()) {.async.} =
   await allFutures(
     networkLoop(a, b, messageCounter),
     networkLoop(b, a, messageCounter)
+  )
+
+proc lossyNetworkLoop*(source, destination: Connection) {.async.} =
+  while true:
+    let datagram = await source.outgoing.get()
+    if rand(1.0) < 0.2:
+      destination.receive(datagram)
+
+proc simulateLossyNetwork*(a, b: Connection) {.async.} =
+  await allFutures(
+    lossyNetworkLoop(a, b),
+    lossyNetworkLoop(b, a)
   )
 
 proc performHandshake*: Future[tuple[client, server: Connection]] {.async.} =
