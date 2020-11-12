@@ -62,3 +62,10 @@ suite "timeout":
     timeout.set(10.milliseconds)
     await timeout.expired()
     check count == 2
+
+  asynctest "timeout can be set to a moment in time":
+    let duration = measure:
+      let timeout = newTimeout()
+      timeout.set(Moment.fromNow(10.milliseconds))
+      await timeout.expired()
+    check duration > 10.milliseconds
