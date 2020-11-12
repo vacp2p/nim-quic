@@ -45,6 +45,7 @@ proc send(stream: Stream, messagePtr: ptr byte, messageLen: uint): Future[int] {
     await stream.connection.flowing.wait()
     datagram = stream.trySend(messagePtr, messageLen, result)
   await stream.connection.outgoing.put(datagram)
+  stream.connection.updateTimeout()
 
 proc write*(stream: Stream, message: seq[byte]) {.async.} =
   var messagePtr = message.toUnsafePtr
