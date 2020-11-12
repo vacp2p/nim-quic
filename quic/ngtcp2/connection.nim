@@ -45,17 +45,12 @@ proc newStream*(connection: Connection, id: int64): Stream =
 
 proc trySend(connection: Connection): Datagram =
   var packetInfo: ngtcp2_pkt_info
-  let length = ngtcp2_conn_write_stream(
+  let length = ngtcp2_conn_write_pkt(
     connection.conn,
     connection.path.toPathPtr,
     addr packetInfo,
     addr connection.buffer[0],
     connection.buffer.len.uint,
-    nil,
-    0,
-    -1,
-    nil,
-    0,
     now()
   )
   checkResult length.cint
