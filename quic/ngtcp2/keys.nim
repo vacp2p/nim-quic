@@ -1,67 +1,80 @@
 import ngtcp2
+import ../openarray
 
 type
-  Key* = object
-    cryptoContext*: ngtcp2_crypto_ctx
-    aeadContext*: ngtcp2_crypto_aead_ctx
-    hpContext*: ngtcp2_crypto_cipher_ctx
-    iv*: array[16, uint8]
-    secret*: array[16, uint8]
+  Secret = seq[byte]
+  AuthenticatedEncryptionWithAssociatedData = object
+    context: ngtcp2_crypto_aead_ctx
+  HeaderProtection = object
+    context: ngtcp2_crypto_cipher_ctx
+  Key = object
+    aead: AuthenticatedEncryptionWithAssociatedData
+    hp: HeaderProtection
+    iv: seq[byte]
+  CryptoContext = ngtcp2_crypto_ctx
 
-proc dummyKey*: Key =
-  result.cryptoContext.max_encryption = 1000
+proc dummyCryptoContext: CryptoContext =
+  result.max_encryption = 1000
 
-proc install0RttKey*(connection: ptr ngtcp2_conn, key: Key) =
-  var key = key
-  connection.ngtcp2_conn_set_initial_crypto_ctx(addr key.cryptoContext)
+proc dummyKey: Key =
+  result.iv = cast[seq[byte]]("dummykey")
+
+proc dummySecret: Secret =
+  cast[seq[byte]]("dummysecret")
+
+proc install0RttKey*(connection: ptr ngtcp2_conn) =
+  let context = dummyCryptoContext()
+  connection.ngtcp2_conn_set_initial_crypto_ctx(unsafeAddr context)
+  let key = dummyKey()
   doAssert 0 == connection.ngtcp2_conn_install_initial_key(
-    addr key.aeadContext,
-    addr key.iv[0],
-    addr key.hpContext,
-    addr key.aeadContext,
-    addr key.iv[0],
-    addr key.hpContext,
+    key.aead.context.unsafeAddr,
+    key.iv.toUnsafePtr,
+    key.hp.context.unsafeAddr,
+    key.aead.context.unsafeAddr,
+    key.iv.toUnsafePtr,
+    key.hp.context.unsafeAddr,
     key.iv.len.uint
   )
 
-proc installHandshakeKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
-  var rx = rx
-  connection.ngtcp2_conn_set_crypto_ctx(addr rx.cryptoContext)
+proc installHandshakeKeys*(connection: ptr ngtcp2_conn) =
+  let context = dummyCryptoContext()
+  connection.ngtcp2_conn_set_crypto_ctx(unsafeAddr context)
+  let rx, tx = dummyKey()
   doAssert 0 == ngtcp2_conn_install_rx_handshake_key(
     connection,
-    addr rx.aeadContext,
-    addr rx.iv[0],
+    rx.aead.context.unsafeAddr,
+    rx.iv.toUnsafePtr,
     rx.iv.len.uint,
-    addr rx.hpContext
+    rx.hp.context.unsafeAddr
   )
-  var tx = tx
   doAssert 0 == ngtcp2_conn_install_tx_handshake_key(
     connection,
-    addr tx.aeadContext,
-    addr tx.iv[0],
+    tx.aead.context.unsafeAddr,
+    tx.iv.toUnsafePtr,
     tx.iv.len.uint,
-    addr tx.hpContext
+    tx.hp.context.unsafeAddr
   )
 
-proc install1RttKeys*(connection: ptr ngtcp2_conn, rx, tx: Key) =
-  var rx = rx
-  connection.ngtcp2_conn_set_crypto_ctx(addr rx.cryptoContext)
+proc install1RttKeys*(connection: ptr ngtcp2_conn) =
+  let context = dummyCryptoContext()
+  connection.ngtcp2_conn_set_crypto_ctx(unsafeAddr context)
+  let secret = dummySecret()
+  let rx, tx = dummyKey()
   doAssert 0 == ngtcp2_conn_install_rx_key(
     connection,
-    addr rx.secret[0],
-    rx.secret.len.uint,
-    addr rx.aeadContext,
-    addr rx.iv[0],
+    secret.toUnsafePtr,
+    secret.len.uint,
+    rx.aead.context.unsafeAddr,
+    rx.iv.toUnsafePtr,
     rx.iv.len.uint,
-    addr rx.hpContext
+    rx.hp.context.unsafeAddr
   )
-  var tx = tx
   doAssert 0 == ngtcp2_conn_install_tx_key(
     connection,
-    addr tx.secret[0],
-    tx.secret.len.uint,
-    addr tx.aeadContext,
-    addr tx.iv[0],
+    secret.toUnsafePtr,
+    secret.len.uint,
+    tx.aead.context.unsafeAddr,
+    tx.iv.toUnsafePtr,
     tx.iv.len.uint,
-    addr tx.hpContext
+    tx.hp.context.unsafeAddr
   )

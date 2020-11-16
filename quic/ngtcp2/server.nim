@@ -15,11 +15,10 @@ import errors
 import streams
 import timestamp
 
-let zeroKey = dummyKey()
 
 proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
-  connection.install0RttKey(zeroKey)
-  connection.installHandshakeKeys(zeroKey, zeroKey)
+  connection.install0RttKey()
+  connection.installHandshakeKeys()
 
 proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
   connection.handleCryptoData(toOpenArray(data, datalen))
@@ -30,7 +29,7 @@ proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8
   discard
 
 proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
-  connection.install1RttKeys(zeroKey, zeroKey)
+  connection.install1RttKeys()
   cast[Connection](userData).handshake.fire()
 
 proc newServerConnection(local, remote: TransportAddress, source, destination: ngtcp2_cid): Connection =
