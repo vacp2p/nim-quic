@@ -1,1 +1,0 @@
-const aeadlen* = 16
