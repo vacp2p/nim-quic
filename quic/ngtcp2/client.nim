@@ -6,7 +6,7 @@ import ids
 import encryption
 import keys
 import settings
-import crypto
+import cryptodata
 import connection
 import path
 import streams
