@@ -1,4 +1,6 @@
 import ngtcp2
+import aead
+import pointers
 
 proc dummyEncrypt*(dest: ptr uint8,
                    aead: ptr ngtcp2_crypto_aead,
@@ -10,3 +12,4 @@ proc dummyEncrypt*(dest: ptr uint8,
                    ad: ptr uint8,
                    adlen: uint): cint{.cdecl.} =
   moveMem(dest, plaintext, plaintextlen)
+  zeroMem(dest + plaintextlen.int, aeadlen)
