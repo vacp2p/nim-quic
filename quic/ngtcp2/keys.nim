@@ -56,8 +56,6 @@ proc installHandshakeKeys*(connection: ptr ngtcp2_conn) =
   )
 
 proc install1RttKeys*(connection: ptr ngtcp2_conn) =
-  let context = dummyCryptoContext()
-  connection.ngtcp2_conn_set_crypto_ctx(unsafeAddr context)
   let secret = dummySecret()
   let rx, tx = dummyKey()
   doAssert 0 == ngtcp2_conn_install_rx_key(
