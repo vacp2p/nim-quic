@@ -57,14 +57,14 @@ proc write*(stream: Stream, message: seq[byte]) {.async.} =
     messageLen = messageLen - written.uint
     done = messageLen == 0
 
-proc streamOpen*(conn: ptr ngtcp2_conn, stream_id: int64; user_data: pointer): cint {.cdecl.} =
+proc onStreamOpen*(conn: ptr ngtcp2_conn, stream_id: int64; user_data: pointer): cint {.cdecl.} =
   let connection = cast[Connection](user_data)
   connection.incoming.putNoWait(newStream(connection, stream_id))
 
 proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
   result = await connection.incoming.get()
 
-proc receiveStreamData*(connection: ptr ngtcp2_conn, flags: uint32, stream_id: int64, offset: uint64, data: ptr uint8, datalen: uint, user_data: pointer, stream_user_data: pointer): cint{.cdecl.} =
+proc onReceiveStreamData*(connection: ptr ngtcp2_conn, flags: uint32, stream_id: int64, offset: uint64, data: ptr uint8, datalen: uint, user_data: pointer, stream_user_data: pointer): cint{.cdecl.} =
   let stream = cast[Stream](stream_user_data)
   var bytes = newSeqUninitialized[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
