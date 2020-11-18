@@ -1,5 +1,6 @@
 import ngtcp2
 import ../openarray
+import aead
 
 type
   Secret = seq[byte]
@@ -56,6 +57,7 @@ proc installHandshakeKeys*(connection: ptr ngtcp2_conn) =
   )
 
 proc install1RttKeys*(connection: ptr ngtcp2_conn) =
+  ngtcp2_conn_set_aead_overhead(connection, aeadlen)
   let secret = dummySecret()
   let rx, tx = dummyKey()
   doAssert 0 == ngtcp2_conn_install_rx_key(

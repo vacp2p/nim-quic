@@ -1,4 +1,5 @@
 import ngtcp2
+import aead
 
 proc dummyDecrypt*(dest: ptr uint8,
                    aead: ptr ngtcp2_crypto_aead,
@@ -9,5 +10,5 @@ proc dummyDecrypt*(dest: ptr uint8,
                    noncelen: uint,
                    ad: ptr uint8,
                    adlen: uint): cint {.cdecl.} =
-  moveMem(dest, ciphertext, ciphertextlen)
+  moveMem(dest, ciphertext, ciphertextlen - aeadlen)
 
