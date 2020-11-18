@@ -16,10 +16,10 @@ import streams
 import timestamp
 
 
-proc receiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
+proc onReceiveClientInitial(connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer): cint {.cdecl.} =
   connection.install0RttKey()
 
-proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
+proc onReceiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
   if level == NGTCP2_CRYPTO_LEVEL_INITIAL:
     connection.submitCryptoData(NGTCP2_CRYPTO_LEVEL_INITIAL)
     connection.installHandshakeKeys()
@@ -30,24 +30,24 @@ proc receiveCryptoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, 
     connection.submitCryptoData(NGTCP2_CRYPTO_LEVEL_APP)
     ngtcp2_conn_handshake_completed(connection)
 
-proc updateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8, rx_aead_ctx: ptr ngtcp2_crypto_aead_ctx, rx_iv: ptr uint8, tx_aead_ctx: ptr ngtcp2_crypto_aead_ctx, tx_iv: ptr uint8, current_rx_secret: ptr uint8, current_tx_secret: ptr uint8, secretlen: uint, user_data: pointer): cint {.cdecl} =
+proc onUpdateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8, rx_aead_ctx: ptr ngtcp2_crypto_aead_ctx, rx_iv: ptr uint8, tx_aead_ctx: ptr ngtcp2_crypto_aead_ctx, tx_iv: ptr uint8, current_rx_secret: ptr uint8, current_tx_secret: ptr uint8, secretlen: uint, user_data: pointer): cint {.cdecl} =
   discard
 
-proc handshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
+proc onHandshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
   cast[Connection](userData).handshake.fire()
 
 proc newServerConnection(local, remote: TransportAddress, source, destination: ngtcp2_cid): Connection =
   var callbacks: ngtcp2_conn_callbacks
-  callbacks.recv_client_initial = receiveClientInitial
-  callbacks.recv_crypto_data = receiveCryptoData
+  callbacks.recv_client_initial = onReceiveClientInitial
+  callbacks.recv_crypto_data = onReceiveCryptoData
   callbacks.decrypt = dummyDecrypt
   callbacks.encrypt = dummyEncrypt
   callbacks.hp_mask = dummyHpMask
   callbacks.get_new_connection_id = getNewConnectionId
-  callbacks.update_key = updateKey
-  callbacks.handshake_completed = handshakeCompleted
-  callbacks.stream_open = streamOpen
-  callbacks.recv_stream_data = receiveStreamData
+  callbacks.update_key = onUpdateKey
+  callbacks.handshake_completed = onHandshakeCompleted
+  callbacks.stream_open = onStreamOpen
+  callbacks.recv_stream_data = onReceiveStreamData
 
   var settings = defaultSettings()
   settings.transport_params.original_dcid = destination
