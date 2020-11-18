@@ -1,6 +1,6 @@
 import ngtcp2
 import ../openarray
-import aead
+import encryption
 
 type
   Secret = seq[byte]

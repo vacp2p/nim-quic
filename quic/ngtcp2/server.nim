@@ -2,9 +2,7 @@ import chronos
 import ngtcp2
 import ../packets
 import ../openarray
-import encrypt
-import decrypt
-import hp
+import encryption
 import ids
 import keys
 import settings

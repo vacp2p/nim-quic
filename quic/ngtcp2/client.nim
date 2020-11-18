@@ -3,9 +3,7 @@ import ngtcp2
 import ../connectionid
 import ../openarray
 import ids
-import encrypt
-import decrypt
-import hp
+import encryption
 import keys
 import settings
 import crypto
