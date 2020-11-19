@@ -1,6 +1,6 @@
 import std/nativesockets
-import chronos
-import ngtcp2
+import pkg/chronos
+import pkg/ngtcp2
 
 type Path* = ref object
   storage: ngtcp2_path_storage

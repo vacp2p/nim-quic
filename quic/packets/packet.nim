@@ -1,9 +1,10 @@
 import ../connectionid
 import ../version
-import packetnumber
+import ./packetnumber
+include ../noerrors
+
 export connectionid
 export PacketNumber
-include ../noerrors
 
 type
   PacketForm* = enum

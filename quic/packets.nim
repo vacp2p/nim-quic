@@ -1,12 +1,13 @@
-import packets/packet
-import packets/length
-import packets/read
-import packets/write
-import datagram
+import ./packets/packet
+import ./packets/length
+import ./packets/read
+import ./packets/write
+import ./datagram
+include ./noerrors
+
 export packet
 export length
 export datagram
-include noerrors
 
 proc read(reader: var PacketReader, datagram: DatagramBuffer): Packet =
   reader.readForm(datagram)

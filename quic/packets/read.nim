@@ -1,11 +1,12 @@
-import stew/endians2
+import pkg/stew/endians2
 import ../bits
 import ../varints
 import ../datagram
-import packet
-import reader
-export reader
+import ./packet
+import ./reader
 include ../noerrors
+
+export reader
 
 proc readForm*(reader: var PacketReader, datagram: DatagramBuffer) =
   reader.packet = Packet(form: PacketForm(datagram[reader.next].bits[0]))

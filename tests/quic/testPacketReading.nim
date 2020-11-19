@@ -1,7 +1,7 @@
 import std/unittest
 import std/sequtils
-import quic
-import quic/bits
+import pkg/quic
+import pkg/quic/bits
 
 suite "packet reading":
 

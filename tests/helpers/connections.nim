@@ -1,7 +1,7 @@
 import std/random
-import chronos
-import quic
-import addresses
+import pkg/chronos
+import pkg/quic
+import ./addresses
 
 type Counter* = ref object
   count*: int

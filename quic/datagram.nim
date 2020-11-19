@@ -1,4 +1,4 @@
-import congestion
+import ./congestion
 
 type
   Datagram* = object

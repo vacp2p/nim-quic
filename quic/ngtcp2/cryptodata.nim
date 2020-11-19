@@ -1,5 +1,5 @@
-import ngtcp2
-import params
+import pkg/ngtcp2
+import ./params
 
 proc submitCryptoData*(connection: ptr ngtcp2_conn,
                        level: ngtcp2_crypto_level) =

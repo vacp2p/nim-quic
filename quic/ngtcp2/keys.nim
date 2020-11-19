@@ -1,6 +1,6 @@
-import ngtcp2
+import pkg/ngtcp2
 import ../openarray
-import encryption
+import ./encryption
 
 type
   Secret = seq[byte]

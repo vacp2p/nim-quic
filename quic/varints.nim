@@ -1,5 +1,5 @@
 import std/math
-import stew/endians2
+import pkg/stew/endians2
 
 type
   VarIntCompatible* = range[0'u64..2'u64^62-1]

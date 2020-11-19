@@ -1,5 +1,5 @@
-import ngtcp2
-import pointers
+import pkg/ngtcp2
+import ./pointers
 
 const aeadlen* = 16
 

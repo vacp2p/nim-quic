@@ -1,4 +1,4 @@
-import ngtcp2
+import pkg/ngtcp2
 import ../connectionid
 
 proc toCid*(bytes: ptr uint8, length: uint): ngtcp2_cid =

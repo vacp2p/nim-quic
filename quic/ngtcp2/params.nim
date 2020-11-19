@@ -1,5 +1,5 @@
-import ngtcp2
-import errors
+import pkg/ngtcp2
+import ./errors
 
 type TransportParameters* = ngtcp2_transport_params
 

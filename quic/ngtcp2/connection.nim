@@ -1,12 +1,12 @@
-import chronos
-import ngtcp2
+import pkg/chronos
+import pkg/ngtcp2
 import ../datagram
 import ../openarray
 import ../congestion
 import ../timeout
-import path
-import errors
-import timestamp
+import ./path
+import ./errors
+import ./timestamp
 
 type
   Connection* = ref ConnectionObj

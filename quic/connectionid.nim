@@ -1,5 +1,5 @@
 import std/strutils
-import sysrandom
+import pkg/sysrandom
 
 type ConnectionId* = distinct seq[byte]
 
