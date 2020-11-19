@@ -41,7 +41,6 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
   callbacks.client_initial = onClientInitial
   callbacks.recv_crypto_data = onReceiveCryptoData
   callbacks.get_new_connection_id = getNewConnectionId
-  callbacks.recv_crypto_data = onReceiveCryptoData
   callbacks.handshake_completed = onHandshakeCompleted
   installEncryptionCallbacks(callbacks)
   installStreamCallbacks(callbacks)
