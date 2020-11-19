@@ -1,13 +1,13 @@
-import chronos
-import ngtcp2
+import pkg/chronos
+import pkg/ngtcp2
 import ../openarray
 import ../datagram
 import ../congestion
-import connection
-import errors
-import path
-import pointers
-import timestamp
+import ./connection
+import ./errors
+import ./path
+import ./pointers
+import ./timestamp
 
 proc openStream*(connection: Connection): Stream =
   var id: int64

@@ -1,18 +1,18 @@
-import chronos
-import ngtcp2
+import pkg/chronos
+import pkg/ngtcp2
 import ../packets
 import ../openarray
-import encryption
-import ids
-import keys
-import settings
-import cryptodata
-import connection
-import path
-import errors
-import streams
-import timestamp
-import handshake
+import ./encryption
+import ./ids
+import ./keys
+import ./settings
+import ./cryptodata
+import ./connection
+import ./path
+import ./errors
+import ./streams
+import ./timestamp
+import ./handshake
 
 proc onReceiveClientInitial(connection: ptr ngtcp2_conn,
                             dcid: ptr ngtcp2_cid,

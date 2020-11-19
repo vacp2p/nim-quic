@@ -1,7 +1,9 @@
 import std/unittest
-import ngtcp2
+import pkg/ngtcp2
+import pkg/quic/ngtcp2/connection
+import pkg/quic/ngtcp2/client
+import pkg/quic/ngtcp2/params
 import ../helpers/addresses
-import quic/ngtcp2/params
 import quic/ngtcp2/client
 
 suite "transport parameters":

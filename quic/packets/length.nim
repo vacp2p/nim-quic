@@ -1,6 +1,6 @@
-import packet
-import packetnumber
 import ../varints
+import ./packet
+import ./packetnumber
 include ../noerrors
 
 proc len*(packet: Packet): int =

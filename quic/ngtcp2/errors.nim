@@ -1,4 +1,4 @@
-import ngtcp2
+import pkg/ngtcp2
 
 type Ngtcp2Error* = object of IOError
 

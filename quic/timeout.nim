@@ -1,4 +1,4 @@
-import chronos
+import pkg/chronos
 
 type Timeout* = ref object
   timer: TimerCallback

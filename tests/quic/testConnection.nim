@@ -1,6 +1,6 @@
 import std/unittest
-import chronos
-import quic
+import pkg/chronos
+import pkg/quic
 import ../helpers/asynctest
 import ../helpers/connections
 import ../helpers/addresses

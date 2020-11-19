@@ -1,6 +1,6 @@
 import std/unittest
 import std/math
-import quic/varints
+import pkg/quic/varints
 
 suite "variable length integer encoding":
 

@@ -1,5 +1,5 @@
 import std/unittest
-import quic/connectionid
+import pkg/quic/connectionid
 
 suite "connection ids":
 
