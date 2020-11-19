@@ -34,7 +34,8 @@ proc version(packet: Packet): uint32 =
 proc writeVersion*(writer: var PacketWriter, datagram: var DatagramBuffer) =
   writer.write(datagram, toBytesBE(writer.packet.version))
 
-proc writeConnectionId(writer: var PacketWriter, datagram: var DatagramBuffer, id: ConnectionId) =
+proc writeConnectionId(writer: var PacketWriter, datagram: var DatagramBuffer,
+                       id: ConnectionId) =
   let bytes = cast[seq[byte]](id)
   writer.write(datagram, @[bytes.len.uint8] & bytes)
 
@@ -44,7 +45,8 @@ proc writeDestination*(writer: var PacketWriter, datagram: var DatagramBuffer) =
 proc writeSource*(writer: var PacketWriter, datagram: var DatagramBuffer) =
   writer.writeConnectionId(datagram, writer.packet.source)
 
-proc writeSupportedVersions*(writer: var PacketWriter, datagram: var DatagramBuffer) =
+proc writeSupportedVersions*(writer: var PacketWriter,
+                             datagram: var DatagramBuffer) =
   for version in writer.packet.negotiation.supportedVersions:
     writer.write(datagram, version.toBytesBE)
 
@@ -97,7 +99,8 @@ proc writePacketNumber(writer: var PacketWriter, datagram: var DatagramBuffer,
   datagram[writer.first] = datagram[writer.first] or uint8(packetnumber.len - 1)
   writer.write(datagram, packetnumber)
 
-proc writePacketNumberAndPayload*(writer: var PacketWriter, datagram: var DatagramBuffer) =
+proc writePacketNumberAndPayload*(writer: var PacketWriter,
+                                  datagram: var DatagramBuffer) =
   let packetnumber = writer.packet.packetnumber.toMinimalBytes
   let payload = writer.packet.payload
   writer.writePacketLength(datagram, packetnumber.len + payload.len)
@@ -107,7 +110,8 @@ proc writePacketNumberAndPayload*(writer: var PacketWriter, datagram: var Datagr
 proc writeSpinBit*(writer: var PacketWriter, datagram: var DatagramBuffer) =
   datagram[writer.next].bits[2] = Bit(writer.packet.short.spinBit)
 
-proc writeReservedBits*(writer: var PacketWriter, datagram: var DatagramBuffer) =
+proc writeReservedBits*(writer: var PacketWriter,
+                        datagram: var DatagramBuffer) =
   datagram[writer.next].bits[3] = 0
   datagram[writer.next].bits[4] = 0
 
@@ -115,5 +119,6 @@ proc writeKeyPhase*(writer: var PacketWriter, datagram: var DatagramBuffer) =
   datagram[writer.next].bits[5] = Bit(writer.packet.short.keyPhase)
   writer.move(1)
 
-proc writeShortDestination*(writer: var PacketWriter, datagram: var DatagramBuffer) =
+proc writeShortDestination*(writer: var PacketWriter,
+                            datagram: var DatagramBuffer) =
   writer.write(datagram, cast[seq[byte]](writer.packet.destination))

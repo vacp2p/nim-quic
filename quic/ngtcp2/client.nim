@@ -13,11 +13,17 @@ import streams
 import timestamp
 
 
-proc onClientInitial(connection: ptr ngtcp2_conn, user_data: pointer): cint {.cdecl.} =
+proc onClientInitial(connection: ptr ngtcp2_conn,
+                     user_data: pointer): cint {.cdecl.} =
   connection.install0RttKey()
   connection.submitCryptoData(NGTCP2_CRYPTO_LEVEL_INITIAL)
 
-proc onReceiveCrytoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level, offset: uint64, data: ptr uint8, datalen: uint, userData: pointer): cint {.cdecl.} =
+proc onReceiveCrytoData(connection: ptr ngtcp2_conn,
+                        level: ngtcp2_crypto_level,
+                        offset: uint64,
+                        data: ptr uint8,
+                        datalen: uint,
+                        userData: pointer): cint {.cdecl.} =
   if level == NGTCP2_CRYPTO_LEVEL_INITIAL:
     connection.installHandshakeKeys()
   if level == NGTCP2_CRYPTO_LEVEL_HANDSHAKE:
@@ -26,10 +32,21 @@ proc onReceiveCrytoData(connection: ptr ngtcp2_conn, level: ngtcp2_crypto_level,
     connection.submitCryptoData(NGTCP2_CRYPTO_LEVEL_HANDSHAKE)
     ngtcp2_conn_handshake_completed(connection)
 
-proc onUpdateKey(conn: ptr ngtcp2_conn, rx_secret: ptr uint8, tx_secret: ptr uint8, rx_aead_ctx: ptr ngtcp2_crypto_aead_ctx, rx_iv: ptr uint8, tx_aead_ctx: ptr ngtcp2_crypto_aead_ctx, tx_iv: ptr uint8, current_rx_secret: ptr uint8, current_tx_secret: ptr uint8, secretlen: uint, user_data: pointer): cint {.cdecl} =
+proc onUpdateKey(conn: ptr ngtcp2_conn,
+                 rx_secret, : ptr uint8,
+                 tx_secret: ptr uint8,
+                 rx_aead_ctx: ptr ngtcp2_crypto_aead_ctx,
+                 rx_iv: ptr uint8,
+                 tx_aead_ctx: ptr ngtcp2_crypto_aead_ctx,
+                 tx_iv: ptr uint8,
+                 current_rx_secret: ptr uint8,
+                 current_tx_secret: ptr uint8,
+                 secretlen: uint,
+                 user_data: pointer): cint {.cdecl.} =
   discard
 
-proc onHandshakeCompleted(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
+proc onHandshakeCompleted(connection: ptr ngtcp2_conn,
+                          userData: pointer): cint {.cdecl.} =
   cast[Connection](userData).handshake.fire()
 
 proc newClientConnection*(local, remote: TransportAddress): Connection =

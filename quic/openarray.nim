@@ -1,6 +1,6 @@
-proc `[]=`*[T,U,V](
+proc `[]=`*[T, U, V](
   target: var openArray[T],
-  slice: HSlice[U,V],
+  slice: HSlice[U, V],
   replacement: openArray[T]
 ) =
   doAssert replacement.len == slice.len

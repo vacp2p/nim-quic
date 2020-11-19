@@ -6,7 +6,8 @@ import addresses
 type Counter* = ref object
   count*: int
 
-proc networkLoop*(source, destination: Connection, counter = Counter()) {.async.} =
+proc networkLoop*(source, destination: Connection,
+                  counter = Counter()) {.async.} =
   while true:
     let datagram = await source.outgoing.get()
     destination.receive(datagram)

@@ -1,7 +1,9 @@
 import ngtcp2
 import errors
 
-proc encodeTransportParameters*(parameters: ngtcp2_transport_params): seq[byte] =
+type TransportParameters* = ngtcp2_transport_params
+
+proc encodeTransportParameters*(parameters: TransportParameters): seq[byte] =
   var buffer: array[4096, byte]
   let length = ngtcp2_encode_transport_params(
     addr buffer[0],
@@ -16,7 +18,7 @@ proc encodeTransportParameters*(connection: ptr ngtcp2_conn): seq[byte] =
   connection.ngtcp2_conn_get_local_transport_params(addr parameters)
   encodeTransportParameters(parameters)
 
-proc decodeTransportParameters*(bytes: openArray[byte]): ngtcp2_transport_params =
+proc decodeTransportParameters*(bytes: openArray[byte]): TransportParameters =
   checkResult ngtcp2_decode_transport_params(
     addr result,
     NGTCP2_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,
@@ -25,5 +27,6 @@ proc decodeTransportParameters*(bytes: openArray[byte]): ngtcp2_transport_params
   )
 
 proc setRemoteTransportParameters*(connection: ptr ngtcp2_conn,
-                                   parameters: ngtcp2_transport_params) =
-  checkResult ngtcp2_conn_set_remote_transport_params(connection, unsafeAddr parameters)
+                                   parameters: TransportParameters) =
+  checkResult:
+    ngtcp2_conn_set_remote_transport_params(connection, unsafeAddr parameters)

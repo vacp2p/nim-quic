@@ -78,7 +78,8 @@ proc write*(datagram: var DatagramBuffer, packet: Packet): int {.discardable.} =
   writer.write(datagram)
   writer.bytesWritten
 
-proc write*(datagram: var DatagramBuffer, packets: seq[Packet]): int {.discardable.} =
+proc write*(datagram: var DatagramBuffer,
+            packets: seq[Packet]): int {.discardable.} =
   var writer = PacketWriter()
   for packet in packets:
     writer.nextPacket(packet)

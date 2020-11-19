@@ -45,11 +45,16 @@ type
       short*: PacketShort
     of formLong:
       case kind*: PacketKind
-      of packetInitial: initial*: PacketInitial
-      of packet0RTT: rtt*: Packet0RTT
-      of packetHandshake: handshake*: PacketHandshake
-      of packetRetry: retry*: PacketRetry
-      of packetVersionNegotiation: negotiation*: PacketVersionNegotiation
+      of packetInitial:
+        initial*: PacketInitial
+      of packet0RTT:
+        rtt*: Packet0RTT
+      of packetHandshake:
+        handshake*: PacketHandshake
+      of packetRetry:
+        retry*: PacketRetry
+      of packetVersionNegotiation:
+        negotiation*: PacketVersionNegotiation
       source*: ConnectionId
     destination*: ConnectionId
 

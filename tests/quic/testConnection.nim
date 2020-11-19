@@ -17,4 +17,4 @@ suite "connection":
     let invalid = @[0'u8]
 
     expect IOError:
-      discard  newServerConnection(zeroAddress, zeroAddress, invalid)
+      discard newServerConnection(zeroAddress, zeroAddress, invalid)
