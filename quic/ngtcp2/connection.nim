@@ -44,12 +44,12 @@ proc newConnection*(path: Path): Connection =
   connection
 
 proc newStream*(connection: Connection, id: int64): Stream =
-  new result
-  result.connection = connection
-  result.id = id
-  result.incoming = newAsyncQueue[seq[byte]]()
-  checkResult:
-    ngtcp2_conn_set_stream_user_data(connection.conn, id, addr result[])
+  let incoming = newAsyncQueue[seq[byte]]()
+  let stream = Stream(connection: connection, id: id, incoming: incoming)
+  let conn = connection.conn
+  let userdata = unsafeAddr stream[]
+  checkResult ngtcp2_conn_set_stream_user_data(conn, stream.id, userdata)
+  stream
 
 proc updateTimeout*(connection: Connection) =
   let expiry = ngtcp2_conn_get_expiry(connection.conn)
