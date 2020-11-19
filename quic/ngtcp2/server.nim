@@ -46,9 +46,8 @@ proc newServerConnection(local, remote: TransportAddress,
   callbacks.recv_crypto_data = onReceiveCryptoData
   callbacks.get_new_connection_id = getNewConnectionId
   callbacks.handshake_completed = onHandshakeCompleted
-  callbacks.stream_open = onStreamOpen
-  callbacks.recv_stream_data = onReceiveStreamData
   installEncryptionCallbacks(callbacks)
+  installStreamCallbacks(callbacks)
 
   var settings = defaultSettings()
   settings.transport_params.original_dcid = destination
