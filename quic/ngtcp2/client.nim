@@ -18,7 +18,7 @@ proc onClientInitial(connection: ptr ngtcp2_conn,
   connection.install0RttKey()
   connection.submitCryptoData(NGTCP2_CRYPTO_LEVEL_INITIAL)
 
-proc onReceiveCrytoData(connection: ptr ngtcp2_conn,
+proc onReceiveCryptoData(connection: ptr ngtcp2_conn,
                         level: ngtcp2_crypto_level,
                         offset: uint64,
                         data: ptr uint8,
@@ -52,12 +52,12 @@ proc onHandshakeCompleted(connection: ptr ngtcp2_conn,
 proc newClientConnection*(local, remote: TransportAddress): Connection =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = onClientInitial
-  callbacks.recv_crypto_data = onReceiveCrytoData
+  callbacks.recv_crypto_data = onReceiveCryptoData
   callbacks.decrypt = dummyDecrypt
   callbacks.encrypt = dummyEncrypt
   callbacks.hp_mask = dummyHpMask
   callbacks.get_new_connection_id = getNewConnectionId
-  callbacks.recv_crypto_data = onReceiveCrytoData
+  callbacks.recv_crypto_data = onReceiveCryptoData
   callbacks.update_key = onUpdateKey
   callbacks.handshake_completed = onHandshakeCompleted
   callbacks.stream_open = onStreamOpen
