@@ -62,16 +62,19 @@ proc write*(stream: Stream, message: seq[byte]) {.async.} =
     messageLen = messageLen - written.uint
     done = messageLen == 0
 
-proc onStreamOpen*(conn: ptr ngtcp2_conn,
+proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
+  result = await connection.incoming.get()
+
+proc read*(stream: Stream): Future[seq[byte]] {.async.} =
+  result = await stream.incoming.get()
+
+proc onStreamOpen(conn: ptr ngtcp2_conn,
                    stream_id: int64,
                    user_data: pointer): cint {.cdecl.} =
   let connection = cast[Connection](user_data)
   connection.incoming.putNoWait(newStream(connection, stream_id))
 
-proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
-  result = await connection.incoming.get()
-
-proc onReceiveStreamData*(connection: ptr ngtcp2_conn,
+proc onReceiveStreamData(connection: ptr ngtcp2_conn,
                           flags: uint32,
                           stream_id: int64,
                           offset: uint64,
@@ -87,5 +90,6 @@ proc onReceiveStreamData*(connection: ptr ngtcp2_conn,
     connection.ngtcp2_conn_extend_max_stream_offset(stream_id, datalen)
   connection.ngtcp2_conn_extend_max_offset(datalen)
 
-proc read*(stream: Stream): Future[seq[byte]] {.async.} =
-  result = await stream.incoming.get()
+proc installStreamCallbacks*(callbacks: var ngtcp2_conn_callbacks) =
+  callbacks.stream_open = onStreamOpen
+  callbacks.recv_stream_data = onReceiveStreamData
