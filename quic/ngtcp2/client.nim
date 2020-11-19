@@ -32,19 +32,6 @@ proc onReceiveCryptoData(connection: ptr ngtcp2_conn,
     connection.submitCryptoData(NGTCP2_CRYPTO_LEVEL_HANDSHAKE)
     ngtcp2_conn_handshake_completed(connection)
 
-proc onUpdateKey(conn: ptr ngtcp2_conn,
-                 rx_secret, : ptr uint8,
-                 tx_secret: ptr uint8,
-                 rx_aead_ctx: ptr ngtcp2_crypto_aead_ctx,
-                 rx_iv: ptr uint8,
-                 tx_aead_ctx: ptr ngtcp2_crypto_aead_ctx,
-                 tx_iv: ptr uint8,
-                 current_rx_secret: ptr uint8,
-                 current_tx_secret: ptr uint8,
-                 secretlen: uint,
-                 user_data: pointer): cint {.cdecl.} =
-  discard
-
 proc onHandshakeCompleted(connection: ptr ngtcp2_conn,
                           userData: pointer): cint {.cdecl.} =
   cast[Connection](userData).handshake.fire()
@@ -53,15 +40,12 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = onClientInitial
   callbacks.recv_crypto_data = onReceiveCryptoData
-  callbacks.decrypt = dummyDecrypt
-  callbacks.encrypt = dummyEncrypt
-  callbacks.hp_mask = dummyHpMask
   callbacks.get_new_connection_id = getNewConnectionId
   callbacks.recv_crypto_data = onReceiveCryptoData
-  callbacks.update_key = onUpdateKey
   callbacks.handshake_completed = onHandshakeCompleted
   callbacks.stream_open = onStreamOpen
   callbacks.recv_stream_data = onReceiveStreamData
+  installEncryptionCallbacks(callbacks)
 
   var settings = defaultSettings()
   settings.initial_ts = now()
