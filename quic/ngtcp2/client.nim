@@ -40,8 +40,8 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = onClientInitial
   callbacks.recv_crypto_data = onReceiveCryptoData
-  callbacks.get_new_connection_id = getNewConnectionId
   callbacks.handshake_completed = onHandshakeCompleted
+  installConnectionIdCallback(callbacks)
   installEncryptionCallbacks(callbacks)
   installStreamCallbacks(callbacks)
 
