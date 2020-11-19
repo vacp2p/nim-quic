@@ -11,6 +11,7 @@ import connection
 import path
 import streams
 import timestamp
+import handshake
 
 
 proc onClientInitial(connection: ptr ngtcp2_conn,
@@ -32,17 +33,13 @@ proc onReceiveCryptoData(connection: ptr ngtcp2_conn,
     connection.submitCryptoData(NGTCP2_CRYPTO_LEVEL_HANDSHAKE)
     ngtcp2_conn_handshake_completed(connection)
 
-proc onHandshakeCompleted(connection: ptr ngtcp2_conn,
-                          userData: pointer): cint {.cdecl.} =
-  cast[Connection](userData).handshake.fire()
-
 proc newClientConnection*(local, remote: TransportAddress): Connection =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = onClientInitial
   callbacks.recv_crypto_data = onReceiveCryptoData
-  callbacks.handshake_completed = onHandshakeCompleted
   installConnectionIdCallback(callbacks)
   installEncryptionCallbacks(callbacks)
+  installHandshakeCallback(callbacks)
   installStreamCallbacks(callbacks)
 
   var settings = defaultSettings()
