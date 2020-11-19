@@ -18,7 +18,10 @@ proc openStream*(connection: Connection): Stream =
 proc close*(stream: Stream) =
   checkResult ngtcp2_conn_shutdown_stream(stream.connection.conn, stream.id, 0)
 
-proc trySend(stream: Stream, messagePtr: ptr byte, messageLen: uint, written: var int): Datagram =
+proc trySend(stream: Stream,
+             messagePtr: ptr byte,
+             messageLen: uint,
+             written: var int): Datagram =
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream(
     stream.connection.conn,
@@ -38,7 +41,9 @@ proc trySend(stream: Stream, messagePtr: ptr byte, messageLen: uint, written: va
   let ecn = ECN(packetInfo.ecn)
   Datagram(data: data, ecn: ecn)
 
-proc send(stream: Stream, messagePtr: ptr byte, messageLen: uint): Future[int] {.async.} =
+proc send(stream: Stream,
+          messagePtr: ptr byte,
+          messageLen: uint): Future[int] {.async.} =
   var datagram = stream.trySend(messagePtr, messageLen, result)
   while datagram.data.len == 0:
     stream.connection.flowing.clear()
@@ -57,19 +62,29 @@ proc write*(stream: Stream, message: seq[byte]) {.async.} =
     messageLen = messageLen - written.uint
     done = messageLen == 0
 
-proc onStreamOpen*(conn: ptr ngtcp2_conn, stream_id: int64; user_data: pointer): cint {.cdecl.} =
+proc onStreamOpen*(conn: ptr ngtcp2_conn,
+                   stream_id: int64,
+                   user_data: pointer): cint {.cdecl.} =
   let connection = cast[Connection](user_data)
   connection.incoming.putNoWait(newStream(connection, stream_id))
 
 proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
   result = await connection.incoming.get()
 
-proc onReceiveStreamData*(connection: ptr ngtcp2_conn, flags: uint32, stream_id: int64, offset: uint64, data: ptr uint8, datalen: uint, user_data: pointer, stream_user_data: pointer): cint{.cdecl.} =
+proc onReceiveStreamData*(connection: ptr ngtcp2_conn,
+                          flags: uint32,
+                          stream_id: int64,
+                          offset: uint64,
+                          data: ptr uint8,
+                          datalen: uint,
+                          user_data: pointer,
+                          stream_user_data: pointer): cint{.cdecl.} =
   let stream = cast[Stream](stream_user_data)
   var bytes = newSeqUninitialized[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
   stream.incoming.putNoWait(bytes)
-  checkResult connection.ngtcp2_conn_extend_max_stream_offset(stream_id, datalen)
+  checkResult:
+    connection.ngtcp2_conn_extend_max_stream_offset(stream_id, datalen)
   connection.ngtcp2_conn_extend_max_offset(datalen)
 
 proc read*(stream: Stream): Future[seq[byte]] {.async.} =

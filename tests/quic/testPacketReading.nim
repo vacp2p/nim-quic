@@ -58,7 +58,8 @@ suite "packet reading":
   test "reads supported versions in version negotiation packet":
     const versions = @[0xAABBCCDD'u32, 0x11223344'u32]
     let length = datagram.write(versionNegotiationPacket(versions = versions))
-    check readPacket(datagram[0..<length]).negotiation.supportedVersions == versions
+    let packet = readPacket(datagram[0..<length])
+    check packet.negotiation.supportedVersions == versions
 
   test "reads token from retry packet":
     const token = @[1'u8, 2'u8, 3'u8]

@@ -27,7 +27,8 @@ proc `version=`(packet: var Packet, version: uint32) =
 proc readVersion*(reader: var PacketReader, datagram: DatagramBuffer) =
   reader.packet.version = fromBytesBE(uint32, reader.read(datagram, 4))
 
-proc readSupportedVersions*(reader: var PacketReader, datagram: DatagramBuffer) =
+proc readSupportedVersions*(reader: var PacketReader,
+                            datagram: DatagramBuffer) =
   var versions: seq[uint32]
   while reader.next < datagram.len:
     versions.add(fromBytesBE(uint32, reader.read(datagram, 4)))
@@ -43,7 +44,8 @@ proc readKind*(reader: var PacketReader, datagram: DatagramBuffer) =
   else:
     reader.packet = Packet(form: formLong, kind: PacketKind(kind))
 
-proc readConnectionId(reader: var PacketReader, datagram: DatagramBuffer): ConnectionId =
+proc readConnectionId(reader: var PacketReader,
+                      datagram: DatagramBuffer): ConnectionId =
   let length = reader.read(datagram).int
   ConnectionId(reader.read(datagram, length))
 
@@ -63,7 +65,8 @@ proc readIntegrity*(reader: var PacketReader, datagram: DatagramBuffer) =
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
 
-proc readVarInt(reader: var PacketReader, datagram: DatagramBuffer): VarIntCompatible =
+proc readVarInt(reader: var PacketReader,
+                datagram: DatagramBuffer): VarIntCompatible =
   result = fromVarInt(datagram.toOpenArray(reader.next, datagram.len-1))
   reader.move(varintlen(datagram.toOpenArray(reader.next, datagram.len-1)))
 
@@ -77,10 +80,12 @@ proc `packetnumber=`(packet: var Packet, number: PacketNumber) =
     of packetInitial: packet.initial.packetnumber = number
     else: discard
 
-proc readPacketNumberLength(reader: var PacketReader, datagram: DatagramBuffer): range[1..4] =
+proc readPacketNumberLength(reader: var PacketReader,
+                            datagram: DatagramBuffer): range[1..4] =
   1 + int(datagram[reader.first] and 0b11)
 
-proc readPacketNumber(reader: var PacketReader, datagram: DatagramBuffer, length: range[1..4]) =
+proc readPacketNumber(reader: var PacketReader, datagram: DatagramBuffer,
+                      length: range[1..4]) =
   let bytes = reader.read(datagram, length)
   var padded: array[4, byte]
   try:
@@ -100,15 +105,18 @@ proc `payload=`(packet: var Packet, payload: seq[byte]) =
     of packetInitial: packet.initial.payload = payload
     else: discard
 
-proc readPacketLength(reader: var PacketReader, datagram: DatagramBuffer): uint64 =
+proc readPacketLength(reader: var PacketReader,
+                      datagram: DatagramBuffer): uint64 =
   case reader.packet.form:
   of formLong: reader.readVarInt(datagram)
   of formShort: datagram.len - reader.next
 
-proc readPayload(reader: var PacketReader, datagram: DatagramBuffer, length: int) =
+proc readPayload(reader: var PacketReader,
+                 datagram: DatagramBuffer, length: int) =
   reader.packet.payload = reader.read(datagram, length)
 
-proc readPacketNumberAndPayload*(reader: var PacketReader, datagram: DatagramBuffer) =
+proc readPacketNumberAndPayload*(reader: var PacketReader,
+                                 datagram: DatagramBuffer) =
   let length = reader.readPacketLength(datagram)
   let packetnumberLength = reader.readPacketNumberLength(datagram)
   let payloadLength = length - packetnumberLength.uint64

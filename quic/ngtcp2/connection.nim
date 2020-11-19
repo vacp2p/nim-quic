@@ -48,7 +48,8 @@ proc newStream*(connection: Connection, id: int64): Stream =
   result.connection = connection
   result.id = id
   result.incoming = newAsyncQueue[seq[byte]]()
-  checkResult ngtcp2_conn_set_stream_user_data(connection.conn, id, addr result[])
+  checkResult:
+    ngtcp2_conn_set_stream_user_data(connection.conn, id, addr result[])
 
 proc updateTimeout*(connection: Connection) =
   let expiry = ngtcp2_conn_get_expiry(connection.conn)
@@ -82,7 +83,8 @@ proc send*(connection: Connection) =
       done = true
   connection.updateTimeout()
 
-proc receive*(connection: Connection, datagram: DatagramBuffer, ecn = ecnNonCapable) =
+proc receive*(connection: Connection, datagram: DatagramBuffer,
+              ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
   packetInfo.ecn = ecn.uint32
   checkResult ngtcp2_conn_read_pkt(
