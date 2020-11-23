@@ -51,7 +51,7 @@ suite "streams":
   asynctest "writes long messages to stream":
     let messageCounter = Counter()
     let simulation = simulateNetwork(client, server, messageCounter)
-    defer: simulation.cancel()
+    defer: await simulation.cancelAndWait()
 
     let stream = client.openStream()
     let message = repeat(42'u8, 100 * sizeof(client.buffer))
@@ -61,7 +61,7 @@ suite "streams":
 
   asynctest "accepts incoming streams":
     let simulation = simulateNetwork(client, server)
-    defer: simulation.cancel()
+    defer: await simulation.cancelAndWait()
 
     let clientStream = client.openStream()
     await clientStream.write(@[])
@@ -71,7 +71,7 @@ suite "streams":
 
   asynctest "reads from stream":
     let simulation = simulateNetwork(client, server)
-    defer: simulation.cancel()
+    defer: await simulation.cancelAndWait()
 
     let message = @[1'u8, 2'u8, 3'u8]
     await client.openStream().write(message)
@@ -83,7 +83,7 @@ suite "streams":
 
   asynctest "handles packet loss":
     let simulation = simulateLossyNetwork(client, server)
-    defer: simulation.cancel()
+    defer: await simulation.cancelAndWait()
 
     let message = @[1'u8, 2'u8, 3'u8]
     await client.openStream().write(message)
