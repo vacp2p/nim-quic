@@ -13,9 +13,9 @@ proc newPath*(local, remote: TransportAddress): Path =
   var localLength, remoteLength: SockLen
   local.toSAddr(localAddress, localLength)
   remote.toSAddr(remoteAddress, remoteLength)
-  new(result)
+  var path = Path()
   ngtcp2_path_storage_init(
-    addr result.storage,
+    addr path.storage,
     cast[ptr SockAddr](addr localAddress),
     localLength,
     nil,
@@ -23,4 +23,5 @@ proc newPath*(local, remote: TransportAddress): Path =
     remoteLength,
     nil
   )
+  path
 

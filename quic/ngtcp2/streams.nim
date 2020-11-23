@@ -12,8 +12,9 @@ import ./timestamp
 proc openStream*(connection: Connection): Stream =
   var id: int64
   checkResult ngtcp2_conn_open_uni_stream(connection.conn, addr id, nil)
-  result = newStream(connection, id)
+  var stream = newStream(connection, id)
   checkResult ngtcp2_conn_set_stream_user_data(connection.conn, id, addr result)
+  stream
 
 proc close*(stream: Stream) =
   checkResult ngtcp2_conn_shutdown_stream(stream.connection.conn, stream.id, 0)
