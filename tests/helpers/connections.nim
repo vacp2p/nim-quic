@@ -14,10 +14,12 @@ proc networkLoop*(source, destination: Connection,
     inc counter.count
 
 proc simulateNetwork*(a, b: Connection, messageCounter = Counter()) {.async.} =
-  await allFutures(
-    networkLoop(a, b, messageCounter),
-    networkLoop(b, a, messageCounter)
-  )
+  let loop1 = networkLoop(a, b, messageCounter)
+  let loop2 = networkLoop(b, a, messageCounter)
+  try:
+    await allFutures(loop1, loop2)
+  except CancelledError:
+    await allFutures(loop1.cancelAndWait(), loop2.cancelAndWait())
 
 proc lossyNetworkLoop*(source, destination: Connection) {.async.} =
   while true:
@@ -26,10 +28,12 @@ proc lossyNetworkLoop*(source, destination: Connection) {.async.} =
       destination.receive(datagram)
 
 proc simulateLossyNetwork*(a, b: Connection) {.async.} =
-  await allFutures(
-    lossyNetworkLoop(a, b),
-    lossyNetworkLoop(b, a)
-  )
+  let loop1 = lossyNetworkLoop(a, b)
+  let loop2 = lossyNetworkLoop(b, a)
+  try:
+    await allFutures(loop1, loop2)
+  except CancelledError:
+    await allFutures(loop1.cancelAndWait(), loop2.cancelAndWait())
 
 proc performHandshake*: Future[tuple[client, server: Connection]] {.async.} =
 
