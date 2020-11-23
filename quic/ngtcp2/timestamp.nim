@@ -1,4 +1,6 @@
-import std/monotimes
+import pkg/chronos
+
+const ZeroMoment = Moment.init(0, 1.nanoseconds)
 
 proc now*: uint64 =
-  getMonoTime().ticks.uint64
+  (Moment.now() - ZeroMoment).nanos.uint64
