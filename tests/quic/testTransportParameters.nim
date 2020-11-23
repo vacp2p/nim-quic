@@ -27,6 +27,7 @@ suite "transport parameters":
 
   test "raises when setting remote parameters fails":
     let connection = newClientConnection(zeroAddress, zeroAddress)
+    defer: connection.destroy()
     settings.transport_params.active_connection_id_limit = 0
 
     expect IOError:

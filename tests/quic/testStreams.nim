@@ -15,6 +15,10 @@ suite "streams":
   asyncsetup:
     (client, server) = await performHandshake()
 
+  teardown:
+    client.destroy()
+    server.destroy()
+
   asynctest "opens uni-directional streams":
     check client.openStream() != client.openStream()
 
