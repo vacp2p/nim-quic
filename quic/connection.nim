@@ -15,3 +15,4 @@ export openStream
 export close
 export read, write
 export incomingStream
+export destroy

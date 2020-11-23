@@ -24,11 +24,18 @@ type
     connection*: Connection
     incoming*: AsyncQueue[seq[byte]]
 
-proc `=destroy`*(connection: var ConnectionObj) =
-  connection.timeout.stop()
+proc destroy(connection: var ConnectionObj) =
   if connection.conn != nil:
+    connection.timeout.stop()
     ngtcp2_conn_del(connection.conn)
     connection.conn = nil
+
+proc destroy*(connection: Connection) =
+  ## Frees any resources associated with the connection.
+  connection[].destroy()
+
+proc `=destroy`*(connection: var ConnectionObj) =
+  connection.destroy()
 
 proc handleTimeout(connection: Connection) {.gcsafe.}
 

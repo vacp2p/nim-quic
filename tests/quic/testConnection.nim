@@ -9,6 +9,8 @@ suite "connection":
 
   asynctest "performs handshake":
     let (client, server) = await performHandshake()
+    defer: client.destroy
+    defer: server.destroy
 
     check client.isHandshakeCompleted
     check server.isHandshakeCompleted
