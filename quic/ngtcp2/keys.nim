@@ -15,10 +15,10 @@ type
   CryptoContext = ngtcp2_crypto_ctx
 
 proc dummyCryptoContext: CryptoContext =
-  result.max_encryption = 1000
+  CryptoContext(max_encryption: 1000)
 
 proc dummyKey: Key =
-  result.iv = cast[seq[byte]]("dummykey")
+  Key(iv: cast[seq[byte]]("dummykey"))
 
 proc dummySecret: Secret =
   cast[seq[byte]]("dummysecret")
