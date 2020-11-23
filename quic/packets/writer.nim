@@ -1,4 +1,3 @@
-import ../datagram
 import ../openarray
 import ./packet
 
@@ -10,7 +9,7 @@ type
 proc move*(writer: var PacketWriter, amount: int) =
   writer.next = writer.next + amount
 
-proc write*(writer: var PacketWriter, datagram: var DatagramBuffer,
+proc write*(writer: var PacketWriter, datagram: var openArray[byte],
             bytes: openArray[byte]) =
   datagram[writer.next..<writer.next+bytes.len] = bytes
   writer.move(bytes.len)
