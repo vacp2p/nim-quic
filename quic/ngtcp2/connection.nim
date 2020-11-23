@@ -90,7 +90,7 @@ proc send*(connection: Connection) =
       done = true
   connection.updateTimeout()
 
-proc receive*(connection: Connection, datagram: DatagramBuffer,
+proc receive*(connection: Connection, datagram: openArray[byte],
               ecn = ecnNonCapable) =
   var packetInfo: ngtcp2_pkt_info
   packetInfo.ecn = ecn.uint32
