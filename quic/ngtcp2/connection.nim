@@ -109,5 +109,6 @@ proc receive*(connection: Connection, datagram: Datagram) =
   connection.receive(datagram.data, datagram.ecn)
 
 proc handleTimeout(connection: Connection) =
-  checkResult ngtcp2_conn_handle_expiry(connection.conn, now())
-  connection.send()
+  if connection.conn != nil:
+    checkResult ngtcp2_conn_handle_expiry(connection.conn, now())
+    connection.send()
