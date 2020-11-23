@@ -23,13 +23,14 @@ proc trySend(stream: Stream,
              messagePtr: ptr byte,
              messageLen: uint,
              written: var int): Datagram =
+  let connection = stream.connection
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream(
-    stream.connection.conn,
-    stream.connection.path.toPathPtr,
+    connection.conn,
+    connection.path.toPathPtr,
     addr packetInfo,
-    addr stream.connection.buffer[0],
-    stream.connection.buffer.len.uint,
+    addr connection.buffer[0],
+    connection.buffer.len.uint,
     addr written,
     0,
     stream.id,
@@ -38,20 +39,21 @@ proc trySend(stream: Stream,
     now()
   )
   checkResult length.cint
-  let data = stream.connection.buffer[0..<length]
+  let data = connection.buffer[0..<length]
   let ecn = ECN(packetInfo.ecn)
   Datagram(data: data, ecn: ecn)
 
 proc send(stream: Stream,
           messagePtr: ptr byte,
           messageLen: uint): Future[int] {.async.} =
+  let connection = stream.connection
   var datagram = stream.trySend(messagePtr, messageLen, result)
   while datagram.data.len == 0:
-    stream.connection.flowing.clear()
-    await stream.connection.flowing.wait()
+    connection.flowing.clear()
+    await connection.flowing.wait()
     datagram = stream.trySend(messagePtr, messageLen, result)
-  await stream.connection.outgoing.put(datagram)
-  stream.connection.updateTimeout()
+  await connection.outgoing.put(datagram)
+  connection.updateTimeout()
 
 proc write*(stream: Stream, message: seq[byte]) {.async.} =
   var messagePtr = message.toUnsafePtr
