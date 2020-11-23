@@ -3,7 +3,7 @@ import std/sequtils
 import pkg/chronos
 import pkg/quic
 import ../helpers/asynctest
-import ../helpers/connections
+import ../helpers/simulation
 import ../helpers/addresses
 import ../helpers/contains
 
