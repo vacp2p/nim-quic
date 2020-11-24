@@ -7,6 +7,31 @@ import ../helpers/addresses
 
 suite "connection":
 
+  asynctest "sends outgoing datagrams":
+    let client = newClientConnection(zeroAddress, zeroAddress)
+    defer: client.destroy()
+    client.send()
+    let datagram = await client.outgoing.get()
+    check datagram.len > 0
+
+  asynctest "processes received datagrams":
+    let client = newClientConnection(zeroAddress, zeroAddress)
+    defer: client.destroy()
+
+    client.send()
+    let datagram = await client.outgoing.get()
+
+    let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
+    defer: server.destroy()
+
+    server.receive(datagram)
+
+  test "raises error when datagram that starts server connection is invalid":
+    let invalid = @[0'u8]
+
+    expect IOError:
+      discard newServerConnection(zeroAddress, zeroAddress, invalid)
+
   asynctest "performs handshake":
     let (client, server) = await performHandshake()
     defer: client.destroy
@@ -20,9 +45,3 @@ suite "connection":
       let (client, server) = await performHandshake()
       client.destroy()
       server.destroy()
-
-  test "raises error when datagram that starts server connection is invalid":
-    let invalid = @[0'u8]
-
-    expect IOError:
-      discard newServerConnection(zeroAddress, zeroAddress, invalid)
