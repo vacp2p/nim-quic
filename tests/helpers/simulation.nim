@@ -6,14 +6,15 @@ import ./addresses
 type Counter* = ref object
   count*: int
 
-proc networkLoop*(source, destination: Connection,
+proc networkLoop*(source, destination: Ngtcp2Connection,
                   counter = Counter()) {.async.} =
   while true:
     let datagram = await source.outgoing.get()
     destination.receive(datagram)
     inc counter.count
 
-proc simulateNetwork*(a, b: Connection, messageCounter = Counter()) {.async.} =
+proc simulateNetwork*(a, b: Ngtcp2Connection,
+                      messageCounter = Counter()) {.async.} =
   let loop1 = networkLoop(a, b, messageCounter)
   let loop2 = networkLoop(b, a, messageCounter)
   try:
@@ -21,13 +22,13 @@ proc simulateNetwork*(a, b: Connection, messageCounter = Counter()) {.async.} =
   except CancelledError:
     await allFutures(loop1.cancelAndWait(), loop2.cancelAndWait())
 
-proc lossyNetworkLoop*(source, destination: Connection) {.async.} =
+proc lossyNetworkLoop*(source, destination: Ngtcp2Connection) {.async.} =
   while true:
     let datagram = await source.outgoing.get()
     if rand(1.0) < 0.2:
       destination.receive(datagram)
 
-proc simulateLossyNetwork*(a, b: Connection) {.async.} =
+proc simulateLossyNetwork*(a, b: Ngtcp2Connection) {.async.} =
   let loop1 = lossyNetworkLoop(a, b)
   let loop2 = lossyNetworkLoop(b, a)
   try:
@@ -35,7 +36,8 @@ proc simulateLossyNetwork*(a, b: Connection) {.async.} =
   except CancelledError:
     await allFutures(loop1.cancelAndWait(), loop2.cancelAndWait())
 
-proc performHandshake*: Future[tuple[client, server: Connection]] {.async.} =
+proc performHandshake*:
+                Future[tuple[client, server: Ngtcp2Connection]] {.async.} =
 
   let client = newClientConnection(zeroAddress, zeroAddress)
   client.send()

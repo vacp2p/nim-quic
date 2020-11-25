@@ -7,7 +7,7 @@ import ../helpers/simulation
 import ../helpers/addresses
 import ../helpers/contains
 
-suite "streams":
+suite "ngtcp2 streams":
 
   asynctest "opens uni-directional streams":
     let (client, server) = await performHandshake()

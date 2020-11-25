@@ -36,7 +36,7 @@ proc onReceiveCryptoData(connection: ptr ngtcp2_conn,
     ngtcp2_conn_handshake_completed(connection)
 
 proc newServerConnection(local, remote: TransportAddress,
-                         source, destination: ngtcp2_cid): Connection =
+                         source, destination: ngtcp2_cid): Ngtcp2Connection =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.recv_client_initial = onReceiveClientInitial
   callbacks.recv_crypto_data = onReceiveCryptoData
@@ -86,6 +86,6 @@ proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =
   result.dest = toCid(packetDestinationId, packetDestinationIdLen)
 
 proc newServerConnection*(local, remote: TransportAddress,
-    datagram: openArray[byte]): Connection =
+    datagram: openArray[byte]): Ngtcp2Connection =
   let (source, destination) = extractIds(datagram)
   newServerConnection(local, remote, source, destination)

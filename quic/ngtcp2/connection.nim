@@ -9,8 +9,8 @@ import ./errors
 import ./timestamp
 
 type
-  Connection* = ref ConnectionObj
-  ConnectionObj = object
+  Ngtcp2Connection* = ref Ngtcp2ConnectionObj
+  Ngtcp2ConnectionObj = object
     conn*: ptr ngtcp2_conn
     path*: Path
     buffer*: array[4096, byte]
@@ -21,26 +21,26 @@ type
     timeout*: Timeout
   Stream* = ref object
     id*: int64
-    connection*: Connection
+    connection*: Ngtcp2Connection
     incoming*: AsyncQueue[seq[byte]]
 
-proc destroy(connection: var ConnectionObj) =
+proc destroy(connection: var Ngtcp2ConnectionObj) =
   if connection.conn != nil:
     connection.timeout.stop()
     ngtcp2_conn_del(connection.conn)
     connection.conn = nil
 
-proc destroy*(connection: Connection) =
+proc destroy*(connection: Ngtcp2Connection) =
   ## Frees any resources associated with the connection.
   connection[].destroy()
 
-proc `=destroy`*(connection: var ConnectionObj) =
+proc `=destroy`*(connection: var Ngtcp2ConnectionObj) =
   connection.destroy()
 
-proc handleTimeout(connection: Connection) {.gcsafe.}
+proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe.}
 
-proc newConnection*(path: Path): Connection =
-  let connection = Connection()
+proc newConnection*(path: Path): Ngtcp2Connection =
+  let connection = Ngtcp2Connection()
   connection.path = path
   connection.outgoing = newAsyncQueue[Datagram]()
   connection.incoming = newAsyncQueue[Stream]()
@@ -50,7 +50,7 @@ proc newConnection*(path: Path): Connection =
   connection.flowing.fire()
   connection
 
-proc newStream*(connection: Connection, id: int64): Stream =
+proc newStream*(connection: Ngtcp2Connection, id: int64): Stream =
   let incoming = newAsyncQueue[seq[byte]]()
   let stream = Stream(connection: connection, id: id, incoming: incoming)
   let conn = connection.conn
@@ -58,14 +58,14 @@ proc newStream*(connection: Connection, id: int64): Stream =
   checkResult ngtcp2_conn_set_stream_user_data(conn, stream.id, userdata)
   stream
 
-proc updateTimeout*(connection: Connection) =
+proc updateTimeout*(connection: Ngtcp2Connection) =
   let expiry = ngtcp2_conn_get_expiry(connection.conn)
   if expiry != uint64.high:
     connection.timeout.set(Moment.init(expiry.int64, 1.nanoseconds))
   else:
     connection.timeout.stop()
 
-proc trySend(connection: Connection): Datagram =
+proc trySend(connection: Ngtcp2Connection): Datagram =
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_pkt(
     connection.conn,
@@ -80,7 +80,7 @@ proc trySend(connection: Connection): Datagram =
   let ecn = ECN(packetInfo.ecn)
   Datagram(data: data, ecn: ecn)
 
-proc send*(connection: Connection) =
+proc send*(connection: Ngtcp2Connection) =
   var done = false
   while not done:
     let datagram = connection.trySend()
@@ -90,7 +90,8 @@ proc send*(connection: Connection) =
       done = true
   connection.updateTimeout()
 
-proc tryReceive(connection: Connection, datagram: openArray[byte], ecn: ECN) =
+proc tryReceive(connection: Ngtcp2Connection, datagram: openArray[byte],
+                ecn: ECN) =
   var packetInfo: ngtcp2_pkt_info
   packetInfo.ecn = ecn.uint32
   checkResult ngtcp2_conn_read_pkt(
@@ -102,7 +103,7 @@ proc tryReceive(connection: Connection, datagram: openArray[byte], ecn: ECN) =
     now()
   )
 
-proc receive*(connection: Connection, datagram: openArray[byte],
+proc receive*(connection: Ngtcp2Connection, datagram: openArray[byte],
               ecn = ecnNonCapable) =
   try:
     connection.tryReceive(datagram, ecn)
@@ -111,10 +112,10 @@ proc receive*(connection: Connection, datagram: openArray[byte],
   connection.send()
   connection.flowing.fire()
 
-proc receive*(connection: Connection, datagram: Datagram) =
+proc receive*(connection: Ngtcp2Connection, datagram: Datagram) =
   connection.receive(datagram.data, datagram.ecn)
 
-proc handleTimeout(connection: Connection) =
+proc handleTimeout(connection: Ngtcp2Connection) =
   if connection.conn != nil:
     checkResult ngtcp2_conn_handle_expiry(connection.conn, now())
     connection.send()

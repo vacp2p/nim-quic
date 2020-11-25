@@ -9,7 +9,7 @@ import ./path
 import ./pointers
 import ./timestamp
 
-proc openStream*(connection: Connection): Stream =
+proc openStream*(connection: Ngtcp2Connection): Stream =
   var id: int64
   checkResult ngtcp2_conn_open_uni_stream(connection.conn, addr id, nil)
   var stream = newStream(connection, id)
@@ -65,7 +65,7 @@ proc write*(stream: Stream, message: seq[byte]) {.async.} =
     messageLen = messageLen - written.uint
     done = messageLen == 0
 
-proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
+proc incomingStream*(connection: Ngtcp2Connection): Future[Stream] {.async.} =
   result = await connection.incoming.get()
 
 proc read*(stream: Stream): Future[seq[byte]] {.async.} =
@@ -74,7 +74,7 @@ proc read*(stream: Stream): Future[seq[byte]] {.async.} =
 proc onStreamOpen(conn: ptr ngtcp2_conn,
                    stream_id: int64,
                    user_data: pointer): cint {.cdecl.} =
-  let connection = cast[Connection](user_data)
+  let connection = cast[Ngtcp2Connection](user_data)
   connection.incoming.putNoWait(newStream(connection, stream_id))
 
 proc onReceiveStreamData(connection: ptr ngtcp2_conn,
