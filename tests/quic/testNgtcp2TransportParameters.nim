@@ -6,7 +6,7 @@ import pkg/quic/ngtcp2/params
 import ../helpers/addresses
 import quic/ngtcp2/client
 
-suite "transport parameters":
+suite "ngtcp2 transport parameters":
 
   var settings: ngtcp2_settings
 

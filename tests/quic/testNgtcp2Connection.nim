@@ -5,7 +5,7 @@ import ../helpers/asynctest
 import ../helpers/simulation
 import ../helpers/addresses
 
-suite "connection":
+suite "ngtcp2 connection":
 
   asynctest "sends outgoing datagrams":
     let client = newClientConnection(zeroAddress, zeroAddress)
