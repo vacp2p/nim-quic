@@ -9,18 +9,12 @@ import ../helpers/contains
 
 suite "streams":
 
-  var client {.threadvar.}: Connection
-  var server {.threadvar.}: Connection
+  asynctest "opens uni-directional streams":
+    let (client, server) = await performHandshake()
+    check client.openStream() != client.openStream()
 
-  asyncsetup:
-    (client, server) = await performHandshake()
-
-  teardown:
     client.destroy()
     server.destroy()
-
-  asynctest "opens uni-directional streams":
-    check client.openStream() != client.openStream()
 
   test "raises error when opening uni-directional stream fails":
     let client = newClientConnection(zeroAddress, zeroAddress)
@@ -28,34 +22,55 @@ suite "streams":
     expect IOError:
       discard client.openStream()
 
+    client.destroy()
+
   asynctest "closes stream":
+    let (client, server) = await performHandshake()
     let stream = client.openStream()
+
     stream.close()
 
+    client.destroy()
+    server.destroy()
+
   asynctest "writes to stream":
+    let (client, server) = await performHandshake()
     let stream = client.openStream()
     let message = @[1'u8, 2'u8, 3'u8]
     await stream.write(message)
     let datagram = await client.outgoing.get()
+
     check datagram.data.contains(message)
 
+    client.destroy()
+    server.destroy()
+
   asynctest "writes zero-length message":
+    let (client, server) = await performHandshake()
     let stream = client.openStream()
     await stream.write(@[])
     let datagram = await client.outgoing.get()
+
     check datagram.len > 0
 
+    client.destroy()
+    server.destroy()
+
   asynctest "raises when stream could not be written to":
+    let (client, server) = await performHandshake()
     let stream = client.openStream()
     stream.close()
 
     expect IOError:
       await stream.write(@[1'u8, 2'u8, 3'u8])
 
+    client.destroy()
+    server.destroy()
+
   asynctest "writes long messages to stream":
+    let (client, server) = await performHandshake()
     let messageCounter = Counter()
     let simulation = simulateNetwork(client, server, messageCounter)
-    defer: await simulation.cancelAndWait()
 
     let stream = client.openStream()
     let message = repeat(42'u8, 100 * sizeof(client.buffer))
@@ -63,9 +78,13 @@ suite "streams":
 
     check messageCounter.count > 100
 
+    await simulation.cancelAndWait()
+    client.destroy()
+    server.destroy()
+
   asynctest "accepts incoming streams":
+    let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
-    defer: await simulation.cancelAndWait()
 
     let clientStream = client.openStream()
     await clientStream.write(@[])
@@ -73,9 +92,13 @@ suite "streams":
     let serverStream = await server.incomingStream()
     check clientStream.id == serverStream.id
 
+    await simulation.cancelAndWait()
+    client.destroy()
+    server.destroy()
+
   asynctest "reads from stream":
+    let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
-    defer: await simulation.cancelAndWait()
 
     let message = @[1'u8, 2'u8, 3'u8]
     await client.openStream().write(message)
@@ -84,10 +107,14 @@ suite "streams":
     let incoming = await stream.read()
 
     check incoming == message
+
+    await simulation.cancelAndWait()
+    client.destroy()
+    server.destroy()
 
   asynctest "handles packet loss":
+    let (client, server) = await performHandshake()
     let simulation = simulateLossyNetwork(client, server)
-    defer: await simulation.cancelAndWait()
 
     let message = @[1'u8, 2'u8, 3'u8]
     await client.openStream().write(message)
@@ -96,3 +123,7 @@ suite "streams":
     let incoming = await stream.read()
 
     check incoming == message
+
+    await simulation.cancelAndWait()
+    client.destroy()
+    server.destroy()
