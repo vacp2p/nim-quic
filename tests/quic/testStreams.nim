@@ -38,9 +38,8 @@ suite "streams":
     let stream = client.openStream()
     let message = @[1'u8, 2'u8, 3'u8]
     await stream.write(message)
-    let datagram = await client.outgoing.get()
 
-    check datagram.data.contains(message)
+    check client.outgoing.anyIt(it.data.contains(message))
 
     client.destroy()
     server.destroy()
