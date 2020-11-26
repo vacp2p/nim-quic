@@ -9,5 +9,8 @@ proc onHandshakeCompleted(connection: ptr ngtcp2_conn,
                           userData: pointer): cint {.cdecl.} =
   cast[Connection](userData).handshake.fire()
 
-proc installHandshakeCallback*(callbacks: var ngtcp2_conn_callbacks) =
+proc installServerHandshakeCallback*(callbacks: var ngtcp2_conn_callbacks) =
   callbacks.handshake_completed = onHandshakeCompleted
+
+proc installClientHandshakeCallback*(callbacks: var ngtcp2_conn_callbacks) =
+  callbacks.handshake_confirmed = onHandshakeCompleted
