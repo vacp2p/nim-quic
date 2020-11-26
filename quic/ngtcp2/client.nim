@@ -39,7 +39,7 @@ proc newClientConnection*(local, remote: TransportAddress): Connection =
   callbacks.recv_crypto_data = onReceiveCryptoData
   installConnectionIdCallback(callbacks)
   installEncryptionCallbacks(callbacks)
-  installHandshakeCallback(callbacks)
+  installClientHandshakeCallback(callbacks)
   installStreamCallbacks(callbacks)
 
   var settings = defaultSettings()
