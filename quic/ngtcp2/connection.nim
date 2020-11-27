@@ -90,8 +90,7 @@ proc send*(connection: Connection) =
       done = true
   connection.updateTimeout()
 
-proc receive*(connection: Connection, datagram: openArray[byte],
-              ecn = ecnNonCapable) =
+proc tryReceive(connection: Connection, datagram: openArray[byte], ecn: ECN) =
   var packetInfo: ngtcp2_pkt_info
   packetInfo.ecn = ecn.uint32
   checkResult ngtcp2_conn_read_pkt(
@@ -102,6 +101,13 @@ proc receive*(connection: Connection, datagram: openArray[byte],
     datagram.len.uint,
     now()
   )
+
+proc receive*(connection: Connection, datagram: openArray[byte],
+              ecn = ecnNonCapable) =
+  try:
+    connection.tryReceive(datagram, ecn)
+  except Ngtcp2RecoverableError:
+    return
   connection.send()
   connection.flowing.fire()
 
