@@ -25,18 +25,3 @@ suite "udp":
     defer: server.destroy()
 
     server.receive(datagram)
-
-  test "raises error when receiving bad datagram":
-    let datagram = repeat(0'u8, 4096)
-    let server = newServerConnection(zeroAddress, zeroAddress, datagram)
-    defer: server.destroy()
-
-    expect IOError:
-      server.receive(datagram)
-
-  test "raises error when receiving empty datagram":
-    let client = newClientConnection(zeroAddress, zeroAddress)
-    defer: client.destroy()
-
-    expect IOError:
-      client.receive(@[])
