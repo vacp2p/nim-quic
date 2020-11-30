@@ -1,4 +1,5 @@
 import pkg/chronos
+import ./asyncloop
 import ./ngtcp2/connection
 import ./ngtcp2/server
 import ./ngtcp2/client
@@ -31,11 +32,10 @@ type
     closed: bool
 
 proc startSending(connection: Connection) =
-  proc sendLoop {.async.} =
-    while true:
-      let datagram = await connection.quic.outgoing.get()
-      await connection.udp.sendTo(connection.remote, datagram.data)
-  connection.loop = sendLoop()
+  proc send {.async.} =
+    let datagram = await connection.quic.outgoing.get()
+    await connection.udp.sendTo(connection.remote, datagram.data)
+  connection.loop = asyncLoop(send)
 
 proc stopSending(connection: Connection) {.async.} =
   await connection.loop.cancelAndWait()
