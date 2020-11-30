@@ -1,6 +1,7 @@
 import std/random
 import pkg/chronos
 import pkg/quic
+import pkg/quic/asyncloop
 import ./addresses
 
 type Counter* = ref object
@@ -8,10 +9,11 @@ type Counter* = ref object
 
 proc networkLoop*(source, destination: Ngtcp2Connection,
                   counter = Counter()) {.async.} =
-  while true:
+  proc transfer {.async.} =
     let datagram = await source.outgoing.get()
     destination.receive(datagram)
     inc counter.count
+  await asyncLoop(transfer)
 
 proc simulateNetwork*(a, b: Ngtcp2Connection,
                       messageCounter = Counter()) {.async.} =
@@ -23,10 +25,11 @@ proc simulateNetwork*(a, b: Ngtcp2Connection,
     await allFutures(loop1.cancelAndWait(), loop2.cancelAndWait())
 
 proc lossyNetworkLoop*(source, destination: Ngtcp2Connection) {.async.} =
-  while true:
+  proc transfer {.async.} =
     let datagram = await source.outgoing.get()
     if rand(1.0) < 0.2:
       destination.receive(datagram)
+  await asyncLoop(transfer)
 
 proc simulateLossyNetwork*(a, b: Ngtcp2Connection) {.async.} =
   let loop1 = lossyNetworkLoop(a, b)
