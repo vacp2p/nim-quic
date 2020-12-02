@@ -11,6 +11,6 @@ import ./quic/testNgtcp2Streams
 import ./quic/testNgtcp2TransportParameters
 import ./quic/testNgtcp2PacketInfo
 import ./quic/testTimeout
-import ./quic/testConnection
+import ./quic/testApi
 
 {.warning[UnusedImport]: off.}
