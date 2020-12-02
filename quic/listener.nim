@@ -19,10 +19,10 @@ proc hasConnection(listener: Listener, id: ConnectionId): bool =
 proc getConnection(listener: Listener, id: ConnectionId): Connection =
   listener.connections[id]
 
-proc addConnection(listener: Listener, connection: Connection) {.async.} =
+proc addConnection(listener: Listener, connection: Connection, firstId: ConnectionId) {.async.} =
   connection.quic.onNewId = proc (newId: ConnectionId) =
     listener.connections[newId] = connection
-  for id in connection.quic.ids:
+  for id in connection.quic.ids & firstId:
     listener.connections[id] = connection
   await listener.incoming.put(connection)
 
@@ -34,7 +34,7 @@ proc getOrCreateConnection*(listener: Listener,
   let destination = parseDatagram(udp.getMessage()).destination
   if not listener.hasConnection(destination):
     connection = newIncomingConnection(udp, remote)
-    await listener.addConnection(connection)
+    await listener.addConnection(connection, destination)
   else:
     connection = listener.getConnection(destination)
   result = connection
