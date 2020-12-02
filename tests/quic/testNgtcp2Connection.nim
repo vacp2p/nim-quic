@@ -48,6 +48,12 @@ suite "ngtcp2 connection":
       client.destroy()
       server.destroy()
 
+  asynctest "returns the current connection ids":
+    let (client, server) = await setupConnection()
+    check server.ids.len > 0
+    check client.ids.len > 0
+    check server.ids != client.ids
+
   asynctest "notifies about id changes":
     let (client, server) = await setupConnection()
     defer: client.destroy
