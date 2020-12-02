@@ -20,7 +20,7 @@ suite "listener":
       check connection != nil
       done()
 
-    listener.udp = newDatagramTransport(onReceive, local=address)
+    listener.udp = newDatagramTransport(onReceive, local = address)
     await exampleQuicDatagram().sendTo(address)
 
   asynctest "re-uses connection for known connection id", done:
@@ -36,7 +36,7 @@ suite "listener":
         await connection.close()
         done()
 
-    listener.udp = newDatagramTransport(onReceive, local=address)
+    listener.udp = newDatagramTransport(onReceive, local = address)
     let datagram = exampleQuicDatagram()
     await datagram.sendTo(address)
     await datagram.sendTo(address)
@@ -54,6 +54,6 @@ suite "listener":
         await connection.close()
         done()
 
-    listener.udp = newDatagramTransport(onReceive, local=address)
+    listener.udp = newDatagramTransport(onReceive, local = address)
     await exampleQuicDatagram().sendTo(address)
     await exampleQuicDatagram().sendTo(address)
