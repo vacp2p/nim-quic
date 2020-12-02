@@ -27,14 +27,13 @@ type
   Connection* = ref object
     udp: DatagramTransport
     quic: Ngtcp2Connection
-    remote: TransportAddress
     loop: Future[void]
     closed: bool
 
-proc startSending(connection: Connection) =
+proc startSending(connection: Connection, remote: TransportAddress) =
   proc send {.async.} =
     let datagram = await connection.quic.outgoing.get()
-    await connection.udp.sendTo(connection.remote, datagram.data)
+    await connection.udp.sendTo(remote, datagram.data)
   connection.loop = asyncLoop(send)
 
 proc stopSending(connection: Connection) {.async.} =
@@ -43,13 +42,14 @@ proc stopSending(connection: Connection) {.async.} =
 proc newIncomingConnection(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
   let quic = newServerConnection(udp.localAddress, remote, udp.getMessage())
-  result = Connection(udp: udp, quic: quic, remote: remote)
-  result.startSending()
+  result = Connection(udp: udp, quic: quic)
+  result.startSending(remote)
 
-proc newOutgoingConnection(udp: DatagramTransport): Connection =
-  let quic = newClientConnection(udp.localAddress, udp.remoteAddress)
-  result = Connection(udp: udp, quic: quic, remote: udp.remoteAddress)
-  result.startSending()
+proc newOutgoingConnection(udp: DatagramTransport,
+                           remote: TransportAddress): Connection =
+  let quic = newClientConnection(udp.localAddress, remote)
+  result = Connection(udp: udp, quic: quic)
+  result.startSending(remote)
 
 proc newListener: Listener =
   Listener(incoming: newAsyncQueue[Connection]())
@@ -89,8 +89,8 @@ proc dial*(address: TransportAddress): Future[Connection] {.async.} =
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
     let datagram = udp.getMessage()
     connection.quic.receive(datagram)
-  let udp = newDatagramTransport(onReceive, remote = address)
-  connection = newOutgoingConnection(udp)
+  let udp = newDatagramTransport(onReceive)
+  connection = newOutgoingConnection(udp, address)
   connection.quic.send()
   result = connection
 
