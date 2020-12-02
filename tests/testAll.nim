@@ -9,6 +9,7 @@ import ./quic/testConnectionId
 import ./quic/testNgtcp2Connection
 import ./quic/testNgtcp2Streams
 import ./quic/testNgtcp2TransportParameters
+import ./quic/testNgtcp2PacketInfo
 import ./quic/testTimeout
 import ./quic/testConnection
 
