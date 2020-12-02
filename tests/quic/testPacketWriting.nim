@@ -1,7 +1,7 @@
 import std/unittest
 import std/sequtils
 import pkg/stew/endians2
-import pkg/quic
+import pkg/quic/packets
 import pkg/quic/bits
 import pkg/quic/varints
 

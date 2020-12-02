@@ -1,5 +1,5 @@
 import std/unittest
-import pkg/quic
+import pkg/quic/packets
 import pkg/quic/ngtcp2/packetinfo
 
 suite "ngtcp2 packet info":
