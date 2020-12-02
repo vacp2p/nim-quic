@@ -1,8 +1,8 @@
 import ./quic/version
 import ./quic/packets
-import ./quic/connection
+import ./quic/api
 import ./quic/congestion
 export version
 export packets
-export connection
+export api
 export congestion
