@@ -1,5 +1,6 @@
 import pkg/ngtcp2
 import ../connectionid
+import ../openarray
 import ./connection
 
 proc toCid*(bytes: ptr uint8, length: uint): ngtcp2_cid =
@@ -7,7 +8,7 @@ proc toCid*(bytes: ptr uint8, length: uint): ngtcp2_cid =
 
 proc toCid*(id: ConnectionId): ngtcp2_cid =
   let bytes = seq[byte](id)
-  toCid(unsafeAddr bytes[0], bytes.len.uint)
+  toCid(bytes.toUnsafePtr, bytes.len.uint)
 
 proc getNewConnectionId(conn: ptr ngtcp2_conn,
                         id: ptr ngtcp2_cid,
