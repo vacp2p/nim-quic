@@ -1,6 +1,6 @@
 import std/unittest
 import std/sequtils
-import pkg/quic
+import pkg/quic/packets
 import pkg/quic/varints
 
 suite "packet length":

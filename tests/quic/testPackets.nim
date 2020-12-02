@@ -1,5 +1,6 @@
 import std/unittest
-import pkg/quic
+import pkg/quic/packets
+import pkg/quic/version
 
 suite "packet creation":
 
