@@ -1,6 +1,6 @@
 import std/random
 import pkg/chronos
-import pkg/quic
+import pkg/quic/ngtcp2
 import pkg/quic/asyncloop
 import ./addresses
 

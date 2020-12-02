@@ -1,7 +1,8 @@
 import std/unittest
 import std/sequtils
 import pkg/chronos
-import pkg/quic
+import pkg/quic/ngtcp2
+import pkg/quic/datagram
 import ../helpers/asynctest
 import ../helpers/simulation
 import ../helpers/addresses
