@@ -42,3 +42,22 @@ suite "connection":
 
     await outgoing.close()
     await incoming.close()
+
+  asynctest "accepts multiple incoming connections":
+    let listener = listen(address)
+    defer: await listener.stop()
+
+    let accepting1 = listener.accept()
+    let outgoing1 = await dial(address)
+    let incoming1 = await accepting1
+
+    let accepting2 = listener.accept()
+    let outgoing2 = await dial(address)
+    let incoming2 = await accepting2
+
+    check incoming1 != incoming2
+
+    await outgoing1.close()
+    await outgoing2.close()
+    await incoming1.close()
+    await incoming2.close()
