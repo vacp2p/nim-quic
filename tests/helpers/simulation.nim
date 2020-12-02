@@ -33,23 +33,23 @@ proc simulateLossyNetwork*(a, b: Ngtcp2Connection) {.async.} =
   except CancelledError:
     await allFutures(loop1.cancelAndWait(), loop2.cancelAndWait())
 
-proc performHandshake*:
+proc setupConnection*:
                 Future[tuple[client, server: Ngtcp2Connection]] {.async.} =
 
   let client = newClientConnection(zeroAddress, zeroAddress)
   client.send()
-
   let datagram = await client.outgoing.get()
-
   let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
   server.receive(datagram)
+  result = (client, server)
 
+
+proc performHandshake*:
+                Future[tuple[client, server: Ngtcp2Connection]] {.async.} =
+  let (client, server) = await setupConnection()
   let clientLoop = networkLoop(client, server)
   let serverLoop = networkLoop(server, client)
-
   await allFutures(client.handshake.wait(), server.handshake.wait())
-
   serverLoop.cancel()
   clientLoop.cancel()
-
   result = (client, server)

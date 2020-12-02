@@ -45,3 +45,18 @@ suite "ngtcp2 connection":
       let (client, server) = await performHandshake()
       client.destroy()
       server.destroy()
+
+  asynctest "notifies about id changes":
+    let (client, server) = await setupConnection()
+    defer: client.destroy
+    defer: server.destroy
+
+    var newId: ConnectionId
+    server.onNewId = proc (id: ConnectionId) =
+      newId = id
+
+    let simulation = simulateNetwork(client, server)
+    defer: await simulation.cancelAndWait()
+
+    await server.handshake.wait()
+    check newId != ConnectionId.default
