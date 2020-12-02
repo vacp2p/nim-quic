@@ -1,3 +1,4 @@
+import std/sequtils
 import pkg/chronos
 import pkg/ngtcp2
 import ../datagram
@@ -51,6 +52,12 @@ proc newConnection*(path: Path): Ngtcp2Connection =
   connection.timeout = newTimeout(proc = connection.handleTimeout())
   connection.flowing.fire()
   connection
+
+proc ids*(connection: Ngtcp2Connection): seq[ConnectionId] =
+  let amount = ngtcp2_conn_get_num_scid(connection.conn)
+  var scids = newSeq[ngtcp2_cid](amount)
+  discard ngtcp2_conn_get_scid(connection.conn, scids.toPtr)
+  scids.mapIt(ConnectionId(it.data[0..<it.datalen]))
 
 proc newStream*(connection: Ngtcp2Connection, id: int64): Stream =
   let incoming = newAsyncQueue[seq[byte]]()

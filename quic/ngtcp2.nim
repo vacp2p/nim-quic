@@ -10,6 +10,7 @@ export newServerConnection
 export receive, send
 export isHandshakeCompleted
 export handshake
+export ids
 export Stream
 export openStream
 export close
