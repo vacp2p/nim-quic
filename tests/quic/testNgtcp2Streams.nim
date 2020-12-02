@@ -66,21 +66,6 @@ suite "ngtcp2 streams":
     client.destroy()
     server.destroy()
 
-  asynctest "writes long messages to stream":
-    let (client, server) = await performHandshake()
-    let messageCounter = Counter()
-    let simulation = simulateNetwork(client, server, messageCounter)
-
-    let stream = client.openStream()
-    let message = repeat(42'u8, 100 * sizeof(client.buffer))
-    await stream.write(message)
-
-    check messageCounter.count > 100
-
-    await simulation.cancelAndWait()
-    client.destroy()
-    server.destroy()
-
   asynctest "accepts incoming streams":
     let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
@@ -110,6 +95,23 @@ suite "ngtcp2 streams":
     await simulation.cancelAndWait()
     client.destroy()
     server.destroy()
+
+  asynctest "writes long messages to stream":
+    let (client, server) = await performHandshake()
+    let simulation = simulateNetwork(client, server)
+
+    let stream = client.openStream()
+    let message = repeat(42'u8, 100 * sizeof(client.buffer))
+    await stream.write(message)
+
+    let incoming = await server.incomingStream()
+    for _ in 0..<100:
+      discard await incoming.read()
+
+    await simulation.cancelAndWait()
+    client.destroy()
+    server.destroy()
+
 
   asynctest "handles packet loss":
     let (client, server) = await performHandshake()

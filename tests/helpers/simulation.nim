@@ -4,21 +4,15 @@ import pkg/quic
 import pkg/quic/asyncloop
 import ./addresses
 
-type Counter* = ref object
-  count*: int
-
-proc networkLoop*(source, destination: Ngtcp2Connection,
-                  counter = Counter()) {.async.} =
+proc networkLoop*(source, destination: Ngtcp2Connection) {.async.} =
   proc transfer {.async.} =
     let datagram = await source.outgoing.get()
     destination.receive(datagram)
-    inc counter.count
   await asyncLoop(transfer)
 
-proc simulateNetwork*(a, b: Ngtcp2Connection,
-                      messageCounter = Counter()) {.async.} =
-  let loop1 = networkLoop(a, b, messageCounter)
-  let loop2 = networkLoop(b, a, messageCounter)
+proc simulateNetwork*(a, b: Ngtcp2Connection) {.async.} =
+  let loop1 = networkLoop(a, b)
+  let loop2 = networkLoop(b, a)
   try:
     await allFutures(loop1, loop2)
   except CancelledError:
