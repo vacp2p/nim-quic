@@ -3,6 +3,8 @@ import ./listener
 import ./connection
 import ./ngtcp2
 
+export Connection
+
 proc listen*(address: TransportAddress): Listener =
   var listener = newListener()
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
