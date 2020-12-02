@@ -4,6 +4,7 @@ import ../datagram
 import ../openarray
 import ../congestion
 import ../timeout
+import ../connectionid
 import ./path
 import ./errors
 import ./timestamp
@@ -19,6 +20,7 @@ type
     flowing*: AsyncEvent
     handshake*: AsyncEvent
     timeout*: Timeout
+    onNewId*: proc(id: ConnectionId)
   Stream* = ref object
     id*: int64
     connection*: Ngtcp2Connection
