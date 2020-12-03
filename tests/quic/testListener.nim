@@ -16,8 +16,8 @@ suite "listener":
 
     proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
       let connection = await listener.getOrCreateConnection(udp, remote)
-      defer: await connection.close()
       check connection != nil
+      await connection.close()
       done()
 
     listener.udp = newDatagramTransport(onReceive, local = address)
@@ -27,13 +27,15 @@ suite "listener":
     let listener = newListener()
     defer: await listener.stop()
 
-    var connection: Connection
+    var first, second: Connection
     proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-      if connection == nil:
-        connection = await listener.getOrCreateConnection(udp, remote)
+      if first == nil:
+        first = await listener.getOrCreateConnection(udp, remote)
       else:
-        check connection == await listener.getOrCreateConnection(udp, remote)
-        await connection.close()
+        second = await listener.getOrCreateConnection(udp, remote)
+        check first == second
+        await first.close()
+        await second.close()
         done()
 
     listener.udp = newDatagramTransport(onReceive, local = address)
@@ -45,13 +47,15 @@ suite "listener":
     let listener = newListener()
     defer: await listener.stop()
 
-    var connection: Connection
+    var first, second: Connection
     proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-      if connection == nil:
-        connection = await listener.getOrCreateConnection(udp, remote)
+      if first == nil:
+        first = await listener.getOrCreateConnection(udp, remote)
       else:
-        check connection != await listener.getOrCreateConnection(udp, remote)
-        await connection.close()
+        second = await listener.getOrCreateConnection(udp, remote)
+        check first != second
+        await first.close()
+        await second.close()
         done()
 
     listener.udp = newDatagramTransport(onReceive, local = address)
