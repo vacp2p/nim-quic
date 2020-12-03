@@ -3,7 +3,7 @@ import pkg/chronos
 import pkg/quic
 import ../helpers/asynctest
 
-suite "connection":
+suite "api":
 
   let address = initTAddress("127.0.0.1:48579")
 
@@ -61,3 +61,25 @@ suite "connection":
     await outgoing2.close()
     await incoming1.close()
     await incoming2.close()
+
+  asynctest "writes to and reads from streams":
+    let message = @[1'u8, 2'u8, 3'u8]
+
+    let listener = listen(address)
+    defer: await listener.stop()
+
+    let outgoing = await dial(address)
+    defer: await outgoing.close()
+
+    let incoming = await listener.accept()
+    defer: await incoming.close()
+
+    let outgoingStream = await outgoing.openStream()
+    defer: outgoingStream.close()
+
+    await outgoingStream.write(message)
+
+    let incomingStream = await incoming.incomingStream()
+    defer: incomingStream.close()
+
+    check (await incomingStream.read()) == message

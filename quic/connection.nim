@@ -3,6 +3,8 @@ import ./asyncloop
 import ./ngtcp2
 import ./connectionid
 
+export Stream, close, read, write
+
 type
   Connection* = ref object of RootObj
     udp: DatagramTransport
@@ -55,6 +57,9 @@ proc receive*(connection: Connection, datagram: openArray[byte]) =
 proc openStream*(connection: Connection): Future[Stream] {.async.} =
   await connection.quic.handshake.wait()
   result = connection.quic.openStream()
+
+proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
+  result = await connection.quic.incomingStream()
 
 method closeUdp(connection: Connection) {.async, base.} =
   discard
