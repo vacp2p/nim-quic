@@ -1,12 +1,14 @@
 import pkg/chronos
 import ./listener
 import ./connection
-import ./ngtcp2
 
 export Listener
 export Connection
 export Stream
 export openStream
+export incomingStream
+export read
+export write
 export stop
 export close
 
