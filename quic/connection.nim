@@ -9,6 +9,7 @@ type
     quic: Ngtcp2Connection
     loop: Future[void]
     closed: bool
+    onClose: proc()
   IncomingConnection = ref object of Connection
   OutgoingConnection = ref object of Connection
 
@@ -17,6 +18,9 @@ proc ids*(connection: Connection): seq[ConnectionId] =
 
 proc `onNewId=`*(connection: Connection, callback: proc (id: ConnectionId)) =
   connection.quic.onNewId = callback
+
+proc `onClose=`*(connection: Connection, callback: proc()) =
+  connection.onClose = callback
 
 proc startSending(connection: Connection, remote: TransportAddress) =
   proc send {.async.} =
@@ -55,12 +59,11 @@ method closeUdp(connection: Connection) {.async, base.} =
 method closeUdp(connection: OutgoingConnection) {.async.} =
   await connection.udp.closeWait()
 
-proc closeQuic(connection: Connection) {.async.} =
-  connection.quic.destroy()
-
 proc close*(connection: Connection) {.async.} =
   if not connection.closed:
     connection.closed = true
     await connection.stopSending()
     await connection.closeUdp()
-    await connection.closeQuic()
+    if connection.onClose != nil:
+      connection.onClose()
+    connection.quic.destroy()
