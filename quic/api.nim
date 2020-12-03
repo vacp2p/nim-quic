@@ -23,7 +23,8 @@ proc close*(connection: Connection) {.async.} =
   if not connection.closed:
     connection.closed = true
     await connection.stopSending()
-    await connection.udp.closeWait()
+    if connection.kind != incoming:
+      await connection.udp.closeWait()
     connection.quic.destroy()
 
 proc dial*(address: TransportAddress): Future[Connection] {.async.} =
