@@ -10,6 +10,9 @@ proc toCid*(id: ConnectionId): ngtcp2_cid =
   let bytes = seq[byte](id)
   toCid(bytes.toUnsafePtr, bytes.len.uint)
 
+proc toConnectionId*(id: ptr ngtcp2_cid): ConnectionId =
+  ConnectionId(id.data[0..<id.datalen])
+
 proc getNewConnectionId(conn: ptr ngtcp2_conn,
                         id: ptr ngtcp2_cid,
                         token: ptr uint8,
@@ -24,5 +27,13 @@ proc getNewConnectionId(conn: ptr ngtcp2_conn,
   if connection.onNewId != nil:
     connection.onNewId(newId)
 
+proc removeConnectionId(conn: ptr ngtcp2_conn,
+                        id: ptr ngtcp2_cid,
+                        userData: pointer): cint {.cdecl.} =
+  let connection = cast[Ngtcp2Connection](userData)
+  if connection.onRemoveId != nil:
+    connection.onRemoveId(id.toConnectionId)
+
 proc installConnectionIdCallback*(callbacks: var ngtcp2_conn_callbacks) =
   callbacks.get_new_connection_id = getNewConnectionId
+  callbacks.remove_connection_id = removeConnectionId

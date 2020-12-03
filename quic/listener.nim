@@ -18,13 +18,15 @@ proc getConnection(listener: Listener, id: ConnectionId): Connection =
 
 proc addConnection(listener: Listener, connection: Connection,
                    firstId: ConnectionId) {.async.} =
-  connection.onNewId = proc (newId: ConnectionId) =
+  for id in connection.ids & firstId:
+    listener.connections[id] = connection
+  connection.onNewId = proc(newId: ConnectionId) =
     listener.connections[newId] = connection
+  connection.onRemoveId = proc(oldId: ConnectionId) =
+    listener.connections.del(oldId)
   connection.onClose = proc =
     for id in connection.ids & firstId:
       listener.connections.del(id)
-  for id in connection.ids & firstId:
-    listener.connections[id] = connection
   await listener.incoming.put(connection)
 
 proc getOrCreateConnection*(listener: Listener,

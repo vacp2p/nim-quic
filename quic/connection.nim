@@ -16,8 +16,11 @@ type
 proc ids*(connection: Connection): seq[ConnectionId] =
   connection.quic.ids
 
-proc `onNewId=`*(connection: Connection, callback: proc (id: ConnectionId)) =
+proc `onNewId=`*(connection: Connection, callback: proc(id: ConnectionId)) =
   connection.quic.onNewId = callback
+
+proc `onRemoveId=`*(connection: Connection, callback: proc(id: ConnectionId)) =
+  connection.quic.onRemoveId = callback
 
 proc `onClose=`*(connection: Connection, callback: proc()) =
   connection.onClose = callback

@@ -22,6 +22,7 @@ type
     handshake*: AsyncEvent
     timeout*: Timeout
     onNewId*: proc(id: ConnectionId)
+    onRemoveId*: proc(id: ConnectionId)
   Stream* = ref object
     id*: int64
     connection*: Ngtcp2Connection
