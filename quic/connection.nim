@@ -8,6 +8,10 @@ type
     quic*: Ngtcp2Connection
     loop: Future[void]
     closed*: bool
+    kind*: ConnectionKind
+  ConnectionKind* = enum
+    incoming
+    outgoing
 
 proc startSending(connection: Connection, remote: TransportAddress) =
   proc send {.async.} =
@@ -21,11 +25,11 @@ proc stopSending*(connection: Connection) {.async.} =
 proc newIncomingConnection*(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
   let quic = newServerConnection(udp.localAddress, remote, udp.getMessage())
-  result = Connection(udp: udp, quic: quic)
+  result = Connection(udp: udp, quic: quic, kind: incoming)
   result.startSending(remote)
 
 proc newOutgoingConnection*(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
   let quic = newClientConnection(udp.localAddress, remote)
-  result = Connection(udp: udp, quic: quic)
+  result = Connection(udp: udp, quic: quic, kind: outgoing)
   result.startSending(remote)
