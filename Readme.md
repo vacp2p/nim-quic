@@ -21,22 +21,114 @@ Run tests:
 nimble test
 ```
 
+Examples
+--------
+
+Import quic and the [chronos](https://github.com/status-im/nim-chronos)
+async library:
+
+```nim
+import quic
+import chronos
+```
+
+### Outgoing connections
+
+Connect to a QUIC peer:
+
+```nim
+let connection = await dial(initTAddress("127.0.0.1:12345"))
+```
+
+Open a new stream:
+
+```nim
+let stream = await connection.openStream()
+```
+
+Write to the stream:
+
+```nim
+let message = cast[seq[byte]]("some message")
+await stream.write(message)
+```
+
+Close stream:
+
+```nim
+stream.close()
+```
+
+Close connection:
+
+```nim
+await connection.close()
+```
+
+### Incoming connections
+
+Listen for incoming connections:
+
+```nim
+let listener = listen(initTAddress("127.0.0.1:12345"))
+```
+
+Accept an incoming connection:
+
+```nim
+let connection = await listener.accept()
+```
+
+Wait for an incoming stream:
+
+```nim
+let stream = await connection.incomingStream()
+```
+
+Read from a stream:
+
+```nim
+let message = await stream.read()
+```
+
+Close stream:
+
+```nim
+stream.close()
+```
+
+Close connection:
+
+```nim
+await connection.close()
+```
+
+Stop listening:
+```nim
+await listener.stop()
+```
+
 Roadmap
 -------
 
 This is a rough outline of the steps that we expect to take during
-implemenation. They are bound to change over time.
+implementation. They are bound to change over time.
 
 - [ ] Wrap existing C library for QUIC, to test Nim implementation against
   - [x] Wrap C library with Nimterop
   - [x] Dummy TLS implementation
   - [x] Open connection
   - [x] Complete handshake
-  - [ ] Create uni-directional stream
-  - [ ] Send data over stream
-  - [ ] Close stream
-  - [ ] Close connection
+  - [x] Create uni-directional stream
+  - [ ] Create bi-directional stream
+  - [x] Send data over stream
+  - [x] Close stream
+  - [x] Close connection
   - [ ] Interface with real TLS library
+- [ ] Integrate QUIC as a transport in [libp2p](https://github.com/status-im/nim-libp2p)
+- [ ] Support IPv6 UDP addresses
+- [ ] Idle timeouts
+- [ ] Handle [zero-length destination ids](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-5.2)
 - [x] [Packet formats](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17)
   - [x] [Initial packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.2)
   - [x] [0-RTT packets](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-17.2.3)
@@ -78,7 +170,6 @@ implemenation. They are bound to change over time.
   - [ ] Incoming (reading)
   - [ ] Uni-directional
   - [ ] Bi-directional
-- [ ] Integrate QUIC as a transport in [libp2p](https://github.com/status-im/nim-libp2p)
 - [ ] [ACKs and retransmissions](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-13)
 - [ ] [Flow control](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-4)
 - [ ] [Packet encryption](https://datatracker.ietf.org/doc/html/draft-ietf-quic-tls-30#section-5)
@@ -90,3 +181,8 @@ implemenation. They are bound to change over time.
 - [ ] [Address validation](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-8)
 - [ ] [Connection migration](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-9)
 - [ ] [Version negotiation](https://datatracker.ietf.org/doc/html/draft-ietf-quic-transport-30#section-6)
+
+Thanks
+------
+
+We would like to thank the authors of the [NGTCP2](https://github.com/ngtcp2/ngtcp2) library, on whose work we're building.
