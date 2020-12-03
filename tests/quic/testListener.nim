@@ -45,3 +45,18 @@ suite "listener":
 
     await first.close()
     await second.close()
+
+  asynctest "forgets connection ids when connection closes":
+    let listener = newListener(address)
+    defer: await listener.stop()
+
+    let datagram = exampleQuicDatagram()
+    await datagram.sendTo(address)
+
+    let first = await listener.waitForIncoming.wait(100.milliseconds)
+    await first.close()
+
+    await datagram.sendTo(address)
+
+    let second = await listener.waitForIncoming.wait(100.milliseconds)
+    await second.close()

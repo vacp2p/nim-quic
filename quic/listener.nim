@@ -20,6 +20,9 @@ proc addConnection(listener: Listener, connection: Connection,
                    firstId: ConnectionId) {.async.} =
   connection.onNewId = proc (newId: ConnectionId) =
     listener.connections[newId] = connection
+  connection.onClose = proc =
+    for id in connection.ids & firstId:
+      listener.connections.del(id)
   for id in connection.ids & firstId:
     listener.connections[id] = connection
   await listener.incoming.put(connection)
