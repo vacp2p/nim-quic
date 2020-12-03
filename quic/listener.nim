@@ -6,12 +6,9 @@ import ./ngtcp2
 
 type
   Listener* = ref object
-    udp*: DatagramTransport
-    incoming*: AsyncQueue[Connection]
+    udp: DatagramTransport
+    incoming: AsyncQueue[Connection]
     connections: Table[ConnectionId, Connection]
-
-proc newListener*: Listener =
-  Listener(incoming: newAsyncQueue[Connection]())
 
 proc hasConnection(listener: Listener, id: ConnectionId): bool =
   listener.connections.hasKey(id)
@@ -21,9 +18,9 @@ proc getConnection(listener: Listener, id: ConnectionId): Connection =
 
 proc addConnection(listener: Listener, connection: Connection,
                    firstId: ConnectionId) {.async.} =
-  connection.quic.onNewId = proc (newId: ConnectionId) =
+  connection.onNewId = proc (newId: ConnectionId) =
     listener.connections[newId] = connection
-  for id in connection.quic.ids & firstId:
+  for id in connection.ids & firstId:
     listener.connections[id] = connection
   await listener.incoming.put(connection)
 
@@ -39,3 +36,17 @@ proc getOrCreateConnection*(listener: Listener,
   else:
     connection = listener.getConnection(destination)
   result = connection
+
+proc newListener*(address: TransportAddress): Listener =
+  let listener = Listener(incoming: newAsyncQueue[Connection]())
+  proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
+    let connection = await listener.getOrCreateConnection(udp, remote)
+    connection.receive(udp.getMessage())
+  listener.udp = newDatagramTransport(onReceive, local = address)
+  listener
+
+proc waitForIncoming*(listener: Listener): Future[Connection] {.async.} =
+  result = await listener.incoming.get()
+
+proc stop*(listener: Listener) {.async.} =
+  await listener.udp.closeWait()

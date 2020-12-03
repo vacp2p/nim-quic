@@ -2,7 +2,6 @@ import std/unittest
 import pkg/chronos
 import pkg/quic
 import pkg/quic/listener
-import pkg/quic/connectionid
 import ../helpers/asynctest
 import ../helpers/udp
 
@@ -10,54 +9,39 @@ suite "listener":
 
   let address = initTAddress("127.0.0.1:45346")
 
-  asynctest "creates connections", done:
-    let listener = newListener()
+  asynctest "creates connections":
+    let listener = newListener(address)
     defer: await listener.stop()
 
-    proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-      let connection = await listener.getOrCreateConnection(udp, remote)
-      check connection != nil
-      await connection.close()
-      done()
-
-    listener.udp = newDatagramTransport(onReceive, local = address)
     await exampleQuicDatagram().sendTo(address)
+    let connection = await listener.waitForIncoming()
 
-  asynctest "re-uses connection for known connection id", done:
-    let listener = newListener()
+    check connection != nil
+
+    await connection.close()
+
+  asynctest "re-uses connection for known connection id":
+    let listener = newListener(address)
     defer: await listener.stop()
 
-    var first, second: Connection
-    proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-      if first == nil:
-        first = await listener.getOrCreateConnection(udp, remote)
-      else:
-        second = await listener.getOrCreateConnection(udp, remote)
-        check first == second
-        await first.close()
-        await second.close()
-        done()
-
-    listener.udp = newDatagramTransport(onReceive, local = address)
     let datagram = exampleQuicDatagram()
     await datagram.sendTo(address)
     await datagram.sendTo(address)
 
-  asynctest "creates new connection for unknown connection id", done:
-    let listener = newListener()
+    let first = await listener.waitForIncoming.wait(100.milliseconds)
+    expect AsyncTimeoutError:
+      discard await listener.waitForIncoming.wait(100.milliseconds)
+    await first.close()
+
+  asynctest "creates new connection for unknown connection id":
+    let listener = newListener(address)
     defer: await listener.stop()
 
-    var first, second: Connection
-    proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-      if first == nil:
-        first = await listener.getOrCreateConnection(udp, remote)
-      else:
-        second = await listener.getOrCreateConnection(udp, remote)
-        check first != second
-        await first.close()
-        await second.close()
-        done()
+    await exampleQuicDatagram().sendTo(address)
+    await exampleQuicDatagram().sendTo(address)
 
-    listener.udp = newDatagramTransport(onReceive, local = address)
-    await exampleQuicDatagram().sendTo(address)
-    await exampleQuicDatagram().sendTo(address)
+    let first = await listener.waitForIncoming.wait(100.milliseconds)
+    let second = await listener.waitForIncoming.wait(100.milliseconds)
+
+    await first.close()
+    await second.close()
