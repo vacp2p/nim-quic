@@ -67,7 +67,7 @@ method closeUdp(connection: Connection) {.async, base.} =
 method closeUdp(connection: OutgoingConnection) {.async.} =
   await connection.udp.closeWait()
 
-proc close*(connection: Connection) {.async.} =
+proc drop*(connection: Connection) {.async.} =
   if not connection.closed:
     connection.closed = true
     await connection.stopSending()

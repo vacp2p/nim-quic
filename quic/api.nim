@@ -10,6 +10,7 @@ export incomingStream
 export read
 export write
 export stop
+export drop
 export close
 
 proc listen*(address: TransportAddress): Listener =
