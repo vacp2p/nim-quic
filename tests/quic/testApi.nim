@@ -21,10 +21,10 @@ suite "api":
     let outgoing = await dialing
     let incoming = await accepting
 
-    await outgoing.close()
-    await incoming.close()
+    await outgoing.drop()
+    await incoming.drop()
 
-  asynctest "opens and closes streams":
+  asynctest "opens and drops streams":
     let listener = listen(address)
     defer: await listener.stop()
 
@@ -40,8 +40,8 @@ suite "api":
     stream1.close()
     stream2.close()
 
-    await outgoing.close()
-    await incoming.close()
+    await outgoing.drop()
+    await incoming.drop()
 
   asynctest "accepts multiple incoming connections":
     let listener = listen(address)
@@ -57,10 +57,10 @@ suite "api":
 
     check incoming1 != incoming2
 
-    await outgoing1.close()
-    await outgoing2.close()
-    await incoming1.close()
-    await incoming2.close()
+    await outgoing1.drop()
+    await outgoing2.drop()
+    await incoming1.drop()
+    await incoming2.drop()
 
   asynctest "writes to and reads from streams":
     let message = @[1'u8, 2'u8, 3'u8]
@@ -69,10 +69,10 @@ suite "api":
     defer: await listener.stop()
 
     let outgoing = await dial(address)
-    defer: await outgoing.close()
+    defer: await outgoing.drop()
 
     let incoming = await listener.accept()
-    defer: await incoming.close()
+    defer: await incoming.drop()
 
     let outgoingStream = await outgoing.openStream()
     defer: outgoingStream.close()

@@ -18,7 +18,7 @@ suite "listener":
 
     check connection != nil
 
-    await connection.close()
+    await connection.drop()
 
   asynctest "re-uses connection for known connection id":
     let listener = newListener(address)
@@ -31,7 +31,7 @@ suite "listener":
     let first = await listener.waitForIncoming.wait(100.milliseconds)
     expect AsyncTimeoutError:
       discard await listener.waitForIncoming.wait(100.milliseconds)
-    await first.close()
+    await first.drop()
 
   asynctest "creates new connection for unknown connection id":
     let listener = newListener(address)
@@ -43,8 +43,8 @@ suite "listener":
     let first = await listener.waitForIncoming.wait(100.milliseconds)
     let second = await listener.waitForIncoming.wait(100.milliseconds)
 
-    await first.close()
-    await second.close()
+    await first.drop()
+    await second.drop()
 
   asynctest "forgets connection ids when connection closes":
     let listener = newListener(address)
@@ -54,9 +54,9 @@ suite "listener":
     await datagram.sendTo(address)
 
     let first = await listener.waitForIncoming.wait(100.milliseconds)
-    await first.close()
+    await first.drop()
 
     await datagram.sendTo(address)
 
     let second = await listener.waitForIncoming.wait(100.milliseconds)
-    await second.close()
+    await second.drop()
