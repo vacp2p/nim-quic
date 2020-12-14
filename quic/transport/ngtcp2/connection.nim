@@ -1,10 +1,10 @@
 import std/sequtils
 import pkg/chronos
 import pkg/ngtcp2
-import ../datagram
+import ../../udp/datagram
+import ../../udp/congestion
+import ../../helpers/openarray
 import ../stream
-import ../openarray
-import ../congestion
 import ../timeout
 import ../connectionid
 import ./path

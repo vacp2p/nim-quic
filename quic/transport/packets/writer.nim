@@ -1,4 +1,4 @@
-import ../openarray
+import ../../helpers/openarray
 import ./packet
 
 type

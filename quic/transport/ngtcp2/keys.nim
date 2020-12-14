@@ -1,5 +1,5 @@
 import pkg/ngtcp2
-import ../openarray
+import ../../helpers/openarray
 import ./encryption
 
 type

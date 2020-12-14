@@ -1,7 +1,7 @@
 import pkg/chronos
-import pkg/quic/packets
-import pkg/quic/version
-import pkg/quic/openarray
+import pkg/quic/transport/packets
+import pkg/quic/transport/version
+import pkg/quic/helpers/openarray
 
 proc exampleQuicDatagram*: seq[byte] =
   var packet = initialPacket(CurrentQuicVersion)

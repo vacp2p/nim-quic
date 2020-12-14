@@ -1,7 +1,7 @@
 import pkg/chronos
 import pkg/ngtcp2
+import ../../../helpers/openarray
 import ../../stream
-import ../../openarray
 import ../connection
 import ../errors
 import ../pointers

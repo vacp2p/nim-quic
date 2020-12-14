@@ -1,9 +1,9 @@
-import stew/endians2
-import ../bits
-import ../varints
-import packet
-import packetnumber
-import writer
+import pkg/stew/endians2
+import ../../helpers/bits
+import ./varints
+import ./packet
+import ./packetnumber
+import ./writer
 export writer
 
 proc writeForm*(writer: var PacketWriter, datagram: var openArray[byte]) =

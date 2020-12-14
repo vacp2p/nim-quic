@@ -1,6 +1,6 @@
 import pkg/ngtcp2
+import ../../helpers/openarray
 import ../connectionid
-import ../openarray
 import ./connection
 
 proc toCid*(bytes: ptr uint8, length: uint): ngtcp2_cid =

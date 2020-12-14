@@ -1,7 +1,7 @@
 import std/random
 import pkg/chronos
-import pkg/quic/ngtcp2
-import pkg/quic/asyncloop
+import pkg/quic/transport/ngtcp2
+import pkg/quic/helpers/asyncloop
 import ./addresses
 
 proc networkLoop*(source, destination: Ngtcp2Connection) {.async.} =
