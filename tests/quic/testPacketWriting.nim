@@ -1,9 +1,9 @@
 import std/unittest
 import std/sequtils
 import pkg/stew/endians2
-import pkg/quic/packets
-import pkg/quic/bits
-import pkg/quic/varints
+import pkg/quic/transport/packets
+import pkg/quic/helpers/bits
+import pkg/quic/transport/packets/varints
 
 suite "packet writing":
 

@@ -1,7 +1,7 @@
 import pkg/chronos
 import pkg/ngtcp2
+import ../../helpers/openarray
 import ../connectionid
-import ../openarray
 import ./ids
 import ./encryption
 import ./keys

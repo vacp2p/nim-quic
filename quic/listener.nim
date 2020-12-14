@@ -1,8 +1,8 @@
 import std/tables
 import pkg/chronos
 import ./connection
-import ./connectionid
-import ./ngtcp2
+import ./transport/connectionid
+import ./transport/ngtcp2
 
 type
   Listener* = ref object

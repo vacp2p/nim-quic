@@ -1,7 +1,7 @@
-import ../varints
+import ./varints
 import ./packet
 import ./packetnumber
-include ../noerrors
+include ../../helpers/noerrors
 
 proc len*(packet: Packet): int =
   case packet.form

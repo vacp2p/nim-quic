@@ -1,6 +1,6 @@
 import std/unittest
-import pkg/quic/packets
-import pkg/quic/ngtcp2/packetinfo
+import pkg/quic/transport/packets
+import pkg/quic/transport/ngtcp2/packetinfo
 
 suite "ngtcp2 packet info":
 

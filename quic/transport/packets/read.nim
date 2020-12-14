@@ -1,9 +1,9 @@
 import pkg/stew/endians2
-import ../bits
-import ../varints
+import ../../helpers/bits
+import ./varints
 import ./packet
 import ./reader
-include ../noerrors
+include ../../helpers/noerrors
 
 export reader
 

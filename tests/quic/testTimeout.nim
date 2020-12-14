@@ -1,6 +1,6 @@
 import std/unittest
 import pkg/chronos
-import pkg/quic/timeout
+import pkg/quic/transport/timeout
 import ../helpers/asynctest
 
 suite "timeout":

@@ -1,5 +1,5 @@
 import std/unittest
-import pkg/quic/bits
+import pkg/quic/helpers/bits
 
 suite "bits":
 

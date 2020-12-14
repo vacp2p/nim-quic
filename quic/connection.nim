@@ -1,8 +1,8 @@
 import pkg/chronos
-import ./stream
-import ./asyncloop
-import ./ngtcp2
-import ./connectionid
+import ./transport/connectionid
+import ./transport/stream
+import ./transport/ngtcp2
+import ./helpers/asyncloop
 
 export Stream, close, read, write
 

@@ -2,8 +2,8 @@ import ./packets/packet
 import ./packets/length
 import ./packets/read
 import ./packets/write
-import ./datagram
-include ./noerrors
+import ../udp/datagram
+include ../helpers/noerrors
 
 export packet
 export length

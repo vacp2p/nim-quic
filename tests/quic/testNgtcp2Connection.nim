@@ -1,8 +1,8 @@
 import std/unittest
 import pkg/chronos
-import pkg/quic/datagram
-import pkg/quic/connectionid
-import pkg/quic/ngtcp2
+import pkg/quic/udp/datagram
+import pkg/quic/transport/connectionid
+import pkg/quic/transport/ngtcp2
 import ../helpers/asynctest
 import ../helpers/simulation
 import ../helpers/addresses

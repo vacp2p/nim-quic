@@ -1,6 +1,6 @@
 import std/unittest
 import std/math
-import pkg/quic/packets/packetnumber
+import pkg/quic/transport/packets/packetnumber
 
 suite "packet numbers":
 

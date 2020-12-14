@@ -1,7 +1,7 @@
 import pkg/chronos
 import pkg/ngtcp2
-import ../../datagram
-import ../../congestion
+import ../../../udp/datagram
+import ../../../udp/congestion
 import ../connection
 import ../path
 import ../errors
