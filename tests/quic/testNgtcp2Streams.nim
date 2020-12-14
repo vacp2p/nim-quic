@@ -3,6 +3,7 @@ import std/sequtils
 import pkg/chronos
 import pkg/quic/ngtcp2
 import pkg/quic/datagram
+import pkg/quic/stream
 import ../helpers/asynctest
 import ../helpers/simulation
 import ../helpers/addresses
@@ -29,7 +30,7 @@ suite "ngtcp2 streams":
     let (client, server) = await performHandshake()
     let stream = client.openStream()
 
-    stream.close()
+    await stream.close()
 
     client.destroy()
     server.destroy()
@@ -56,10 +57,13 @@ suite "ngtcp2 streams":
     client.destroy()
     server.destroy()
 
-  asynctest "raises when stream could not be written to":
+  asynctest "raises when reading from or writing to closed stream":
     let (client, server) = await performHandshake()
     let stream = client.openStream()
-    stream.close()
+    await stream.close()
+
+    expect IOError:
+      discard await stream.read()
 
     expect IOError:
       await stream.write(@[1'u8, 2'u8, 3'u8])

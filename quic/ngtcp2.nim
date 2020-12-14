@@ -13,9 +13,6 @@ export receive, send
 export isHandshakeCompleted
 export handshake
 export ids
-export Stream
 export openStream
-export close
-export read, write
 export incomingStream
 export destroy

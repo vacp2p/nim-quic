@@ -37,8 +37,8 @@ suite "api":
     let stream1 = await outgoing.openStream()
     let stream2 = await incoming.openStream()
 
-    stream1.close()
-    stream2.close()
+    await stream1.close()
+    await stream2.close()
 
     await outgoing.drop()
     await incoming.drop()
@@ -75,11 +75,11 @@ suite "api":
     defer: await incoming.drop()
 
     let outgoingStream = await outgoing.openStream()
-    defer: outgoingStream.close()
+    defer: await outgoingStream.close()
 
     await outgoingStream.write(message)
 
     let incomingStream = await incoming.incomingStream()
-    defer: incomingStream.close()
+    defer: await incomingStream.close()
 
     check (await incomingStream.read()) == message
