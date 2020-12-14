@@ -1,4 +1,5 @@
 import pkg/chronos
+import ./stream
 import ./asyncloop
 import ./ngtcp2
 import ./connectionid
