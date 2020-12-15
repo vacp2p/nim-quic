@@ -1,22 +1,21 @@
 import pkg/chronos
 import ../../stream
-import ./state
 
 type
   ClosedStream* = ref object of StreamState
   ClosedStreamError* = object of StreamError
 
-proc read(stream: Stream, state: ClosedStream): Future[seq[byte]] {.async.} =
+method read(state: ClosedStream, stream: Stream): Future[seq[byte]] {.async.} =
   raise newException(ClosedStreamError, "stream is closed")
 
-proc write(stream: Stream, state: ClosedStream, bytes: seq[byte]) {.async.} =
+method write(state: ClosedStream, stream: Stream, bytes: seq[byte]) {.async.} =
   raise newException(ClosedStreamError, "stream is closed")
 
-proc close(stream: Stream, state: ClosedStream) {.async.} =
+method close(state: ClosedStream, stream: Stream) {.async.} =
   discard
 
-proc destroy(state: ClosedStream) =
+method destroy(state: ClosedStream) =
   discard
 
 proc newClosedStream*(): ClosedStream =
-  newStreamState[ClosedStream]()
+  ClosedStream()
