@@ -79,4 +79,4 @@ proc drop*(connection: Connection) {.async.} =
     await connection.closeUdp()
     if connection.onClose != nil:
       connection.onClose()
-    connection.quic.destroy()
+    connection.quic.drop()
