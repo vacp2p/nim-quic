@@ -18,5 +18,5 @@ proc close(stream: Stream, state: ClosedStream) {.async.} =
 proc destroy(state: ClosedStream) =
   discard
 
-proc newClosedState*(): ClosedStream =
-  newState[ClosedStream]()
+proc newClosedStream*(): ClosedStream =
+  newStreamState[ClosedStream]()

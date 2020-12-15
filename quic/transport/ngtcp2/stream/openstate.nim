@@ -32,7 +32,7 @@ proc write(stream: Stream, state: OpenStream, bytes: seq[byte]) {.async.} =
 
 proc close(stream: Stream, state: OpenStream) {.async.} =
   checkResult ngtcp2_conn_shutdown_stream(state.connection.conn, state.id, 0)
-  stream.switch(newClosedState())
+  stream.switch(newClosedStream())
 
 proc destroy(state: OpenStream) =
   let conn = state.connection.conn
@@ -45,8 +45,8 @@ proc setUserData(state: OpenStream) =
   let userdata = unsafeAddr state[]
   checkResult ngtcp2_conn_set_stream_user_data(conn, id, userdata)
 
-proc newOpenState*(connection: Ngtcp2Connection, id: int64): OpenStream =
-  let state = newState[OpenStream]()
+proc newOpenStream*(connection: Ngtcp2Connection, id: int64): OpenStream =
+  let state = newStreamState[OpenStream]()
   state.connection = connection
   state.id = id
   state.incoming = newAsyncQueue[seq[byte]]()
