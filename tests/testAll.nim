@@ -11,6 +11,7 @@ import ./quic/testNgtcp2TransportParameters
 import ./quic/testNgtcp2PacketInfo
 import ./quic/testStreams
 import ./quic/testTimeout
+import ./quic/testQuicConnection
 import ./quic/testListener
 import ./quic/testApi
 
