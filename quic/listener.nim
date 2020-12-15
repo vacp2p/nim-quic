@@ -3,6 +3,7 @@ import pkg/chronos
 import ./connection
 import ./transport/connectionid
 import ./transport/ngtcp2
+import ./udp/datagram
 
 type
   Listener* = ref object
@@ -46,7 +47,7 @@ proc newListener*(address: TransportAddress): Listener =
   let listener = Listener(incoming: newAsyncQueue[Connection]())
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
     let connection = await listener.getOrCreateConnection(udp, remote)
-    connection.receive(udp.getMessage())
+    connection.receive(Datagram(data: udp.getMessage()))
   listener.udp = newDatagramTransport(onReceive, local = address)
   listener
 

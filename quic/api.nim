@@ -1,6 +1,7 @@
 import pkg/chronos
 import ./listener
 import ./connection
+import ./udp/datagram
 
 export Listener
 export Connection
@@ -22,7 +23,7 @@ proc accept*(listener: Listener): Future[Connection] {.async.} =
 proc dial*(address: TransportAddress): Future[Connection] {.async.} =
   var connection: Connection
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-    let datagram = udp.getMessage()
+    let datagram = Datagram(data: udp.getMessage())
     connection.receive(datagram)
   let udp = newDatagramTransport(onReceive)
   connection = newOutgoingConnection(udp, address)
