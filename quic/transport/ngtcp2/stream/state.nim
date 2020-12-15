@@ -1,7 +1,7 @@
 import pkg/chronos
-import ../../stream
+from ../../stream import Stream, StreamState
 
-template newState*[T: StreamState](): T =
+template newStreamState*[T: StreamState]: T =
   var state = T()
   state.read = proc(stream: Stream): Future[seq[byte]] =
     read(stream, state)
