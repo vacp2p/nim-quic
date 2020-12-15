@@ -11,7 +11,7 @@ suite "api":
     let listener = listen(address)
     await listener.stop()
 
-  asynctest "opens and closes connections":
+  asynctest "opens and drops connections":
     let listener = listen(address)
     defer: await listener.stop()
 
@@ -24,7 +24,7 @@ suite "api":
     await outgoing.drop()
     await incoming.drop()
 
-  asynctest "opens and drops streams":
+  asynctest "opens and closes streams":
     let listener = listen(address)
     defer: await listener.stop()
 
