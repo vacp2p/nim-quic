@@ -36,10 +36,10 @@ proc simulateLossyNetwork*(a, b: Ngtcp2Connection) {.async.} =
 proc setupConnection*:
                 Future[tuple[client, server: Ngtcp2Connection]] {.async.} =
 
-  let client = newClientConnection(zeroAddress, zeroAddress)
+  let client = newNgtcp2Client(zeroAddress, zeroAddress)
   client.send()
   let datagram = await client.outgoing.get()
-  let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
+  let server = newNgtcp2Server(zeroAddress, zeroAddress, datagram.data)
   server.receive(datagram)
   result = (client, server)
 

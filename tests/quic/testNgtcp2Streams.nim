@@ -19,7 +19,7 @@ suite "ngtcp2 streams":
     server.destroy()
 
   test "raises error when opening uni-directional stream fails":
-    let client = newClientConnection(zeroAddress, zeroAddress)
+    let client = newNgtcp2Client(zeroAddress, zeroAddress)
 
     expect IOError:
       discard client.openStream()
