@@ -10,20 +10,20 @@ import ../helpers/addresses
 suite "ngtcp2 connection":
 
   asynctest "sends outgoing datagrams":
-    let client = newClientConnection(zeroAddress, zeroAddress)
+    let client = newNgtcp2Client(zeroAddress, zeroAddress)
     defer: client.destroy()
     client.send()
     let datagram = await client.outgoing.get()
     check datagram.len > 0
 
   asynctest "processes received datagrams":
-    let client = newClientConnection(zeroAddress, zeroAddress)
+    let client = newNgtcp2Client(zeroAddress, zeroAddress)
     defer: client.destroy()
 
     client.send()
     let datagram = await client.outgoing.get()
 
-    let server = newServerConnection(zeroAddress, zeroAddress, datagram.data)
+    let server = newNgtcp2Server(zeroAddress, zeroAddress, datagram.data)
     defer: server.destroy()
 
     server.receive(datagram)
@@ -32,7 +32,7 @@ suite "ngtcp2 connection":
     let invalid = @[0'u8]
 
     expect IOError:
-      discard newServerConnection(zeroAddress, zeroAddress, invalid)
+      discard newNgtcp2Server(zeroAddress, zeroAddress, invalid)
 
   asynctest "performs handshake":
     let (client, server) = await performHandshake()

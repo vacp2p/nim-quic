@@ -33,7 +33,7 @@ proc onReceiveCryptoData(connection: ptr ngtcp2_conn,
     connection.submitCryptoData(NGTCP2_CRYPTO_LEVEL_HANDSHAKE)
     ngtcp2_conn_handshake_completed(connection)
 
-proc newClientConnection*(local, remote: TransportAddress): Ngtcp2Connection =
+proc newNgtcp2Client*(local, remote: TransportAddress): Ngtcp2Connection =
   var callbacks: ngtcp2_conn_callbacks
   callbacks.client_initial = onClientInitial
   callbacks.recv_crypto_data = onReceiveCryptoData

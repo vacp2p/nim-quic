@@ -25,7 +25,7 @@ suite "ngtcp2 transport parameters":
       discard decodeTransportParameters(encoded)
 
   test "raises when setting remote parameters fails":
-    let connection = newClientConnection(zeroAddress, zeroAddress)
+    let connection = newNgtcp2Client(zeroAddress, zeroAddress)
     defer: connection.destroy()
     settings.transport_params.active_connection_id_limit = 0
 

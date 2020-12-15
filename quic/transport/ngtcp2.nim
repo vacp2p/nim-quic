@@ -7,8 +7,8 @@ import ./ngtcp2/packetinfo
 
 export parseDatagram
 export Ngtcp2Connection
-export newClientConnection
-export newServerConnection
+export newNgtcp2Client
+export newNgtcp2Server
 export receive, send
 export isHandshakeCompleted
 export handshake
