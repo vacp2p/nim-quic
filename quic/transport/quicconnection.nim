@@ -16,8 +16,10 @@ type
     send*: proc(connection: QuicConnection) {.gcsafe.}
     receive*: proc(connection: QuicConnection, datagram: Datagram) {.gcsafe.}
     openStream*: proc(connection: QuicConnection): Future[Stream] {.gcsafe.}
+    drop*: proc(connection: QuicConnection) {.gcsafe.}
     destroy*: proc () {.gcsafe.}
   IdCallback* = proc(id: ConnectionId)
+  ConnectionError* = object of IOError
 
 proc newQuicConnection*(state: ConnectionState): QuicConnection =
   QuicConnection(
@@ -30,9 +32,6 @@ proc newQuicConnection*(state: ConnectionState): QuicConnection =
 proc switch*(connection: QuicConnection, newState: ConnectionState) =
   connection.state.destroy()
   connection.state = newState
-
-proc destroy*(connection: QuicConnection) =
-  connection.state.destroy()
 
 proc ids*(connection: QuicConnection): seq[ConnectionId] =
   connection.state.ids()
@@ -54,3 +53,6 @@ proc openStream*(connection: QuicConnection): Future[Stream] =
 
 proc incomingStream*(connection: QuicConnection): Future[Stream] =
   connection.incoming.get()
+
+proc drop*(connection: QuicConnection) =
+  connection.state.drop(connection)

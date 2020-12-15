@@ -6,6 +6,7 @@ import ../../stream
 import ../connection
 import ../streams
 import ./state
+import ./closedstate
 
 type
   OpenConnection* = ref object of ConnectionState
@@ -25,6 +26,9 @@ proc openStream(connection: QuicConnection,
                 state: OpenConnection): Future[Stream] {.async.} =
   await connection.handshake.wait()
   result = state.connection.openStream()
+
+proc drop(connection: QuicConnection, state: OpenConnection) =
+  connection.switch(newClosedConnection())
 
 proc destroy(state: OpenConnection) =
   discard

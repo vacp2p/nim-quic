@@ -11,6 +11,8 @@ template newConnectionState*[T: ConnectionState]: T =
     receive(connection, state, datagram)
   state.openStream = proc(connection: QuicConnection): Future[Stream] =
     openStream(connection, state)
+  state.drop = proc(connection: QuicConnection) =
+    drop(connection, state)
   state.destroy = proc() =
     destroy(state)
   state
