@@ -2,6 +2,10 @@ import pkg/chronos
 import ./transport/connectionid
 import ./transport/stream
 import ./transport/ngtcp2
+import ./transport/quicconnection
+import ./transport/quicclient
+import ./transport/quicserver
+import ./udp/datagram
 import ./helpers/asyncloop
 
 export Stream, close, read, write
@@ -9,7 +13,7 @@ export Stream, close, read, write
 type
   Connection* = ref object of RootObj
     udp: DatagramTransport
-    quic: Ngtcp2Connection
+    quic: QuicConnection
     loop: Future[void]
     closed: bool
     onClose: proc()
@@ -39,25 +43,25 @@ proc stopSending(connection: Connection) {.async.} =
 
 proc newIncomingConnection*(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
-  let quic = newServerConnection(udp.localAddress, remote, udp.getMessage())
+  let quic = newQuicServerConnection(udp.localAddress, remote, udp.getMessage())
   result = IncomingConnection(udp: udp, quic: quic)
   result.startSending(remote)
 
 proc newOutgoingConnection*(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
-  let quic = newClientConnection(udp.localAddress, remote)
+  let quic = newQuicClientConnection(udp.localAddress, remote)
   result = OutgoingConnection(udp: udp, quic: quic)
   result.startSending(remote)
 
 proc startHandshake*(connection: Connection) =
   connection.quic.send()
 
-proc receive*(connection: Connection, datagram: openArray[byte]) =
+proc receive*(connection: Connection, datagram: Datagram) =
   connection.quic.receive(datagram)
 
 proc openStream*(connection: Connection): Future[Stream] {.async.} =
   await connection.quic.handshake.wait()
-  result = connection.quic.openStream()
+  result = await connection.quic.openStream()
 
 proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
   result = await connection.quic.incomingStream()
