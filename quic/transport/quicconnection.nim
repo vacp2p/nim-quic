@@ -12,14 +12,28 @@ type
     onNewId: IdCallback
     onRemoveId: IdCallback
   ConnectionState* = ref object of RootObj
-    ids*: proc(): seq[ConnectionId] {.gcsafe.}
-    send*: proc(connection: QuicConnection) {.gcsafe.}
-    receive*: proc(connection: QuicConnection, datagram: Datagram) {.gcsafe.}
-    openStream*: proc(connection: QuicConnection): Future[Stream] {.gcsafe.}
-    drop*: proc(connection: QuicConnection) {.gcsafe.}
-    destroy*: proc () {.gcsafe.}
   IdCallback* = proc(id: ConnectionId)
   ConnectionError* = object of IOError
+
+method ids*(state: ConnectionState): seq[ConnectionId] {.base.} =
+  doAssert false # override this method
+
+method send*(state: ConnectionState, connection: QuicConnection) {.base.} =
+  doAssert false # override this method
+
+method receive*(state: ConnectionState,
+                connection: QuicConnection, datagram: Datagram) {.base.} =
+  doAssert false # override this method
+
+method openStream*(state: ConnectionState,
+                   connection: QuicConnection): Future[Stream] {.base.} =
+  doAssert false # override this method
+
+method drop*(state: ConnectionState, connection: QuicConnection) {.base.} =
+  doAssert false # override this method
+
+method destroy*(state: ConnectionState) {.base.} =
+  doAssert false # override this method
 
 proc newQuicConnection*(state: ConnectionState): QuicConnection =
   QuicConnection(
@@ -33,14 +47,14 @@ proc switch*(connection: QuicConnection, newState: ConnectionState) =
   connection.state.destroy()
   connection.state = newState
 
-proc ids*(connection: QuicConnection): seq[ConnectionId] =
-  connection.state.ids()
-
 proc `onNewId=`*(connection: QuicConnection, callback: IdCallback) =
   connection.onNewId = callback
 
 proc `onRemoveId=`*(connection: QuicConnection, callback: IdCallback) =
   connection.onRemoveId = callback
+
+proc ids*(connection: QuicConnection): seq[ConnectionId] =
+  connection.state.ids()
 
 proc send*(connection: QuicConnection) =
   connection.state.send(connection)
