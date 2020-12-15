@@ -5,11 +5,21 @@ type
     id: int64
     state: StreamState
   StreamState* = ref object of RootObj
-    read*: proc(stream: Stream): Future[seq[byte]] {.gcsafe.}
-    write*: proc(stream: Stream, bytes: seq[byte]): Future[void] {.gcsafe.}
-    close*: proc(stream: Stream): Future[void] {.gcsafe.}
-    destroy*: proc() {.gcsafe.}
   StreamError* = object of IOError
+
+method read(state: StreamState,
+            stream: Stream): Future[seq[byte]] {.base, async.} =
+  doAssert false # override this method
+
+method write(state: StreamState,
+             stream: Stream, bytes: seq[byte]) {.base, async.} =
+  doAssert false # override this method
+
+method close(state: StreamState, stream: Stream) {.base, async.} =
+  doAssert false # override this method
+
+method destroy(state: StreamState) {.base.} =
+  doAssert false # override this method
 
 proc newStream*(id: int64, state: StreamState): Stream =
   Stream(state: state)
