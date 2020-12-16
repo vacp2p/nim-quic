@@ -15,37 +15,41 @@ type
   IdCallback* = proc(id: ConnectionId)
   ConnectionError* = object of IOError
 
+method enter*(state: ConnectionState, connection: QuicConnection) {.base.} =
+  discard
+
+method leave*(state: ConnectionState) {.base.} =
+  discard
+
 method ids*(state: ConnectionState): seq[ConnectionId] {.base.} =
   doAssert false # override this method
 
-method send*(state: ConnectionState, connection: QuicConnection) {.base.} =
+method send*(state: ConnectionState) {.base.} =
   doAssert false # override this method
 
-method receive*(state: ConnectionState,
-                connection: QuicConnection, datagram: Datagram) {.base.} =
+method receive*(state: ConnectionState, datagram: Datagram) {.base.} =
   doAssert false # override this method
 
-method openStream*(state: ConnectionState,
-                   connection: QuicConnection): Future[Stream] {.base.} =
+method openStream*(state: ConnectionState): Future[Stream] {.base.} =
   doAssert false # override this method
 
-method drop*(state: ConnectionState, connection: QuicConnection) {.base.} =
-  doAssert false # override this method
-
-method destroy*(state: ConnectionState) {.base.} =
+method drop*(state: ConnectionState) {.base.} =
   doAssert false # override this method
 
 proc newQuicConnection*(state: ConnectionState): QuicConnection =
-  QuicConnection(
+  let connection = QuicConnection(
     state: state,
     outgoing: newAsyncQueue[Datagram](),
     handshake: newAsyncEvent(),
     incoming: newAsyncQueue[Stream]()
   )
+  state.enter(connection)
+  connection
 
 proc switch*(connection: QuicConnection, newState: ConnectionState) =
-  connection.state.destroy()
+  connection.state.leave()
   connection.state = newState
+  connection.state.enter(connection)
 
 proc `onNewId=`*(connection: QuicConnection, callback: IdCallback) =
   connection.onNewId = callback
@@ -57,16 +61,16 @@ proc ids*(connection: QuicConnection): seq[ConnectionId] =
   connection.state.ids()
 
 proc send*(connection: QuicConnection) =
-  connection.state.send(connection)
+  connection.state.send()
 
 proc receive*(connection: QuicConnection, datagram: Datagram) =
-  connection.state.receive(connection, datagram)
+  connection.state.receive(datagram)
 
 proc openStream*(connection: QuicConnection): Future[Stream] =
-  connection.state.openStream(connection)
+  connection.state.openStream()
 
 proc incomingStream*(connection: QuicConnection): Future[Stream] =
   connection.incoming.get()
 
 proc drop*(connection: QuicConnection) =
-  connection.state.drop(connection)
+  connection.state.drop()
