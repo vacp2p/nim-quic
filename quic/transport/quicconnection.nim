@@ -36,7 +36,7 @@ method openStream*(state: ConnectionState): Future[Stream] {.base.} =
 method drop*(state: ConnectionState) {.base.} =
   doAssert false # override this method
 
-method close*(state: ConnectionState): Future[void] {.base.} =
+method drain*(state: ConnectionState): Future[void] {.base.} =
   doAssert false # override this method
 
 proc newQuicConnection*(state: ConnectionState): QuicConnection =
@@ -75,8 +75,8 @@ proc openStream*(connection: QuicConnection): Future[Stream] =
 proc incomingStream*(connection: QuicConnection): Future[Stream] =
   connection.incoming.get()
 
+proc drain*(connection: QuicConnection): Future[void] =
+  connection.state.drain()
+
 proc drop*(connection: QuicConnection) =
   connection.state.drop()
-
-proc close*(connection: QuicConnection): Future[void] =
-  connection.state.close()
