@@ -80,3 +80,7 @@ proc drop*(connection: Connection) {.async.} =
     if connection.onClose != nil:
       connection.onClose()
     connection.quic.drop()
+
+proc close*(connection: Connection) {.async.} =
+  await connection.quic.drain()
+  await connection.drop()
