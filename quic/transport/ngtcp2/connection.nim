@@ -118,3 +118,22 @@ proc handleTimeout(connection: Ngtcp2Connection) =
   if connection.conn != nil:
     checkResult ngtcp2_conn_handle_expiry(connection.conn, now())
     connection.send()
+
+proc close*(connection: Ngtcp2Connection): Datagram =
+  var packetInfo: ngtcp2_pkt_info
+  let length = ngtcp2_conn_write_connection_close(
+    connection.conn,
+    connection.path.toPathPtr,
+    addr packetInfo,
+    addr connection.buffer[0],
+    connection.buffer.len.uint,
+    NGTCP2_NO_ERROR,
+    now()
+  )
+  checkResult length.cint
+  let data = connection.buffer[0..<length]
+  let ecn = ECN(packetInfo.ecn)
+  Datagram(data: data, ecn: ecn)
+
+proc closingDuration*(connection: Ngtcp2Connection): Duration =
+  3 * ngtcp2_conn_get_pto(connection.conn).int64.nanoseconds

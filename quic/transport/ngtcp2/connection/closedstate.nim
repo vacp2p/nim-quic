@@ -25,3 +25,6 @@ method openStream(state: ClosedConnection): Future[Stream] {.async.} =
 
 method drop(state: ClosedConnection) =
   discard
+
+method close(state: ClosedConnection) {.async.} =
+  discard

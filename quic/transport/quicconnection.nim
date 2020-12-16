@@ -36,6 +36,9 @@ method openStream*(state: ConnectionState): Future[Stream] {.base.} =
 method drop*(state: ConnectionState) {.base.} =
   doAssert false # override this method
 
+method close*(state: ConnectionState): Future[void] {.base.} =
+  doAssert false # override this method
+
 proc newQuicConnection*(state: ConnectionState): QuicConnection =
   let connection = QuicConnection(
     state: state,
@@ -74,3 +77,6 @@ proc incomingStream*(connection: QuicConnection): Future[Stream] =
 
 proc drop*(connection: QuicConnection) =
   connection.state.drop()
+
+proc close*(connection: QuicConnection): Future[void] =
+  connection.state.close()
