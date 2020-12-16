@@ -23,8 +23,8 @@ method receive(state: ClosedConnection, datagram: Datagram) =
 method openStream(state: ClosedConnection): Future[Stream] {.async.} =
   raise newException(ClosedConnectionError, "connection is closed")
 
-method drop(state: ClosedConnection) =
+method drain(state: ClosedConnection) {.async.} =
   discard
 
-method close(state: ClosedConnection) {.async.} =
+method drop(state: ClosedConnection) =
   discard

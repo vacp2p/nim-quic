@@ -7,49 +7,47 @@ import ../../timeout
 import ./closedstate
 
 type
-  ClosingConnection* = ref object of ConnectionState
+  DrainingConnection* = ref object of ConnectionState
     connection: QuicConnection
     finalDatagram: Datagram
     timeout: Timeout
     duration: Duration
     done: AsyncEvent
 
-proc newClosingConnection*(finalDatagram: Datagram,
-                           duration: Duration): ClosingConnection =
-  ClosingConnection(
+proc newDrainingConnection*(finalDatagram: Datagram,
+                            duration: Duration): DrainingConnection =
+  DrainingConnection(
     finalDatagram: finalDatagram,
     duration: duration,
     done: newAsyncEvent()
   )
 
-proc onTimeout(state: ClosingConnection) =
+proc onTimeout(state: DrainingConnection) =
   state.done.fire()
-  state.connection.switch(newClosedConnection())
 
-method enter(state: ClosingConnection, connection: QuicConnection) =
+method enter(state: DrainingConnection, connection: QuicConnection) =
   state.connection = connection
   state.timeout = newTimeout(proc = state.onTimeout())
   state.timeout.set(state.duration)
 
-method leave(state: ClosingConnection) =
+method leave(state: DrainingConnection) =
   state.timeout.stop()
   state.connection = nil
 
-method ids(state: ClosingConnection): seq[ConnectionId] =
+method ids(state: DrainingConnection): seq[ConnectionId] =
   @[]
 
-method send(state: ClosingConnection) =
+method send(state: DrainingConnection) =
   raise newException(ClosedConnectionError, "connection is closing")
 
-method receive(state: ClosingConnection, datagram: Datagram) =
+method receive(state: DrainingConnection, datagram: Datagram) =
   state.connection.outgoing.putNoWait(state.finalDatagram)
 
-method openStream(state: ClosingConnection): Future[Stream] {.async.} =
+method openStream(state: DrainingConnection): Future[Stream] {.async.} =
   raise newException(ClosedConnectionError, "connection is closing")
 
-method drop(state: ClosingConnection) =
-  state.connection.switch(newClosedConnection())
-
-method close(state: ClosingConnection) {.async.} =
+method drain(state: DrainingConnection) {.async.} =
   await state.done.wait()
 
+method drop(state: DrainingConnection) =
+  state.connection.switch(newClosedConnection())
