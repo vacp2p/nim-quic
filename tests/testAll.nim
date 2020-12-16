@@ -14,5 +14,6 @@ import ./quic/testTimeout
 import ./quic/testQuicConnection
 import ./quic/testListener
 import ./quic/testApi
+import ./quic/testExample
 
 {.warning[UnusedImport]: off.}

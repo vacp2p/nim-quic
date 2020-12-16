@@ -56,7 +56,7 @@ await stream.write(message)
 Close stream:
 
 ```nim
-stream.close()
+await stream.close()
 ```
 
 Close connection:
@@ -94,7 +94,7 @@ let message = await stream.read()
 Close stream:
 
 ```nim
-stream.close()
+await stream.close()
 ```
 
 Close connection:
