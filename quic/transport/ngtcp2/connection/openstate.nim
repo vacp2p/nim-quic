@@ -16,6 +16,8 @@ type
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
   OpenConnection(ngtcp2Connection: ngtcp2Connection)
 
+{.push locks: "unknown".}
+
 method enter(state: OpenConnection, connection: QuicConnection) =
   state.quicConnection = connection
 
@@ -46,3 +48,5 @@ method drain(state: OpenConnection) {.async.} =
 
 method drop(state: OpenConnection) =
   state.quicConnection.switch(newClosedConnection())
+
+{.pop.}
