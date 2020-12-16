@@ -5,6 +5,7 @@ import ../../connectionid
 import ../../stream
 import ../connection
 import ../streams
+import ./closingstate
 import ./closedstate
 
 type
@@ -19,6 +20,7 @@ method enter(state: OpenConnection, connection: QuicConnection) =
   state.quicConnection = connection
 
 method leave(state: OpenConnection) =
+  state.ngtcp2Connection.destroy()
   state.quicConnection = nil
 
 method ids(state: OpenConnection): seq[ConnectionId] =
@@ -33,6 +35,13 @@ method receive(state: OpenConnection, datagram: Datagram) =
 method openStream(state: OpenConnection): Future[Stream] {.async.} =
   await state.quicConnection.handshake.wait()
   result = state.ngtcp2Connection.openStream()
+
+method close(state: OpenConnection) {.async.} =
+  let finalDatagram = state.ngtcp2Connection.close()
+  let duration = state.ngtcp2Connection.closingDuration()
+  let closing = newClosingConnection(finalDatagram, duration)
+  state.quicConnection.switch(closing)
+  await closing.close()
 
 method drop(state: OpenConnection) =
   state.quicConnection.switch(newClosedConnection())
