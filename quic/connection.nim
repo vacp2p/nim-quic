@@ -43,7 +43,8 @@ proc stopSending(connection: Connection) {.async.} =
 
 proc newIncomingConnection*(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
-  let quic = newQuicServerConnection(udp.localAddress, remote, udp.getMessage())
+  let datagram = Datagram(data: udp.getMessage())
+  let quic = newQuicServerConnection(udp.localAddress, remote, datagram)
   result = IncomingConnection(udp: udp, quic: quic)
   result.startSending(remote)
 
