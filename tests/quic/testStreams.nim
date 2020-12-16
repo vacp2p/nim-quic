@@ -2,11 +2,11 @@ import std/unittest
 import std/sequtils
 import pkg/chronos
 import pkg/quic/transport/stream
+import pkg/quic/transport/quicconnection
 import pkg/quic/transport/ngtcp2
 import pkg/quic/udp/datagram
 import ../helpers/asynctest
 import ../helpers/simulation
-import ../helpers/addresses
 import ../helpers/contains
 
 suite "streams":
@@ -15,51 +15,43 @@ suite "streams":
     let (client, server) = await performHandshake()
     check client.openStream() != client.openStream()
 
-    client.destroy()
-    server.destroy()
-
-  test "raises error when opening uni-directional stream fails":
-    let client = newNgtcp2Client(zeroAddress, zeroAddress)
-
-    expect IOError:
-      discard client.openStream()
-
-    client.destroy()
+    client.drop()
+    server.drop()
 
   asynctest "closes stream":
     let (client, server) = await performHandshake()
-    let stream = client.openStream()
+    let stream = await client.openStream()
 
     await stream.close()
 
-    client.destroy()
-    server.destroy()
+    client.drop()
+    server.drop()
 
   asynctest "writes to stream":
     let (client, server) = await performHandshake()
-    let stream = client.openStream()
+    let stream = await client.openStream()
     let message = @[1'u8, 2'u8, 3'u8]
     await stream.write(message)
 
     check client.outgoing.anyIt(it.data.contains(message))
 
-    client.destroy()
-    server.destroy()
+    client.drop()
+    server.drop()
 
   asynctest "writes zero-length message":
     let (client, server) = await performHandshake()
-    let stream = client.openStream()
+    let stream = await client.openStream()
     await stream.write(@[])
     let datagram = await client.outgoing.get()
 
     check datagram.len > 0
 
-    client.destroy()
-    server.destroy()
+    client.drop()
+    server.drop()
 
   asynctest "raises when reading from or writing to closed stream":
     let (client, server) = await performHandshake()
-    let stream = client.openStream()
+    let stream = await client.openStream()
     await stream.close()
 
     expect IOError:
@@ -68,45 +60,47 @@ suite "streams":
     expect IOError:
       await stream.write(@[1'u8, 2'u8, 3'u8])
 
-    client.destroy()
-    server.destroy()
+    client.drop()
+    server.drop()
 
   asynctest "accepts incoming streams":
     let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
 
-    let clientStream = client.openStream()
+    let clientStream = await client.openStream()
     await clientStream.write(@[])
 
     let serverStream = await server.incomingStream()
     check clientStream.id == serverStream.id
 
     await simulation.cancelAndWait()
-    client.destroy()
-    server.destroy()
+    client.drop()
+    server.drop()
 
   asynctest "reads from stream":
     let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
-
     let message = @[1'u8, 2'u8, 3'u8]
-    await client.openStream().write(message)
 
-    let stream = await server.incomingStream()
-    let incoming = await stream.read()
+    let clientStream = await client.openStream()
+    await clientStream.write(message)
 
+    let serverStream = await server.incomingStream()
+    check clientStream.id == serverStream.id
+
+    let incoming = await serverStream.read()
     check incoming == message
 
     await simulation.cancelAndWait()
-    client.destroy()
-    server.destroy()
+    client.drop()
+    server.drop()
 
   asynctest "writes long messages to stream":
     let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
 
-    let stream = client.openStream()
-    let message = repeat(42'u8, 100 * sizeof(client.buffer))
+    let stream = await client.openStream()
+    let message = repeat(42'u8, 100 * sizeof(Ngtcp2Connection.buffer))
     await stream.write(message)
 
     let incoming = await server.incomingStream()
@@ -114,8 +108,8 @@ suite "streams":
       discard await incoming.read()
 
     await simulation.cancelAndWait()
-    client.destroy()
-    server.destroy()
+    client.drop()
+    server.drop()
 
 
   asynctest "handles packet loss":
@@ -123,13 +117,14 @@ suite "streams":
     let simulation = simulateLossyNetwork(client, server)
 
     let message = @[1'u8, 2'u8, 3'u8]
-    await client.openStream().write(message)
+    let clientStream = await client.openStream()
+    await clientStream.write(message)
 
-    let stream = await server.incomingStream()
-    let incoming = await stream.read()
+    let serverStream = await server.incomingStream()
+    let incoming = await serverStream.read()
 
     check incoming == message
 
     await simulation.cancelAndWait()
-    client.destroy()
-    server.destroy()
+    client.drop()
+    server.drop()
