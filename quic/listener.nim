@@ -18,7 +18,7 @@ proc getConnection(listener: Listener, id: ConnectionId): Connection =
   listener.connections[id]
 
 proc addConnection(listener: Listener, connection: Connection,
-                   firstId: ConnectionId) {.async.} =
+                   firstId: ConnectionId) =
   for id in connection.ids & firstId:
     listener.connections[id] = connection
   connection.onNewId = proc(newId: ConnectionId) =
@@ -28,25 +28,23 @@ proc addConnection(listener: Listener, connection: Connection,
   connection.onClose = proc =
     for id in connection.ids & firstId:
       listener.connections.del(id)
-  await listener.incoming.put(connection)
+  listener.incoming.putNoWait(connection)
 
-proc getOrCreateConnection*(listener: Listener,
-                            udp: DatagramTransport,
-                            remote: TransportAddress):
-                            Future[Connection] {.async.} =
+proc getOrCreateConnection*(listener: Listener, udp: DatagramTransport,
+                            remote: TransportAddress): Connection =
   var connection: Connection
   let destination = parseDatagram(udp.getMessage()).destination
   if not listener.hasConnection(destination):
     connection = newIncomingConnection(udp, remote)
-    await listener.addConnection(connection, destination)
+    listener.addConnection(connection, destination)
   else:
     connection = listener.getConnection(destination)
-  result = connection
+  connection
 
 proc newListener*(address: TransportAddress): Listener =
   let listener = Listener(incoming: newAsyncQueue[Connection]())
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-    let connection = await listener.getOrCreateConnection(udp, remote)
+    let connection = listener.getOrCreateConnection(udp, remote)
     connection.receive(Datagram(data: udp.getMessage()))
   listener.udp = newDatagramTransport(onReceive, local = address)
   listener
