@@ -11,6 +11,8 @@ type
 proc newClosedConnection*: ClosedConnection =
   ClosedConnection()
 
+{.push locks: "unknown".}
+
 method ids(state: ClosedConnection): seq[ConnectionId] =
   @[]
 
@@ -28,3 +30,5 @@ method drain(state: ClosedConnection) {.async.} =
 
 method drop(state: ClosedConnection) =
   discard
+
+{.pop.}

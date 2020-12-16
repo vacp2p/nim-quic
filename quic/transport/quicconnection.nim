@@ -15,29 +15,33 @@ type
   IdCallback* = proc(id: ConnectionId)
   ConnectionError* = object of IOError
 
-method enter*(state: ConnectionState, connection: QuicConnection) {.base.} =
+{.push base, locks: "unknown".}
+
+method enter*(state: ConnectionState, connection: QuicConnection) =
   discard
 
-method leave*(state: ConnectionState) {.base.} =
+method leave*(state: ConnectionState) =
   discard
 
-method ids*(state: ConnectionState): seq[ConnectionId] {.base.} =
+method ids*(state: ConnectionState): seq[ConnectionId] =
   doAssert false # override this method
 
-method send*(state: ConnectionState) {.base.} =
+method send*(state: ConnectionState) =
   doAssert false # override this method
 
-method receive*(state: ConnectionState, datagram: Datagram) {.base.} =
+method receive*(state: ConnectionState, datagram: Datagram) =
   doAssert false # override this method
 
-method openStream*(state: ConnectionState): Future[Stream] {.base.} =
+method openStream*(state: ConnectionState): Future[Stream] =
   doAssert false # override this method
 
-method drop*(state: ConnectionState) {.base.} =
+method drop*(state: ConnectionState) =
   doAssert false # override this method
 
-method drain*(state: ConnectionState): Future[void] {.base.} =
+method drain*(state: ConnectionState): Future[void] =
   doAssert false # override this method
+
+{.pop.}
 
 proc newQuicConnection*(state: ConnectionState): QuicConnection =
   let connection = QuicConnection(

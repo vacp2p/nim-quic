@@ -27,6 +27,8 @@ proc newDrainingConnection*(finalDatagram: Datagram, ids: seq[ConnectionId],
 proc onTimeout(state: DrainingConnection) =
   state.done.fire()
 
+{.push locks: "unknown".}
+
 method enter(state: DrainingConnection, connection: QuicConnection) =
   state.connection = connection
   state.timeout = newTimeout(proc = state.onTimeout())
@@ -53,3 +55,5 @@ method drain(state: DrainingConnection) {.async.} =
 
 method drop(state: DrainingConnection) =
   state.connection.switch(newClosedConnection())
+
+{.pop.}
