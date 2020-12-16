@@ -8,25 +8,20 @@ type
   ClosedConnection* = ref object of ConnectionState
   ClosedConnectionError* = object of ConnectionError
 
+proc newClosedConnection*: ClosedConnection =
+  ClosedConnection()
+
 method ids(state: ClosedConnection): seq[ConnectionId] =
   @[]
 
-method send(state: ClosedConnection, connection: QuicConnection) =
+method send(state: ClosedConnection) =
   raise newException(ClosedConnectionError, "connection is closed")
 
-method receive(state: ClosedConnection,
-               connection: QuicConnection, datagram: Datagram) =
+method receive(state: ClosedConnection, datagram: Datagram) =
   raise newException(ClosedConnectionError, "connection is closed")
 
-method openStream(state: ClosedConnection,
-                  connection: QuicConnection): Future[Stream] {.async.} =
+method openStream(state: ClosedConnection): Future[Stream] {.async.} =
   raise newException(ClosedConnectionError, "connection is closed")
 
-method drop(state: ClosedConnection, connection: QuicConnection) =
+method drop(state: ClosedConnection) =
   discard
-
-method destroy(state: ClosedConnection) =
-  discard
-
-proc newClosedConnection*: ClosedConnection =
-  ClosedConnection()

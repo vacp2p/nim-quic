@@ -9,28 +9,30 @@ import ./closedstate
 
 type
   OpenConnection* = ref object of ConnectionState
-    connection: Ngtcp2Connection
+    quicConnection: QuicConnection
+    ngtcp2Connection: Ngtcp2Connection
+
+proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
+  OpenConnection(ngtcp2Connection: ngtcp2Connection)
+
+method enter(state: OpenConnection, connection: QuicConnection) =
+  state.quicConnection = connection
+
+method leave(state: OpenConnection) =
+  state.quicConnection = nil
 
 method ids(state: OpenConnection): seq[ConnectionId] =
-  state.connection.ids
+  state.ngtcp2Connection.ids
 
-method send(state: OpenConnection, connection: QuicConnection) =
-  state.connection.send()
+method send(state: OpenConnection) =
+  state.ngtcp2Connection.send()
 
-method receive(state: OpenConnection,
-               connection: QuicConnection, datagram: Datagram) =
-  state.connection.receive(datagram)
+method receive(state: OpenConnection, datagram: Datagram) =
+  state.ngtcp2Connection.receive(datagram)
 
-method openStream(state: OpenConnection,
-                  connection: QuicConnection): Future[Stream] {.async.} =
-  await connection.handshake.wait()
-  result = state.connection.openStream()
+method openStream(state: OpenConnection): Future[Stream] {.async.} =
+  await state.quicConnection.handshake.wait()
+  result = state.ngtcp2Connection.openStream()
 
-method drop(state: OpenConnection, connection: QuicConnection) =
-  connection.switch(newClosedConnection())
-
-method destroy(state: OpenConnection) =
-  discard
-
-proc newOpenConnection*(connection: Ngtcp2Connection): OpenConnection =
-  OpenConnection(connection: connection)
+method drop(state: OpenConnection) =
+  state.quicConnection.switch(newClosedConnection())
