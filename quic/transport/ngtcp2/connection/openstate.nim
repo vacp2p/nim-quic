@@ -39,7 +39,8 @@ method openStream(state: OpenConnection): Future[Stream] {.async.} =
 method drain(state: OpenConnection) {.async.} =
   let finalDatagram = state.ngtcp2Connection.close()
   let duration = state.ngtcp2Connection.closingDuration()
-  let draining = newDrainingConnection(finalDatagram, duration)
+  let ids = state.ids
+  let draining = newDrainingConnection(finalDatagram, ids, duration)
   state.quicConnection.switch(draining)
   await draining.drain()
 

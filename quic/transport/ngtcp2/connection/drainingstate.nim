@@ -10,14 +10,16 @@ type
   DrainingConnection* = ref object of ConnectionState
     connection: QuicConnection
     finalDatagram: Datagram
+    ids: seq[ConnectionId]
     timeout: Timeout
     duration: Duration
     done: AsyncEvent
 
-proc newDrainingConnection*(finalDatagram: Datagram,
+proc newDrainingConnection*(finalDatagram: Datagram, ids: seq[ConnectionId],
                             duration: Duration): DrainingConnection =
   DrainingConnection(
     finalDatagram: finalDatagram,
+    ids: ids,
     duration: duration,
     done: newAsyncEvent()
   )
@@ -35,7 +37,7 @@ method leave(state: DrainingConnection) =
   state.connection = nil
 
 method ids(state: DrainingConnection): seq[ConnectionId] =
-  @[]
+  state.ids
 
 method send(state: DrainingConnection) =
   raise newException(ClosedConnectionError, "connection is closing")
