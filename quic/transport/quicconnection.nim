@@ -9,8 +9,6 @@ type
     outgoing*: AsyncQueue[Datagram]
     handshake*: AsyncEvent
     incoming*: AsyncQueue[Stream]
-    onNewId: IdCallback
-    onRemoveId: IdCallback
   ConnectionState* = ref object of RootObj
   IdCallback* = proc(id: ConnectionId)
   ConnectionError* = object of IOError
@@ -41,6 +39,12 @@ method drop*(state: ConnectionState) =
 method drain*(state: ConnectionState): Future[void] =
   doAssert false # override this method
 
+method `onNewId=`*(state: ConnectionState, callback: IdCallback) =
+  discard
+
+method `onRemoveId=`*(state: ConnectionState, callback: IdCallback) =
+  discard
+
 {.pop.}
 
 proc newQuicConnection*(state: ConnectionState): QuicConnection =
@@ -59,10 +63,10 @@ proc switch*(connection: QuicConnection, newState: ConnectionState) =
   connection.state.enter(connection)
 
 proc `onNewId=`*(connection: QuicConnection, callback: IdCallback) =
-  connection.onNewId = callback
+  connection.state.onNewId = callback
 
 proc `onRemoveId=`*(connection: QuicConnection, callback: IdCallback) =
-  connection.onRemoveId = callback
+  connection.state.onRemoveId = callback
 
 proc ids*(connection: QuicConnection): seq[ConnectionId] =
   connection.state.ids()

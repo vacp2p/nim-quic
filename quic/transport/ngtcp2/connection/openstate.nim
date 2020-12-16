@@ -49,4 +49,10 @@ method drain(state: OpenConnection) {.async.} =
 method drop(state: OpenConnection) =
   state.quicConnection.switch(newClosedConnection())
 
+method `onNewId=`*(state: OpenConnection, callback: IdCallback) =
+  state.ngtcp2Connection.onNewId = callback
+
+method `onRemoveId=`*(state: OpenConnection, callback: IdCallback) =
+  state.ngtcp2Connection.onRemoveId = callback
+
 {.pop.}
