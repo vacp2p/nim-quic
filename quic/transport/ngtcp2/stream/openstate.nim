@@ -10,16 +10,35 @@ import ./closedstate
 
 type
   OpenStream* = ref object of StreamState
-    id: int64
+    stream: Stream
     connection: Ngtcp2Connection
     incoming: AsyncQueue[seq[byte]]
 
-method read(state: OpenStream, stream: Stream): Future[seq[byte]] {.async.} =
+proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
+  OpenStream(
+    connection: connection,
+    incoming: newAsyncQueue[seq[byte]]()
+  )
+
+proc setUserData(state: OpenStream, userdata: pointer) =
+  let conn = state.connection.conn
+  let id = state.stream.id
+  checkResult ngtcp2_conn_set_stream_user_data(conn, id, userdata)
+
+method enter(state: OpenStream, stream: Stream) =
+  state.stream = stream
+  state.setUserData(unsafeAddr state[])
+
+method leave(state: OpenStream) =
+  state.setUserData(nil)
+  state.stream = nil
+
+method read(state: OpenStream): Future[seq[byte]] {.async.} =
   result = await state.incoming.get()
 
-method write(state: OpenStream, stream: Stream, bytes: seq[byte]) {.async.} =
+method write(state: OpenStream, bytes: seq[byte]) {.async.} =
   let connection = state.connection
-  let streamId = state.id
+  let streamId = state.stream.id
   var messagePtr = bytes.toUnsafePtr
   var messageLen = bytes.len.uint
   var done = false
@@ -29,28 +48,11 @@ method write(state: OpenStream, stream: Stream, bytes: seq[byte]) {.async.} =
     messageLen = messageLen - written.uint
     done = messageLen == 0
 
-method close(state: OpenStream, stream: Stream) {.async.} =
-  checkResult ngtcp2_conn_shutdown_stream(state.connection.conn, state.id, 0)
-  stream.switch(newClosedStream())
-
-method destroy(state: OpenStream) =
+method close(state: OpenStream) {.async.} =
   let conn = state.connection.conn
-  let id = state.id
-  checkResult ngtcp2_conn_set_stream_user_data(conn, id, nil)
-
-proc setUserData(state: OpenStream) =
-  let conn = state.connection.conn
-  let id = state.id
-  let userdata = unsafeAddr state[]
-  checkResult ngtcp2_conn_set_stream_user_data(conn, id, userdata)
-
-proc newOpenStream*(connection: Ngtcp2Connection, id: int64): OpenStream =
-  let state = OpenStream()
-  state.connection = connection
-  state.id = id
-  state.incoming = newAsyncQueue[seq[byte]]()
-  state.setUserData()
-  state
+  let id = state.stream.id
+  checkResult ngtcp2_conn_shutdown_stream(conn, id, 0)
+  state.stream.switch(newClosedStream())
 
 proc receive*(state: OpenStream, bytes: seq[byte]) =
   state.incoming.putNoWait(bytes)

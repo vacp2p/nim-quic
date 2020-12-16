@@ -7,7 +7,7 @@ import ./errors
 import ./stream/openstate
 
 proc newStream*(connection: Ngtcp2Connection, id: int64): Stream =
-  newStream(id, newOpenStream(connection, id))
+  newStream(id, newOpenStream(connection))
 
 proc openStream*(connection: Ngtcp2Connection): Stream =
   var id: int64
