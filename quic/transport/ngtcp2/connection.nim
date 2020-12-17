@@ -10,6 +10,7 @@ import ../connectionid
 import ./path
 import ./errors
 import ./timestamp
+import ./pointers
 
 type
   Ngtcp2Connection* = ref object
@@ -53,14 +54,23 @@ proc updateTimeout*(connection: Ngtcp2Connection) =
   else:
     connection.timeout.stop()
 
-proc trySend(connection: Ngtcp2Connection): Datagram =
+proc trySend(connection: Ngtcp2Connection,
+             streamId: int64 = -1,
+             messagePtr: ptr byte = nil,
+             messageLen: uint = 0,
+             written: ptr int = nil): Datagram =
   var packetInfo: ngtcp2_pkt_info
-  let length = ngtcp2_conn_write_pkt(
+  let length = ngtcp2_conn_write_stream(
     connection.conn,
     connection.path.toPathPtr,
     addr packetInfo,
     addr connection.buffer[0],
     connection.buffer.len.uint,
+    written,
+    0,
+    streamId,
+    messagePtr,
+    messageLen,
     now()
   )
   checkResult length.cint
@@ -77,6 +87,30 @@ proc send*(connection: Ngtcp2Connection) =
     else:
       done = true
   connection.updateTimeout()
+
+proc send(connection: Ngtcp2Connection,
+          streamId: int64,
+          messagePtr: ptr byte,
+          messageLen: uint): Future[int] {.async.} =
+  let written = addr result
+  var datagram = trySend(connection, streamId, messagePtr, messageLen, written)
+  while datagram.data.len == 0:
+    connection.flowing.clear()
+    await connection.flowing.wait()
+    datagram = trySend(connection, streamId, messagePtr, messageLen, written)
+  connection.onSend(datagram)
+  connection.updateTimeout()
+
+proc send*(connection: Ngtcp2Connection,
+           streamId: int64, bytes: seq[byte]) {.async.} =
+  var messagePtr = bytes.toUnsafePtr
+  var messageLen = bytes.len.uint
+  var done = false
+  while not done:
+    let written = await connection.send(streamId, messagePtr, messageLen)
+    messagePtr = messagePtr + written
+    messageLen = messageLen - written.uint
+    done = messageLen == 0
 
 proc tryReceive(connection: Ngtcp2Connection, datagram: openArray[byte],
                 ecn: ECN) =

@@ -1,11 +1,8 @@
 import pkg/chronos
 import pkg/ngtcp2
-import ../../../helpers/openarray
 import ../../stream
 import ../connection
 import ../errors
-import ../pointers
-import ./sending
 import ./closedstate
 
 type
@@ -36,17 +33,8 @@ method leave(state: OpenStream) =
 method read(state: OpenStream): Future[seq[byte]] {.async.} =
   result = await state.incoming.get()
 
-method write(state: OpenStream, bytes: seq[byte]) {.async.} =
-  let connection = state.connection
-  let streamId = state.stream.id
-  var messagePtr = bytes.toUnsafePtr
-  var messageLen = bytes.len.uint
-  var done = false
-  while not done:
-    let written = await send(connection, streamId, messagePtr, messageLen)
-    messagePtr = messagePtr + written
-    messageLen = messageLen - written.uint
-    done = messageLen == 0
+method write(state: OpenStream, bytes: seq[byte]): Future[void] =
+  state.connection.send(state.stream.id, bytes)
 
 method close(state: OpenStream) {.async.} =
   let conn = state.connection.conn
