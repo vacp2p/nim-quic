@@ -7,8 +7,9 @@ type
   QuicConnection* = ref object
     state: ConnectionState
     outgoing*: AsyncQueue[Datagram]
-    handshake*: AsyncEvent
     incoming*: AsyncQueue[Stream]
+    handshake*: AsyncEvent
+    closed*: AsyncEvent
   ConnectionState* = ref object of RootObj
   IdCallback* = proc(id: ConnectionId)
   ConnectionError* = object of IOError
@@ -51,8 +52,9 @@ proc newQuicConnection*(state: ConnectionState): QuicConnection =
   let connection = QuicConnection(
     state: state,
     outgoing: newAsyncQueue[Datagram](),
+    incoming: newAsyncQueue[Stream](),
     handshake: newAsyncEvent(),
-    incoming: newAsyncQueue[Stream]()
+    closed: newAsyncEvent()
   )
   state.enter(connection)
   connection
