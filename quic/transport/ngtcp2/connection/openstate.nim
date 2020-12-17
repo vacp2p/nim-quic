@@ -5,7 +5,7 @@ import ../../connectionid
 import ../../stream
 import ../connection
 import ../streams
-import ./drainingstate
+import ./closingstate
 import ./closedstate
 
 type
@@ -38,13 +38,13 @@ method openStream(state: OpenConnection): Future[Stream] {.async.} =
   await state.quicConnection.handshake.wait()
   result = state.ngtcp2Connection.openStream()
 
-method drain(state: OpenConnection) {.async.} =
+method close(state: OpenConnection) {.async.} =
   let finalDatagram = state.ngtcp2Connection.close()
   let duration = state.ngtcp2Connection.closingDuration()
   let ids = state.ids
-  let draining = newDrainingConnection(finalDatagram, ids, duration)
-  state.quicConnection.switch(draining)
-  await draining.drain()
+  let closing = newClosingConnection(finalDatagram, ids, duration)
+  state.quicConnection.switch(closing)
+  await closing.close()
 
 method drop(state: OpenConnection) =
   state.quicConnection.switch(newClosedConnection())

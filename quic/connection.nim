@@ -82,5 +82,5 @@ proc drop*(connection: Connection) {.async.} =
     connection.quic.drop()
 
 proc close*(connection: Connection) {.async.} =
-  await connection.quic.drain()
+  await connection.quic.close()
   await connection.drop()
