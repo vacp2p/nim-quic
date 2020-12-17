@@ -14,5 +14,4 @@ export isHandshakeCompleted
 export handshake
 export ids
 export openStream
-export incomingStream
 export destroy
