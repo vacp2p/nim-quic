@@ -14,9 +14,6 @@ proc openStream*(connection: Ngtcp2Connection): Stream =
   checkResult ngtcp2_conn_open_uni_stream(connection.conn, addr id, nil)
   newStream(connection, id)
 
-proc incomingStream*(connection: Ngtcp2Connection): Future[Stream] {.async.} =
-  result = await connection.incoming.get()
-
 proc onStreamOpen(conn: ptr ngtcp2_conn,
                    stream_id: int64,
                    user_data: pointer): cint {.cdecl.} =
