@@ -12,8 +12,7 @@ import ./errors
 import ./timestamp
 
 type
-  Ngtcp2Connection* = ref Ngtcp2ConnectionObj
-  Ngtcp2ConnectionObj = object
+  Ngtcp2Connection* = ref object
     conn*: ptr ngtcp2_conn
     path*: Path
     buffer*: array[4096, byte]
@@ -25,18 +24,11 @@ type
     onNewId*: proc(id: ConnectionId)
     onRemoveId*: proc(id: ConnectionId)
 
-proc destroy(connection: var Ngtcp2ConnectionObj) =
+proc destroy*(connection: Ngtcp2Connection) =
   if connection.conn != nil:
     connection.timeout.stop()
     ngtcp2_conn_del(connection.conn)
     connection.conn = nil
-
-proc destroy*(connection: Ngtcp2Connection) =
-  ## Frees any resources associated with the connection.
-  connection[].destroy()
-
-proc `=destroy`*(connection: var Ngtcp2ConnectionObj) =
-  connection.destroy()
 
 proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe.}
 
