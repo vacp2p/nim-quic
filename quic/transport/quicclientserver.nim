@@ -1,6 +1,7 @@
 import pkg/chronos
 import ../udp/datagram
 import ./quicconnection
+import ./stream
 import ./ngtcp2
 import ./ngtcp2/connection/openstate
 
@@ -9,8 +10,10 @@ proc newConnection(ngtcp2Connection: Ngtcp2Connection): QuicConnection =
   let connection = newQuicConnection(state)
   ngtcp2Connection.onSend = proc(datagram: Datagram) =
     connection.outgoing.putNoWait(datagram)
-  ngtcp2Connection.incoming = connection.incoming
-  ngtcp2Connection.handshake = connection.handshake
+  ngtcp2Connection.onIncomingStream = proc(stream: Stream) =
+    connection.incoming.putNoWait(stream)
+  ngtcp2Connection.onHandshakeDone = proc =
+    connection.handshake.fire()
   connection
 
 proc newQuicClientConnection*(local, remote: TransportAddress): QuicConnection =

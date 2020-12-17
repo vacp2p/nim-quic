@@ -17,11 +17,11 @@ type
     conn*: ptr ngtcp2_conn
     path*: Path
     buffer*: array[4096, byte]
-    onSend*: proc(datagram: Datagram) {.gcsafe.}
-    incoming*: AsyncQueue[Stream]
     flowing*: AsyncEvent
-    handshake*: AsyncEvent
     timeout*: Timeout
+    onSend*: proc(datagram: Datagram) {.gcsafe.}
+    onIncomingStream*: proc(stream: Stream)
+    onHandshakeDone*: proc()
     onNewId*: proc(id: ConnectionId)
     onRemoveId*: proc(id: ConnectionId)
 
@@ -43,9 +43,7 @@ proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe.}
 proc newConnection*(path: Path): Ngtcp2Connection =
   let connection = Ngtcp2Connection()
   connection.path = path
-  connection.incoming = newAsyncQueue[Stream]()
   connection.flowing = newAsyncEvent()
-  connection.handshake = newAsyncEvent()
   connection.timeout = newTimeout(proc = connection.handleTimeout())
   connection.flowing.fire()
   connection
