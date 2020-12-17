@@ -1,8 +1,7 @@
 import std/unittest
 import pkg/chronos
 import pkg/quic/transport/quicconnection
-import pkg/quic/transport/quicclient
-import pkg/quic/transport/quicserver
+import pkg/quic/transport/quicclientserver
 import pkg/quic/udp/datagram
 import pkg/quic/transport/connectionid
 import ../helpers/asynctest
