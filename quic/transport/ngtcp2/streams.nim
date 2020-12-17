@@ -1,4 +1,3 @@
-import pkg/chronos
 import pkg/ngtcp2
 import ../../helpers/openarray
 import ../stream
@@ -18,7 +17,7 @@ proc onStreamOpen(conn: ptr ngtcp2_conn,
                    stream_id: int64,
                    user_data: pointer): cint {.cdecl.} =
   let connection = cast[Ngtcp2Connection](user_data)
-  connection.incoming.putNoWait(newStream(connection, stream_id))
+  connection.onIncomingStream(newStream(connection, stream_id))
 
 proc onReceiveStreamData(connection: ptr ngtcp2_conn,
                           flags: uint32,
