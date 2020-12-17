@@ -3,8 +3,7 @@ import ./transport/connectionid
 import ./transport/stream
 import ./transport/ngtcp2
 import ./transport/quicconnection
-import ./transport/quicclient
-import ./transport/quicserver
+import ./transport/quicclientserver
 import ./udp/datagram
 import ./helpers/asyncloop
 
