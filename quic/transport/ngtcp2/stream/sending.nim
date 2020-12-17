@@ -40,5 +40,5 @@ proc send*(connection: Ngtcp2Connection,
     connection.flowing.clear()
     await connection.flowing.wait()
     datagram = trySend(connection, streamId, messagePtr, messageLen, result)
-  await connection.outgoing.put(datagram)
+  connection.onSend(datagram)
   connection.updateTimeout()

@@ -17,7 +17,7 @@ type
     conn*: ptr ngtcp2_conn
     path*: Path
     buffer*: array[4096, byte]
-    outgoing*: AsyncQueue[Datagram]
+    onSend*: proc(datagram: Datagram) {.gcsafe.}
     incoming*: AsyncQueue[Stream]
     flowing*: AsyncEvent
     handshake*: AsyncEvent
@@ -43,7 +43,6 @@ proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe.}
 proc newConnection*(path: Path): Ngtcp2Connection =
   let connection = Ngtcp2Connection()
   connection.path = path
-  connection.outgoing = newAsyncQueue[Datagram]()
   connection.incoming = newAsyncQueue[Stream]()
   connection.flowing = newAsyncEvent()
   connection.handshake = newAsyncEvent()
@@ -84,7 +83,7 @@ proc send*(connection: Ngtcp2Connection) =
   while not done:
     let datagram = connection.trySend()
     if datagram.data.len > 0:
-      connection.outgoing.putNoWait(datagram)
+      connection.onSend(datagram)
     else:
       done = true
   connection.updateTimeout()
