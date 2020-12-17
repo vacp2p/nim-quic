@@ -71,6 +71,11 @@ suite "quic connection":
     await server.handshake.wait()
     check newId != ConnectionId.default
 
+  asynctest "fires event when closed":
+    let client = newQuicClientConnection(zeroAddress, zeroAddress)
+    client.drop()
+    check client.closed.isSet()
+
   asynctest "raises ConnectionError when closed":
     let connection = newQuicClientConnection(zeroAddress, zeroAddress)
     connection.drop()
