@@ -12,20 +12,20 @@ suite "quic connection":
 
   asynctest "sends outgoing datagrams":
     let client = newQuicClientConnection(zeroAddress, zeroAddress)
-    defer: client.drop()
+    defer: await client.drop()
     client.send()
     let datagram = await client.outgoing.get()
     check datagram.len > 0
 
   asynctest "processes received datagrams":
     let client = newQuicClientConnection(zeroAddress, zeroAddress)
-    defer: client.drop()
+    defer: await client.drop()
 
     client.send()
     let datagram = await client.outgoing.get()
 
     let server = newQuicServerConnection(zeroAddress, zeroAddress, datagram)
-    defer: server.drop()
+    defer: await server.drop()
 
     server.receive(datagram)
 
@@ -37,8 +37,8 @@ suite "quic connection":
 
   asynctest "performs handshake":
     let (client, server) = await performHandshake()
-    defer: client.drop()
-    defer: server.drop()
+    defer: await client.drop()
+    defer: await server.drop()
 
     check client.handshake.isSet()
     check server.handshake.isSet()
@@ -46,8 +46,8 @@ suite "quic connection":
   asynctest "performs handshake multiple times":
     for i in 1..100:
       let (client, server) = await performHandshake()
-      client.drop()
-      server.drop()
+      await client.drop()
+      await server.drop()
 
   asynctest "returns the current connection ids":
     let (client, server) = await setupConnection()
@@ -57,8 +57,8 @@ suite "quic connection":
 
   asynctest "notifies about id changes":
     let (client, server) = await setupConnection()
-    defer: client.drop
-    defer: server.drop
+    defer: await client.drop
+    defer: await server.drop
 
     var newId: ConnectionId
     server.onNewId = proc (id: ConnectionId) =
@@ -72,12 +72,12 @@ suite "quic connection":
 
   asynctest "fires event when closed":
     let client = newQuicClientConnection(zeroAddress, zeroAddress)
-    client.drop()
+    await client.drop()
     check client.closed.isSet()
 
   asynctest "raises ConnectionError when closed":
     let connection = newQuicClientConnection(zeroAddress, zeroAddress)
-    connection.drop()
+    await connection.drop()
 
     expect ConnectionError:
       connection.send()
@@ -88,8 +88,8 @@ suite "quic connection":
     expect ConnectionError:
       discard await connection.openStream()
 
-  test "has empty list of ids when closed":
+  asynctest "has empty list of ids when closed":
     let connection = newQuicClientConnection(zeroAddress, zeroAddress)
-    connection.drop()
+    await connection.drop()
 
     check connection.ids.len == 0

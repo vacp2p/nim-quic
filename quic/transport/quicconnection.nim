@@ -10,6 +10,7 @@ type
     incoming*: AsyncQueue[Stream]
     handshake*: AsyncEvent
     closed*: AsyncEvent
+    disconnect*: proc(): Future[void] {.gcsafe.}
   ConnectionState* = ref object of RootObj
   IdCallback* = proc(id: ConnectionId)
   ConnectionError* = object of IOError
@@ -34,7 +35,7 @@ method receive*(state: ConnectionState, datagram: Datagram) =
 method openStream*(state: ConnectionState): Future[Stream] =
   doAssert false # override this method
 
-method drop*(state: ConnectionState) =
+method drop*(state: ConnectionState): Future[void] =
   doAssert false # override this method
 
 method close*(state: ConnectionState): Future[void] =
@@ -88,5 +89,5 @@ proc incomingStream*(connection: QuicConnection): Future[Stream] =
 proc close*(connection: QuicConnection): Future[void] =
   connection.state.close()
 
-proc drop*(connection: QuicConnection) =
+proc drop*(connection: QuicConnection): Future[void] =
   connection.state.drop()

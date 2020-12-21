@@ -6,7 +6,7 @@ import ../../stream
 import ../connection
 import ../streams
 import ./closingstate
-import ./closedstate
+import ./disconnectingstate
 
 type
   OpenConnection* = ref object of ConnectionState
@@ -46,8 +46,10 @@ method close(state: OpenConnection) {.async.} =
   state.quicConnection.switch(closing)
   await closing.close()
 
-method drop(state: OpenConnection) =
-  state.quicConnection.switch(newClosedConnection())
+method drop(state: OpenConnection) {.async.} =
+  let disconnecting = newDisconnectingConnection(state.ids)
+  state.quicConnection.switch(disconnecting)
+  await disconnecting.drop()
 
 method `onNewId=`*(state: OpenConnection, callback: IdCallback) =
   state.ngtcp2Connection.onNewId = callback
