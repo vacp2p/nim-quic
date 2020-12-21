@@ -160,3 +160,6 @@ proc close*(connection: Ngtcp2Connection): Datagram =
 
 proc closingDuration*(connection: Ngtcp2Connection): Duration =
   3 * ngtcp2_conn_get_pto(connection.conn).int64.nanoseconds
+
+proc isDraining*(connection: Ngtcp2Connection): bool =
+  ngtcp2_conn_is_in_draining_period(connection.conn).bool
