@@ -53,10 +53,7 @@ suite "listener":
     let datagram = exampleQuicDatagram()
     await datagram.sendTo(address)
 
-    let first = await listener.waitForIncoming.wait(100.milliseconds)
-    await first.drop()
+    let connection = await listener.waitForIncoming.wait(100.milliseconds)
+    await connection.drop()
 
-    await datagram.sendTo(address)
-
-    let second = await listener.waitForIncoming.wait(100.milliseconds)
-    await second.drop()
+    check listener.connectionIds.len == 0
