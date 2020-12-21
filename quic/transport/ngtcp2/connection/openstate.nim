@@ -6,6 +6,7 @@ import ../../stream
 import ../connection
 import ../streams
 import ./closingstate
+import ./drainingstate
 import ./disconnectingstate
 
 type
@@ -33,6 +34,12 @@ method send(state: OpenConnection) =
 
 method receive(state: OpenConnection, datagram: Datagram) =
   state.ngtcp2Connection.receive(datagram)
+  if state.ngtcp2Connection.isDraining:
+    let duration = state.ngtcp2Connection.closingDuration()
+    let ids = state.ids
+    let draining = newDrainingConnection(ids, duration)
+    state.quicConnection.switch(draining)
+    asyncSpawn draining.close()
 
 method openStream(state: OpenConnection): Future[Stream] {.async.} =
   await state.quicConnection.handshake.wait()
