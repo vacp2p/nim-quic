@@ -4,6 +4,7 @@ import ../../quicconnection
 import ../../connectionid
 import ../../stream
 import ../../timeout
+import ./disconnectingstate
 import ./closedstate
 
 type
@@ -54,8 +55,13 @@ method openStream(state: DrainingConnection): Future[Stream] {.async.} =
 
 method close(state: DrainingConnection) {.async.} =
   await state.done.wait()
+  let disconnecting = newDisconnectingConnection(state.ids)
+  state.connection.switch(disconnecting)
+  await disconnecting.close()
 
-method drop(state: DrainingConnection) =
-  state.connection.switch(newClosedConnection())
+method drop(state: DrainingConnection) {.async.} =
+  let disconnecting = newDisconnectingConnection(state.ids)
+  state.connection.switch(disconnecting)
+  await disconnecting.drop()
 
 {.pop.}

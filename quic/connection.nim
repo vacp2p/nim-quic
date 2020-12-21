@@ -14,7 +14,6 @@ type
     udp: DatagramTransport
     quic: QuicConnection
     loop: Future[void]
-    closed: bool
     onClose: proc()
   IncomingConnection = ref object of Connection
   OutgoingConnection = ref object of Connection
@@ -40,18 +39,36 @@ proc startSending(connection: Connection, remote: TransportAddress) =
 proc stopSending(connection: Connection) {.async.} =
   await connection.loop.cancelAndWait()
 
+method closeUdp(connection: Connection) {.async, base.} =
+  discard
+
+method closeUdp(connection: OutgoingConnection) {.async.} =
+  await connection.udp.closeWait()
+
+proc disconnect(connection: Connection) {.async.} =
+  await connection.stopSending()
+  await connection.closeUdp()
+  if connection.onClose != nil:
+    connection.onClose()
+
 proc newIncomingConnection*(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
   let datagram = Datagram(data: udp.getMessage())
   let quic = newQuicServerConnection(udp.localAddress, remote, datagram)
-  result = IncomingConnection(udp: udp, quic: quic)
-  result.startSending(remote)
+  let connection = IncomingConnection(udp: udp, quic: quic)
+  quic.disconnect = proc {.async.} =
+    await connection.disconnect()
+  connection.startSending(remote)
+  connection
 
 proc newOutgoingConnection*(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
   let quic = newQuicClientConnection(udp.localAddress, remote)
-  result = OutgoingConnection(udp: udp, quic: quic)
-  result.startSending(remote)
+  let connection = OutgoingConnection(udp: udp, quic: quic)
+  quic.disconnect = proc {.async.} =
+    await connection.disconnect()
+  connection.startSending(remote)
+  connection
 
 proc startHandshake*(connection: Connection) =
   connection.quic.send()
@@ -66,21 +83,8 @@ proc openStream*(connection: Connection): Future[Stream] {.async.} =
 proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
   result = await connection.quic.incomingStream()
 
-method closeUdp(connection: Connection) {.async, base.} =
-  discard
-
-method closeUdp(connection: OutgoingConnection) {.async.} =
-  await connection.udp.closeWait()
-
 proc drop*(connection: Connection) {.async.} =
-  if not connection.closed:
-    connection.closed = true
-    await connection.stopSending()
-    await connection.closeUdp()
-    if connection.onClose != nil:
-      connection.onClose()
-    connection.quic.drop()
+  await connection.quic.drop()
 
 proc close*(connection: Connection) {.async.} =
   await connection.quic.close()
-  await connection.drop()

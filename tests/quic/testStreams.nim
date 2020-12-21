@@ -15,8 +15,8 @@ suite "streams":
     let (client, server) = await performHandshake()
     check client.openStream() != client.openStream()
 
-    client.drop()
-    server.drop()
+    await client.drop()
+    await server.drop()
 
   asynctest "closes stream":
     let (client, server) = await performHandshake()
@@ -24,8 +24,8 @@ suite "streams":
 
     await stream.close()
 
-    client.drop()
-    server.drop()
+    await client.drop()
+    await server.drop()
 
   asynctest "writes to stream":
     let (client, server) = await performHandshake()
@@ -35,8 +35,8 @@ suite "streams":
 
     check client.outgoing.anyIt(it.data.contains(message))
 
-    client.drop()
-    server.drop()
+    await client.drop()
+    await server.drop()
 
   asynctest "writes zero-length message":
     let (client, server) = await performHandshake()
@@ -46,8 +46,8 @@ suite "streams":
 
     check datagram.len > 0
 
-    client.drop()
-    server.drop()
+    await client.drop()
+    await server.drop()
 
   asynctest "raises when reading from or writing to closed stream":
     let (client, server) = await performHandshake()
@@ -60,8 +60,8 @@ suite "streams":
     expect IOError:
       await stream.write(@[1'u8, 2'u8, 3'u8])
 
-    client.drop()
-    server.drop()
+    await client.drop()
+    await server.drop()
 
   asynctest "accepts incoming streams":
     let (client, server) = await performHandshake()
@@ -74,8 +74,8 @@ suite "streams":
     check clientStream.id == serverStream.id
 
     await simulation.cancelAndWait()
-    client.drop()
-    server.drop()
+    await client.drop()
+    await server.drop()
 
   asynctest "reads from stream":
     let (client, server) = await performHandshake()
@@ -92,8 +92,8 @@ suite "streams":
     check incoming == message
 
     await simulation.cancelAndWait()
-    client.drop()
-    server.drop()
+    await client.drop()
+    await server.drop()
 
   asynctest "writes long messages to stream":
     let (client, server) = await performHandshake()
@@ -108,8 +108,8 @@ suite "streams":
       discard await incoming.read()
 
     await simulation.cancelAndWait()
-    client.drop()
-    server.drop()
+    await client.drop()
+    await server.drop()
 
 
   asynctest "handles packet loss":
@@ -126,5 +126,5 @@ suite "streams":
     check incoming == message
 
     await simulation.cancelAndWait()
-    client.drop()
-    server.drop()
+    await client.drop()
+    await server.drop()
