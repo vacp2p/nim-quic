@@ -9,7 +9,6 @@ type
     outgoing*: AsyncQueue[Datagram]
     incoming*: AsyncQueue[Stream]
     handshake*: AsyncEvent
-    closed*: AsyncEvent
     disconnect*: proc(): Future[void] {.gcsafe.}
   ConnectionState* = ref object of RootObj
   IdCallback* = proc(id: ConnectionId)
@@ -55,7 +54,6 @@ proc newQuicConnection*(state: ConnectionState): QuicConnection =
     outgoing: newAsyncQueue[Datagram](),
     incoming: newAsyncQueue[Stream](),
     handshake: newAsyncEvent(),
-    closed: newAsyncEvent()
   )
   state.enter(connection)
   connection
