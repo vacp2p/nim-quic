@@ -43,6 +43,19 @@ suite "api":
     await outgoing.drop()
     await incoming.drop()
 
+  asynctest "waits until peer closes connection":
+    let listener = listen(address)
+    defer: await listener.stop()
+
+    let dialing = dial(address)
+    let accepting = listener.accept()
+
+    let outgoing = await dialing
+    let incoming = await accepting
+
+    await incoming.close()
+    await outgoing.waitClosed()
+
   asynctest "accepts multiple incoming connections":
     let listener = listen(address)
     defer: await listener.stop()

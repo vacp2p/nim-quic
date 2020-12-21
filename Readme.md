@@ -59,10 +59,10 @@ Close stream:
 await stream.close()
 ```
 
-Close connection:
+Wait for peer to close connection:
 
 ```nim
-await connection.close()
+await connection.waitClosed()
 ```
 
 ### Incoming connections

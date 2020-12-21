@@ -15,6 +15,7 @@ type
     quic: QuicConnection
     loop: Future[void]
     onClose: proc()
+    closed: AsyncEvent
   IncomingConnection = ref object of Connection
   OutgoingConnection = ref object of Connection
 
@@ -50,12 +51,14 @@ proc disconnect(connection: Connection) {.async.} =
   await connection.closeUdp()
   if connection.onClose != nil:
     connection.onClose()
+  connection.closed.fire()
 
 proc newIncomingConnection*(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
   let datagram = Datagram(data: udp.getMessage())
   let quic = newQuicServerConnection(udp.localAddress, remote, datagram)
-  let connection = IncomingConnection(udp: udp, quic: quic)
+  let closed = newAsyncEvent()
+  let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
   quic.disconnect = proc {.async.} =
     await connection.disconnect()
   connection.startSending(remote)
@@ -64,7 +67,8 @@ proc newIncomingConnection*(udp: DatagramTransport,
 proc newOutgoingConnection*(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
   let quic = newQuicClientConnection(udp.localAddress, remote)
-  let connection = OutgoingConnection(udp: udp, quic: quic)
+  let closed = newAsyncEvent()
+  let connection = OutgoingConnection(udp: udp, quic: quic, closed: closed)
   quic.disconnect = proc {.async.} =
     await connection.disconnect()
   connection.startSending(remote)
@@ -88,3 +92,6 @@ proc drop*(connection: Connection) {.async.} =
 
 proc close*(connection: Connection) {.async.} =
   await connection.quic.close()
+
+proc waitClosed*(connection: Connection) {.async.} =
+  await connection.closed.wait()

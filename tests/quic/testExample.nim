@@ -13,7 +13,7 @@ suite "examples from Readme":
       let message = cast[seq[byte]]("some message")
       await stream.write(message)
       await stream.close()
-      await connection.close()
+      await connection.waitClosed()
 
     proc incoming {.async.} =
       let listener = listen(initTAddress("127.0.0.1:12345"))

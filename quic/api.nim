@@ -13,6 +13,7 @@ export write
 export stop
 export drop
 export close
+export waitClosed
 
 proc listen*(address: TransportAddress): Listener =
   newListener(address)
