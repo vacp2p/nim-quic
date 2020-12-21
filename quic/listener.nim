@@ -11,6 +11,10 @@ type
     incoming: AsyncQueue[Connection]
     connections: Table[ConnectionId, Connection]
 
+proc connectionIds*(listener: Listener): seq[ConnectionId] =
+  for id in listener.connections.keys:
+    result.add(id)
+
 proc hasConnection(listener: Listener, id: ConnectionId): bool =
   listener.connections.hasKey(id)
 
