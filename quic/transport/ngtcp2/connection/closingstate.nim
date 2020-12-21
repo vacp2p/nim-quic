@@ -14,9 +14,16 @@ proc newClosingConnection*(finalDatagram: Datagram, ids: seq[ConnectionId],
   state.init(ids, duration)
   state
 
+proc sendFinalDatagram(state: ClosingConnection) =
+  state.connection.outgoing.putNoWait(state.finalDatagram)
+
 {.push locks: "unknown".}
 
+method enter(state: ClosingConnection, connection: QuicConnection) =
+  procCall enter(DrainingConnection(state), connection)
+  state.sendFinalDatagram()
+
 method receive(state: ClosingConnection, datagram: Datagram) =
-  state.connection.outgoing.putNoWait(state.finalDatagram)
+  state.sendFinalDatagram()
 
 {.pop.}

@@ -32,7 +32,7 @@ proc onTimeout(state: DrainingConnection) =
 
 {.push locks: "unknown".}
 
-method enter(state: DrainingConnection, connection: QuicConnection) =
+method enter*(state: DrainingConnection, connection: QuicConnection) =
   state.connection = connection
   state.timeout = newTimeout(proc = state.onTimeout())
   state.timeout.set(state.duration)
