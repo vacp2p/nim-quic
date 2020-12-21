@@ -13,9 +13,6 @@ proc newClosedConnection*: ClosedConnection =
 
 {.push locks: "unknown".}
 
-method enter(state: ClosedConnection, connection: QuicConnection) =
-  connection.closed.fire()
-
 method ids(state: ClosedConnection): seq[ConnectionId] =
   @[]
 
