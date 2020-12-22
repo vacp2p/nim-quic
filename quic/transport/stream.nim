@@ -5,21 +5,23 @@ type
     id: int64
     state: StreamState
   StreamState* = ref object of RootObj
+    entered: bool
   StreamError* = object of IOError
 
-method enter(state: StreamState, stream: Stream) {.base.} =
+method enter*(state: StreamState, stream: Stream) {.base.} =
+  doAssert not state.entered # states are not reentrant
+  state.entered = true
+
+method leave*(state: StreamState) {.base.} =
   discard
 
-method leave(state: StreamState) {.base.} =
-  discard
-
-method read(state: StreamState): Future[seq[byte]] {.base, async.} =
+method read*(state: StreamState): Future[seq[byte]] {.base, async.} =
   doAssert false # override this method
 
-method write(state: StreamState, bytes: seq[byte]) {.base, async.} =
+method write*(state: StreamState, bytes: seq[byte]) {.base, async.} =
   doAssert false # override this method
 
-method close(state: StreamState) {.base, async.} =
+method close*(state: StreamState) {.base, async.} =
   doAssert false # override this method
 
 proc newStream*(id: int64, state: StreamState): Stream =

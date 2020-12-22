@@ -11,13 +11,15 @@ type
     handshake*: AsyncEvent
     disconnect*: proc(): Future[void] {.gcsafe.}
   ConnectionState* = ref object of RootObj
+    entered: bool
   IdCallback* = proc(id: ConnectionId)
   ConnectionError* = object of IOError
 
 {.push base, locks: "unknown".}
 
 method enter*(state: ConnectionState, connection: QuicConnection) =
-  discard
+  doAssert not state.entered # states are not reentrant
+  state.entered = true
 
 method leave*(state: ConnectionState) =
   discard
