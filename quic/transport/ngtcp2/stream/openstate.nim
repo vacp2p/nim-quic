@@ -23,10 +23,12 @@ proc setUserData(state: OpenStream, userdata: pointer) =
   checkResult ngtcp2_conn_set_stream_user_data(conn, id, userdata)
 
 method enter(state: OpenStream, stream: Stream) =
+  procCall enter(StreamState(state), stream)
   state.stream = stream
   state.setUserData(unsafeAddr state[])
 
 method leave(state: OpenStream) =
+  procCall leave(StreamState(state))
   state.setUserData(nil)
   state.stream = nil
 

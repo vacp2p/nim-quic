@@ -20,9 +20,11 @@ proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
 {.push locks: "unknown".}
 
 method enter(state: OpenConnection, connection: QuicConnection) =
+  procCall enter(ConnectionState(state), connection)
   state.quicConnection = connection
 
 method leave(state: OpenConnection) =
+  procCall leave(ConnectionState(state))
   state.ngtcp2Connection.destroy()
   state.quicConnection = nil
 

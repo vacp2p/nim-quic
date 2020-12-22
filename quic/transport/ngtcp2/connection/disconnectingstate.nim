@@ -25,10 +25,12 @@ method ids*(state: DisconnectingConnection): seq[ConnectionId] =
   state.ids
 
 method enter(state: DisconnectingConnection, connection: QuicConnection) =
+  procCall enter(ConnectionState(state), connection)
   state.connection = connection
   state.disconnect = callDisconnect(connection)
 
 method leave(state: DisconnectingConnection) =
+  procCall leave(ConnectionState(state))
   state.connection = nil
 
 method send(state: DisconnectingConnection) =

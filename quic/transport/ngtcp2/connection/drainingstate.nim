@@ -33,11 +33,13 @@ proc onTimeout(state: DrainingConnection) =
 {.push locks: "unknown".}
 
 method enter*(state: DrainingConnection, connection: QuicConnection) =
+  procCall enter(ConnectionState(state), connection)
   state.connection = connection
   state.timeout = newTimeout(proc = state.onTimeout())
   state.timeout.set(state.duration)
 
 method leave(state: DrainingConnection) =
+  procCall leave(ConnectionState(state))
   state.timeout.stop()
   state.connection = nil
 
