@@ -5,15 +5,15 @@ import pkg/quic
 suite "api":
 
   let address = initTAddress("127.0.0.1:48579")
+  var listener: Listener
 
-  test "listens on a local udp port for incoming quic connections":
-    let listener = listen(address)
+  setup:
+    listener = listen(address)
+
+  teardown:
     await listener.stop()
 
   test "opens and drops connections":
-    let listener = listen(address)
-    defer: await listener.stop()
-
     let dialing = dial(address)
     let accepting = listener.accept()
 
@@ -24,9 +24,6 @@ suite "api":
     await incoming.drop()
 
   test "opens and closes streams":
-    let listener = listen(address)
-    defer: await listener.stop()
-
     let dialing = dial(address)
     let accepting = listener.accept()
 
@@ -43,9 +40,6 @@ suite "api":
     await incoming.drop()
 
   test "waits until peer closes connection":
-    let listener = listen(address)
-    defer: await listener.stop()
-
     let dialing = dial(address)
     let accepting = listener.accept()
 
@@ -56,9 +50,6 @@ suite "api":
     await outgoing.waitClosed()
 
   test "accepts multiple incoming connections":
-    let listener = listen(address)
-    defer: await listener.stop()
-
     let accepting1 = listener.accept()
     let outgoing1 = await dial(address)
     let incoming1 = await accepting1
@@ -76,9 +67,6 @@ suite "api":
 
   test "writes to and reads from streams":
     let message = @[1'u8, 2'u8, 3'u8]
-
-    let listener = listen(address)
-    defer: await listener.stop()
 
     let outgoing = await dial(address)
     defer: await outgoing.drop()

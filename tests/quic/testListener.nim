@@ -7,11 +7,15 @@ import ../helpers/udp
 suite "listener":
 
   let address = initTAddress("127.0.0.1:45346")
+  var listener: Listener
+
+  setup:
+    listener = newListener(address)
+
+  teardown:
+    await listener.stop()
 
   test "creates connections":
-    let listener = newListener(address)
-    defer: await listener.stop()
-
     await exampleQuicDatagram().sendTo(address)
     let connection = await listener.waitForIncoming()
 
@@ -20,9 +24,6 @@ suite "listener":
     await connection.drop()
 
   test "re-uses connection for known connection id":
-    let listener = newListener(address)
-    defer: await listener.stop()
-
     let datagram = exampleQuicDatagram()
     await datagram.sendTo(address)
     await datagram.sendTo(address)
@@ -33,9 +34,6 @@ suite "listener":
     await first.drop()
 
   test "creates new connection for unknown connection id":
-    let listener = newListener(address)
-    defer: await listener.stop()
-
     await exampleQuicDatagram().sendTo(address)
     await exampleQuicDatagram().sendTo(address)
 
@@ -46,9 +44,6 @@ suite "listener":
     await second.drop()
 
   test "forgets connection ids when connection closes":
-    let listener = newListener(address)
-    defer: await listener.stop()
-
     let datagram = exampleQuicDatagram()
     await datagram.sendTo(address)
 
