@@ -1,17 +1,16 @@
-import std/unittest
+import pkg/asynctest
 import pkg/chronos
 import pkg/quic
-import ../helpers/asynctest
 
 suite "api":
 
   let address = initTAddress("127.0.0.1:48579")
 
-  asynctest "listens on a local udp port for incoming quic connections":
+  test "listens on a local udp port for incoming quic connections":
     let listener = listen(address)
     await listener.stop()
 
-  asynctest "opens and drops connections":
+  test "opens and drops connections":
     let listener = listen(address)
     defer: await listener.stop()
 
@@ -24,7 +23,7 @@ suite "api":
     await outgoing.drop()
     await incoming.drop()
 
-  asynctest "opens and closes streams":
+  test "opens and closes streams":
     let listener = listen(address)
     defer: await listener.stop()
 
@@ -43,7 +42,7 @@ suite "api":
     await outgoing.drop()
     await incoming.drop()
 
-  asynctest "waits until peer closes connection":
+  test "waits until peer closes connection":
     let listener = listen(address)
     defer: await listener.stop()
 
@@ -56,7 +55,7 @@ suite "api":
     await incoming.close()
     await outgoing.waitClosed()
 
-  asynctest "accepts multiple incoming connections":
+  test "accepts multiple incoming connections":
     let listener = listen(address)
     defer: await listener.stop()
 
@@ -75,7 +74,7 @@ suite "api":
     await incoming1.drop()
     await incoming2.drop()
 
-  asynctest "writes to and reads from streams":
+  test "writes to and reads from streams":
     let message = @[1'u8, 2'u8, 3'u8]
 
     let listener = listen(address)

@@ -1,15 +1,14 @@
-import std/unittest
+import pkg/asynctest
 import pkg/chronos
 import pkg/quic
 import pkg/quic/listener
-import ../helpers/asynctest
 import ../helpers/udp
 
 suite "listener":
 
   let address = initTAddress("127.0.0.1:45346")
 
-  asynctest "creates connections":
+  test "creates connections":
     let listener = newListener(address)
     defer: await listener.stop()
 
@@ -20,7 +19,7 @@ suite "listener":
 
     await connection.drop()
 
-  asynctest "re-uses connection for known connection id":
+  test "re-uses connection for known connection id":
     let listener = newListener(address)
     defer: await listener.stop()
 
@@ -33,7 +32,7 @@ suite "listener":
       discard await listener.waitForIncoming.wait(100.milliseconds)
     await first.drop()
 
-  asynctest "creates new connection for unknown connection id":
+  test "creates new connection for unknown connection id":
     let listener = newListener(address)
     defer: await listener.stop()
 
@@ -46,7 +45,7 @@ suite "listener":
     await first.drop()
     await second.drop()
 
-  asynctest "forgets connection ids when connection closes":
+  test "forgets connection ids when connection closes":
     let listener = newListener(address)
     defer: await listener.stop()
 

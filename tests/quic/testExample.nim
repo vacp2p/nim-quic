@@ -1,5 +1,5 @@
 import std/unittest
-import ../helpers/asynctest
+import ../helpers/async
 import pkg/quic
 import pkg/chronos
 

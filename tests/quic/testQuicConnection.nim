@@ -1,23 +1,22 @@
-import std/unittest
+import pkg/asynctest
 import pkg/chronos
 import pkg/quic/transport/quicconnection
 import pkg/quic/transport/quicclientserver
 import pkg/quic/udp/datagram
 import pkg/quic/transport/connectionid
-import ../helpers/asynctest
 import ../helpers/simulation
 import ../helpers/addresses
 
 suite "quic connection":
 
-  asynctest "sends outgoing datagrams":
+  test "sends outgoing datagrams":
     let client = newQuicClientConnection(zeroAddress, zeroAddress)
     defer: await client.drop()
     client.send()
     let datagram = await client.outgoing.get()
     check datagram.len > 0
 
-  asynctest "processes received datagrams":
+  test "processes received datagrams":
     let client = newQuicClientConnection(zeroAddress, zeroAddress)
     defer: await client.drop()
 
@@ -35,7 +34,7 @@ suite "quic connection":
     expect IOError:
       discard newQuicServerConnection(zeroAddress, zeroAddress, invalid)
 
-  asynctest "performs handshake":
+  test "performs handshake":
     let (client, server) = await performHandshake()
     defer: await client.drop()
     defer: await server.drop()
@@ -43,19 +42,19 @@ suite "quic connection":
     check client.handshake.isSet()
     check server.handshake.isSet()
 
-  asynctest "performs handshake multiple times":
+  test "performs handshake multiple times":
     for i in 1..100:
       let (client, server) = await performHandshake()
       await client.drop()
       await server.drop()
 
-  asynctest "returns the current connection ids":
+  test "returns the current connection ids":
     let (client, server) = await setupConnection()
     check server.ids.len > 0
     check client.ids.len > 0
     check server.ids != client.ids
 
-  asynctest "notifies about id changes":
+  test "notifies about id changes":
     let (client, server) = await setupConnection()
     defer: await client.drop
     defer: await server.drop
@@ -70,7 +69,7 @@ suite "quic connection":
     await server.handshake.wait()
     check newId != ConnectionId.default
 
-  asynctest "raises ConnectionError when closed":
+  test "raises ConnectionError when closed":
     let connection = newQuicClientConnection(zeroAddress, zeroAddress)
     await connection.drop()
 
@@ -83,7 +82,7 @@ suite "quic connection":
     expect ConnectionError:
       discard await connection.openStream()
 
-  asynctest "has empty list of ids when closed":
+  test "has empty list of ids when closed":
     let connection = newQuicClientConnection(zeroAddress, zeroAddress)
     await connection.drop()
 

@@ -1,24 +1,23 @@
-import std/unittest
 import std/sequtils
+import pkg/asynctest
 import pkg/chronos
 import pkg/quic/transport/stream
 import pkg/quic/transport/quicconnection
 import pkg/quic/transport/ngtcp2
 import pkg/quic/udp/datagram
-import ../helpers/asynctest
 import ../helpers/simulation
 import ../helpers/contains
 
 suite "streams":
 
-  asynctest "opens uni-directional streams":
+  test "opens uni-directional streams":
     let (client, server) = await performHandshake()
     check client.openStream() != client.openStream()
 
     await client.drop()
     await server.drop()
 
-  asynctest "closes stream":
+  test "closes stream":
     let (client, server) = await performHandshake()
     let stream = await client.openStream()
 
@@ -27,7 +26,7 @@ suite "streams":
     await client.drop()
     await server.drop()
 
-  asynctest "writes to stream":
+  test "writes to stream":
     let (client, server) = await performHandshake()
     let stream = await client.openStream()
     let message = @[1'u8, 2'u8, 3'u8]
@@ -38,7 +37,7 @@ suite "streams":
     await client.drop()
     await server.drop()
 
-  asynctest "writes zero-length message":
+  test "writes zero-length message":
     let (client, server) = await performHandshake()
     let stream = await client.openStream()
     await stream.write(@[])
@@ -49,7 +48,7 @@ suite "streams":
     await client.drop()
     await server.drop()
 
-  asynctest "raises when reading from or writing to closed stream":
+  test "raises when reading from or writing to closed stream":
     let (client, server) = await performHandshake()
     let stream = await client.openStream()
     await stream.close()
@@ -63,7 +62,7 @@ suite "streams":
     await client.drop()
     await server.drop()
 
-  asynctest "accepts incoming streams":
+  test "accepts incoming streams":
     let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
 
@@ -77,7 +76,7 @@ suite "streams":
     await client.drop()
     await server.drop()
 
-  asynctest "reads from stream":
+  test "reads from stream":
     let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
     let message = @[1'u8, 2'u8, 3'u8]
@@ -95,7 +94,7 @@ suite "streams":
     await client.drop()
     await server.drop()
 
-  asynctest "writes long messages to stream":
+  test "writes long messages to stream":
     let (client, server) = await performHandshake()
     let simulation = simulateNetwork(client, server)
 
@@ -112,7 +111,7 @@ suite "streams":
     await server.drop()
 
 
-  asynctest "handles packet loss":
+  test "handles packet loss":
     let (client, server) = await performHandshake()
     let simulation = simulateLossyNetwork(client, server)
 
