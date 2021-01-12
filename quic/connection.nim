@@ -14,7 +14,7 @@ type
     udp: DatagramTransport
     quic: QuicConnection
     loop: Future[void]
-    onClose: proc()
+    onClose: proc() {.gcsafe.}
     closed: AsyncEvent
   IncomingConnection = ref object of Connection
   OutgoingConnection = ref object of Connection
@@ -28,7 +28,7 @@ proc `onNewId=`*(connection: Connection, callback: proc(id: ConnectionId)) =
 proc `onRemoveId=`*(connection: Connection, callback: proc(id: ConnectionId)) =
   connection.quic.onRemoveId = callback
 
-proc `onClose=`*(connection: Connection, callback: proc()) =
+proc `onClose=`*(connection: Connection, callback: proc() {.gcsafe.}) =
   connection.onClose = callback
 
 proc startSending(connection: Connection, remote: TransportAddress) =
