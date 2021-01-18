@@ -3,6 +3,7 @@ import pkg/ngtcp2
 import ../../stream
 import ../connection
 import ../errors
+import ./drainingstate
 import ./closedstate
 
 type
@@ -51,7 +52,10 @@ method close(state: OpenStream) {.async.} =
   state.stream.switch(newClosedStream())
 
 proc onClose*(state: OpenStream) =
-  state.stream.switch(newClosedStream())
+  if state.incoming.empty:
+    state.stream.switch(newClosedStream())
+  else:
+    state.stream.switch(newDrainingStream(state.incoming))
 
 proc receive*(state: OpenStream, bytes: seq[byte]) =
   state.incoming.putNoWait(bytes)

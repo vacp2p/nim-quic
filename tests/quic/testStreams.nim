@@ -122,3 +122,18 @@ suite "streams":
       await serverStream.write(@[1'u8, 2'u8, 3'u8])
 
     await simulation.cancelAndWait()
+
+  test "reads last bytes from stream that is closed by peer":
+    let simulation = simulateNetwork(client, server)
+    let message = @[1'u8, 2'u8, 3'u8]
+
+    let clientStream = await client.openStream()
+    await clientStream.write(message)
+    await clientStream.close()
+    await sleepAsync(100.milliseconds) # wait for stream to be closed
+
+    let serverStream = await server.incomingStream()
+    let incoming = await serverStream.read()
+    check incoming == message
+
+    await simulation.cancelAndWait()
