@@ -22,6 +22,12 @@ proc setUserData(state: OpenStream, userdata: pointer) =
   let id = state.stream.id
   checkResult ngtcp2_conn_set_stream_user_data(conn, id, userdata)
 
+proc clearUserData(state: OpenStream) =
+  try:
+    state.setUserData(nil)
+  except Ngtcp2RecoverableError:
+    discard # stream already closed
+
 method enter(state: OpenStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = stream
@@ -29,7 +35,7 @@ method enter(state: OpenStream, stream: Stream) =
 
 method leave(state: OpenStream) =
   procCall leave(StreamState(state))
-  state.setUserData(nil)
+  state.clearUserData()
   state.stream = nil
 
 method read(state: OpenStream): Future[seq[byte]] {.async.} =
@@ -42,6 +48,9 @@ method close(state: OpenStream) {.async.} =
   let conn = state.connection.conn
   let id = state.stream.id
   checkResult ngtcp2_conn_shutdown_stream(conn, id, 0)
+  state.stream.switch(newClosedStream())
+
+proc onClose*(state: OpenStream) =
   state.stream.switch(newClosedStream())
 
 proc receive*(state: OpenStream, bytes: seq[byte]) =
