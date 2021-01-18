@@ -102,3 +102,23 @@ suite "streams":
     check incoming == message
 
     await simulation.cancelAndWait()
+
+  test "raises when stream is closed by peer":
+    let simulation = simulateNetwork(client, server)
+
+    let clientStream = await client.openStream()
+    await clientStream.write(@[1'u8, 2'u8, 3'u8])
+
+    let serverStream = await server.incomingStream()
+    discard await serverStream.read()
+
+    await clientStream.close()
+    await sleepAsync(100.milliseconds) # wait for stream to be closed
+
+    expect IOError:
+      discard await serverStream.read()
+
+    expect IOError:
+      await serverStream.write(@[1'u8, 2'u8, 3'u8])
+
+    await simulation.cancelAndWait()

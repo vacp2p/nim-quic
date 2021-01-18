@@ -19,6 +19,15 @@ proc onStreamOpen(conn: ptr ngtcp2_conn,
   let connection = cast[Ngtcp2Connection](user_data)
   connection.onIncomingStream(newStream(connection, stream_id))
 
+proc onStreamClose(conn: ptr ngtcp2_conn,
+                   stream_id: int64,
+                   app_error_code: uint64,
+                   user_data: pointer,
+                   stream_user_data: pointer): cint {.cdecl.} =
+  let openStream = cast[OpenStream](stream_user_data)
+  if openStream != nil:
+    openStream.onClose()
+
 proc onReceiveStreamData(connection: ptr ngtcp2_conn,
                           flags: uint32,
                           stream_id: int64,
@@ -37,4 +46,5 @@ proc onReceiveStreamData(connection: ptr ngtcp2_conn,
 
 proc installStreamCallbacks*(callbacks: var ngtcp2_conn_callbacks) =
   callbacks.stream_open = onStreamOpen
+  callbacks.stream_close = onStreamClose
   callbacks.recv_stream_data = onReceiveStreamData
