@@ -29,6 +29,12 @@ proc clearUserData(state: OpenStream) =
   except Ngtcp2RecoverableError:
     discard # stream already closed
 
+proc allowMoreIncomingBytes(state: OpenStream, amount: uint64) =
+  let conn = state.connection.conn
+  checkResult conn.ngtcp2_conn_extend_max_stream_offset(state.stream.id, amount)
+  conn.ngtcp2_conn_extend_max_offset(amount)
+  state.connection.send()
+
 method enter(state: OpenStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = stream
@@ -41,6 +47,7 @@ method leave(state: OpenStream) =
 
 method read(state: OpenStream): Future[seq[byte]] {.async.} =
   result = await state.incoming.get()
+  state.allowMoreIncomingBytes(result.len.uint64)
 
 method write(state: OpenStream, bytes: seq[byte]): Future[void] =
   state.connection.send(state.stream.id, bytes)

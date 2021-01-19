@@ -40,9 +40,6 @@ proc onReceiveStreamData(connection: ptr ngtcp2_conn,
   var bytes = newSeqUninitialized[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
   state.receive(bytes)
-  checkResult:
-    connection.ngtcp2_conn_extend_max_stream_offset(stream_id, datalen)
-  connection.ngtcp2_conn_extend_max_offset(datalen)
 
 proc installStreamCallbacks*(callbacks: var ngtcp2_conn_callbacks) =
   callbacks.stream_open = onStreamOpen
