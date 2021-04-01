@@ -1,4 +1,5 @@
 import pkg/chronos
+import ../helpers/errorasdefect
 import ../udp/datagram
 import ./quicconnection
 import ./stream
@@ -9,7 +10,9 @@ proc newConnection(ngtcp2Connection: Ngtcp2Connection): QuicConnection =
   let state = newOpenConnection(ngtcp2Connection)
   let connection = newQuicConnection(state)
   ngtcp2Connection.onSend = proc(datagram: Datagram) =
-    connection.outgoing.putNoWait(datagram)
+    errorAsDefect:
+      connection.outgoing.putNoWait(datagram)
+
   ngtcp2Connection.onIncomingStream = proc(stream: Stream) =
     connection.incoming.putNoWait(stream)
   ngtcp2Connection.onHandshakeDone = proc =

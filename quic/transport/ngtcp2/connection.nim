@@ -1,6 +1,7 @@
 import std/sequtils
 import pkg/chronos
 import pkg/ngtcp2
+import pkg/upraises
 import ../../udp/datagram
 import ../../udp/congestion
 import ../../helpers/openarray
@@ -11,6 +12,7 @@ import ./path
 import ./errors
 import ./timestamp
 import ./pointers
+import ../../helpers/errorasdefect
 
 type
   Ngtcp2Connection* = ref object
@@ -19,7 +21,7 @@ type
     buffer*: array[4096, byte]
     flowing*: AsyncEvent
     timeout*: Timeout
-    onSend*: proc(datagram: Datagram) {.gcsafe.}
+    onSend*: proc(datagram: Datagram) {.gcsafe, upraises:[].}
     onIncomingStream*: proc(stream: Stream)
     onHandshakeDone*: proc()
     onNewId*: proc(id: ConnectionId)
@@ -31,7 +33,7 @@ proc destroy*(connection: Ngtcp2Connection) =
     ngtcp2_conn_del(connection.conn)
     connection.conn = nil
 
-proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe.}
+proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe, upraises:[].}
 
 proc newConnection*(path: Path): Ngtcp2Connection =
   let connection = Ngtcp2Connection()
@@ -129,7 +131,7 @@ proc receive*(connection: Ngtcp2Connection, datagram: openArray[byte],
               ecn = ecnNonCapable) =
   try:
     connection.tryReceive(datagram, ecn)
-  except Ngtcp2RecoverableError:
+  except Ngtcp2Error:
     return
   connection.send()
   connection.flowing.fire()
@@ -139,8 +141,9 @@ proc receive*(connection: Ngtcp2Connection, datagram: Datagram) =
 
 proc handleTimeout(connection: Ngtcp2Connection) =
   if connection.conn != nil:
-    checkResult ngtcp2_conn_handle_expiry(connection.conn, now())
-    connection.send()
+    errorAsDefect:
+      checkResult ngtcp2_conn_handle_expiry(connection.conn, now())
+      connection.send()
 
 proc close*(connection: Ngtcp2Connection): Datagram =
   var packetInfo: ngtcp2_pkt_info

@@ -26,7 +26,7 @@ proc setUserData(state: OpenStream, userdata: pointer) =
 proc clearUserData(state: OpenStream) =
   try:
     state.setUserData(nil)
-  except Ngtcp2RecoverableError:
+  except Ngtcp2Error:
     discard # stream already closed
 
 proc allowMoreIncomingBytes(state: OpenStream, amount: uint64) =

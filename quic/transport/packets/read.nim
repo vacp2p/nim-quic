@@ -1,9 +1,11 @@
 import pkg/stew/endians2
+import pkg/upraises
 import ../../helpers/bits
 import ./varints
 import ./packet
 import ./reader
-include ../../helpers/noerrors
+
+push: {.upraises: [].}
 
 export reader
 
