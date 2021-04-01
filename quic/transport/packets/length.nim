@@ -1,7 +1,9 @@
+import pkg/upraises
 import ./varints
 import ./packet
 import ./packetnumber
-include ../../helpers/noerrors
+
+push: {.upraises: [].}
 
 proc len*(packet: Packet): int =
   case packet.form

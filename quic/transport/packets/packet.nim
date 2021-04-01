@@ -1,7 +1,9 @@
+import pkg/upraises
 import ../connectionid
 import ../version
 import ./packetnumber
-include ../../helpers/noerrors
+
+push: {.upraises: [].}
 
 export connectionid
 export PacketNumber

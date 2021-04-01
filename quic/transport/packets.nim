@@ -1,9 +1,11 @@
+import pkg/upraises
 import ./packets/packet
 import ./packets/length
 import ./packets/read
 import ./packets/write
 import ../udp/datagram
-include ../helpers/noerrors
+
+push: {.upraises: [].}
 
 export packet
 export length

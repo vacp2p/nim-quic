@@ -1,8 +1,9 @@
 import pkg/chronos
+import pkg/upraises
 
 type Timeout* = ref object
   timer: TimerCallback
-  onExpiry: proc () {.gcsafe.}
+  onExpiry: proc () {.gcsafe, upraises:[].}
   expired: AsyncEvent
 
 proc setTimer(timeout: Timeout, moment: Moment) =
@@ -13,7 +14,7 @@ proc setTimer(timeout: Timeout, moment: Moment) =
 
 const skip = proc () = discard
 
-proc newTimeout*(onExpiry: proc {.gcsafe.} = skip): Timeout =
+proc newTimeout*(onExpiry: proc () {.gcsafe, upraises:[].} = skip): Timeout =
   Timeout(onExpiry: onExpiry, expired: newAsyncEvent())
 
 proc stop*(timeout: Timeout) =
