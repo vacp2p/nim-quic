@@ -12,6 +12,16 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: iffy/install-nim@v3
+
+    # workaround for https://github.com/iffy/install-nim/issues/11
+    - name: Workaround SSL error with choosenim
+      run: |
+          curl -fO https://curl.se/ca/cacert.pem
+          install cacert.pem ~/.nimble/bin
+          ls ~/.nimble/bin
+      shell: bash
+      if: runner.os == 'Windows'
+
     - name: Build
       run: nimble install -y
     - name: Test
