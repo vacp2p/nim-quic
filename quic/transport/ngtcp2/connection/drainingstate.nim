@@ -51,7 +51,8 @@ method send(state: DrainingConnection) =
 method receive(state: DrainingConnection, datagram: Datagram) =
   discard
 
-method openStream(state: DrainingConnection): Future[Stream] {.async.} =
+method openStream(state: DrainingConnection,
+                  unidirectional: bool): Future[Stream] {.async.} =
   raise newException(ClosedConnectionError, "connection is closing")
 
 method close(state: DrainingConnection) {.async.} =

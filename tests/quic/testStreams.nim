@@ -21,7 +21,16 @@ suite "streams":
     await server.drop()
 
   test "opens uni-directional streams":
-    check client.openStream() != client.openStream()
+    let stream1, stream2 = await client.openStream(unidirectional = true)
+    check stream1 != stream2
+    check stream1.isUnidirectional
+    check stream2.isUnidirectional
+
+  test "opens bi-directional streams":
+    let stream1, stream2 = await client.openStream()
+    check stream1 != stream2
+    check not stream1.isUnidirectional
+    check not stream2.isUnidirectional
 
   test "closes stream":
     let stream = await client.openStream()

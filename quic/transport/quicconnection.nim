@@ -34,7 +34,8 @@ method send*(state: ConnectionState) =
 method receive*(state: ConnectionState, datagram: Datagram) =
   doAssert false # override this method
 
-method openStream*(state: ConnectionState): Future[Stream] =
+method openStream*(state: ConnectionState,
+                   unidirectional: bool): Future[Stream] =
   doAssert false # override this method
 
 method drop*(state: ConnectionState): Future[void] =
@@ -69,8 +70,9 @@ proc send*(connection: QuicConnection) =
 proc receive*(connection: QuicConnection, datagram: Datagram) =
   connection.state.receive(datagram)
 
-proc openStream*(connection: QuicConnection): Future[Stream] =
-  connection.state.openStream()
+proc openStream*(connection: QuicConnection,
+                 unidirectional = false): Future[Stream] =
+  connection.state.openStream(unidirectional = unidirectional)
 
 proc incomingStream*(connection: QuicConnection): Future[Stream] =
   connection.incoming.get()

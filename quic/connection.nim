@@ -78,9 +78,10 @@ proc startHandshake*(connection: Connection) =
 proc receive*(connection: Connection, datagram: Datagram) =
   connection.quic.receive(datagram)
 
-proc openStream*(connection: Connection): Future[Stream] {.async.} =
+proc openStream*(connection: Connection,
+                 unidirectional = false): Future[Stream] {.async.} =
   await connection.quic.handshake.wait()
-  result = await connection.quic.openStream()
+  result = await connection.quic.openStream(unidirectional = unidirectional)
 
 proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
   result = await connection.quic.incomingStream()

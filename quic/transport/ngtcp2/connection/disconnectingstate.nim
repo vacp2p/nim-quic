@@ -38,7 +38,8 @@ method send(state: DisconnectingConnection) =
 method receive(state: DisconnectingConnection, datagram: Datagram) =
   discard
 
-method openStream(state: DisconnectingConnection): Future[Stream] {.async.} =
+method openStream(state: DisconnectingConnection,
+                  unidirectional: bool): Future[Stream] {.async.} =
   raise newException(ClosedConnectionError, "connection is disconnecting")
 
 method close(state: DisconnectingConnection) {.async.} =

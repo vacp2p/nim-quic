@@ -205,6 +205,12 @@ proc openUniStream*(connection: Ngtcp2Connection): int64 =
 
   checkResult ngtcp2_conn_open_uni_stream(conn, addr result, nil)
 
+proc openBidiStream*(connection: Ngtcp2Connection): int64 =
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
+  checkResult ngtcp2_conn_open_bidi_stream(conn, addr result, nil)
+
 proc setStreamUserData*(connection: Ngtcp2Connection,
                         streamId: int64,
                         userdata: pointer) =

@@ -64,9 +64,10 @@ method receive(state: OpenConnection, datagram: Datagram) =
     (!state.quicConnection).switch(draining)
     asyncSpawn draining.close()
 
-method openStream(state: OpenConnection): Future[Stream] {.async.} =
+method openStream(state: OpenConnection,
+                  unidirectional: bool): Future[Stream] {.async.} =
   await (!state.quicConnection).handshake.wait()
-  result = state.ngtcp2Connection.openStream()
+  result = state.ngtcp2Connection.openStream(unidirectional = unidirectional)
 
 method close(state: OpenConnection) {.async.} =
   let finalDatagram = state.ngtcp2Connection.close()

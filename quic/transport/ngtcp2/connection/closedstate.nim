@@ -21,7 +21,8 @@ method send(state: ClosedConnection) =
 method receive(state: ClosedConnection, datagram: Datagram) =
   raise newException(ClosedConnectionError, "connection is closed")
 
-method openStream(state: ClosedConnection): Future[Stream] {.async.} =
+method openStream(state: ClosedConnection,
+                  unidirectional: bool): Future[Stream] {.async.} =
   raise newException(ClosedConnectionError, "connection is closed")
 
 method close(state: ClosedConnection) {.async.} =

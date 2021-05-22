@@ -1,4 +1,5 @@
 import ../basics
+import ../helpers/bits
 
 type
   Stream* = ref object
@@ -45,3 +46,6 @@ proc write*(stream: Stream, bytes: seq[byte]) {.async.} =
 
 proc close*(stream: Stream) {.async.} =
   await stream.state.close()
+
+proc isUnidirectional*(stream: Stream): bool =
+  stream.id.byte.bits[6].bool

@@ -120,7 +120,7 @@ implementation. They are bound to change over time.
   - [x] Open connection
   - [x] Complete handshake
   - [x] Create uni-directional stream
-  - [ ] Create bi-directional stream
+  - [x] Create bi-directional stream
   - [x] Send data over stream
   - [x] Close stream
   - [x] Close connection
