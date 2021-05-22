@@ -7,8 +7,12 @@ import ./connection
 proc newStream(connection: Ngtcp2Connection, id: int64): Stream =
   newStream(id, newOpenStream(connection))
 
-proc openStream*(connection: Ngtcp2Connection): Stream =
-  let id = connection.openUniStream()
+proc openStream*(connection: Ngtcp2Connection, unidirectional: bool): Stream =
+  var id: int64
+  if unidirectional:
+    id = connection.openUniStream()
+  else:
+    id = connection.openBidiStream()
   newStream(connection, id)
 
 proc onStreamOpen(conn: ptr ngtcp2_conn,
