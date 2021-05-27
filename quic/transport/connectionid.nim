@@ -1,6 +1,6 @@
 import std/strutils
 import std/hashes
-import pkg/sysrandom
+import pkg/nimcrypto
 
 type ConnectionId* = distinct seq[byte]
 
@@ -14,4 +14,6 @@ proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
 
 proc randomConnectionId*(len = DefaultConnectionIdLength): ConnectionId =
-  ConnectionId(@(getRandomBytes(len)))
+  var bytes = newSeq[byte](len)
+  doAssert len == randomBytes(addr bytes[0], len)
+  ConnectionId(bytes)
