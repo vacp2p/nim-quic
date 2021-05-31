@@ -1,5 +1,6 @@
 import pkg/chronos
 import pkg/ngtcp2
+import pkg/questionable
 import ../../helpers/openarray
 import ../connectionid
 import ./ids
@@ -49,9 +50,10 @@ proc newNgtcp2Client*(local, remote: TransportAddress): Ngtcp2Connection =
   let path = newPath(local, remote)
 
   result = newConnection(path)
+  var conn: ptr ngtcp2_conn
 
   doAssert 0 == ngtcp2_conn_client_new(
-    addr result.conn,
+    addr conn,
     unsafeAddr destination,
     unsafeAddr source,
     path.toPathPtr,
@@ -61,3 +63,5 @@ proc newNgtcp2Client*(local, remote: TransportAddress): Ngtcp2Connection =
     nil,
     addr result[]
   )
+
+  result.conn = conn.some

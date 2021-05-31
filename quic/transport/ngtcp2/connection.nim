@@ -2,6 +2,7 @@ import std/sequtils
 import pkg/chronos
 import pkg/ngtcp2
 import pkg/upraises
+import pkg/questionable
 import ../../udp/datagram
 import ../../udp/congestion
 import ../../helpers/openarray
@@ -16,7 +17,7 @@ import ../../helpers/errorasdefect
 
 type
   Ngtcp2Connection* = ref object
-    conn*: ptr ngtcp2_conn
+    conn*: ?ptr ngtcp2_conn
     path*: Path
     buffer*: array[4096, byte]
     flowing*: AsyncEvent
@@ -24,14 +25,14 @@ type
     onSend*: proc(datagram: Datagram) {.gcsafe, upraises:[].}
     onIncomingStream*: proc(stream: Stream)
     onHandshakeDone*: proc()
-    onNewId*: proc(id: ConnectionId)
-    onRemoveId*: proc(id: ConnectionId)
+    onNewId*: ?proc(id: ConnectionId)
+    onRemoveId*: ?proc(id: ConnectionId)
 
 proc destroy*(connection: Ngtcp2Connection) =
-  if connection.conn != nil:
+  if conn =? connection.conn:
     connection.timeout.stop()
-    ngtcp2_conn_del(connection.conn)
-    connection.conn = nil
+    ngtcp2_conn_del(conn)
+    connection.conn = none(ptr ngtcp2_conn)
 
 proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe, upraises:[].}
 
@@ -44,13 +45,13 @@ proc newConnection*(path: Path): Ngtcp2Connection =
   connection
 
 proc ids*(connection: Ngtcp2Connection): seq[ConnectionId] =
-  let amount = ngtcp2_conn_get_num_scid(connection.conn)
+  let amount = ngtcp2_conn_get_num_scid(!connection.conn)
   var scids = newSeq[ngtcp2_cid](amount)
-  discard ngtcp2_conn_get_scid(connection.conn, scids.toPtr)
+  discard ngtcp2_conn_get_scid(!connection.conn, scids.toPtr)
   scids.mapIt(ConnectionId(it.data[0..<it.datalen]))
 
 proc updateTimeout*(connection: Ngtcp2Connection) =
-  let expiry = ngtcp2_conn_get_expiry(connection.conn)
+  let expiry = ngtcp2_conn_get_expiry(!connection.conn)
   if expiry != uint64.high:
     connection.timeout.set(Moment.init(expiry.int64, 1.nanoseconds))
   else:
@@ -63,7 +64,7 @@ proc trySend(connection: Ngtcp2Connection,
              written: ptr int = nil): Datagram =
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream(
-    connection.conn,
+    !connection.conn,
     connection.path.toPathPtr,
     addr packetInfo,
     addr connection.buffer[0],
@@ -119,7 +120,7 @@ proc tryReceive(connection: Ngtcp2Connection, datagram: openArray[byte],
   var packetInfo: ngtcp2_pkt_info
   packetInfo.ecn = ecn.uint32
   checkResult ngtcp2_conn_read_pkt(
-    connection.conn,
+    !connection.conn,
     connection.path.toPathPtr,
     unsafeAddr packetInfo,
     datagram.toUnsafePtr,
@@ -140,15 +141,17 @@ proc receive*(connection: Ngtcp2Connection, datagram: Datagram) =
   connection.receive(datagram.data, datagram.ecn)
 
 proc handleTimeout(connection: Ngtcp2Connection) =
-  if connection.conn != nil:
-    errorAsDefect:
-      checkResult ngtcp2_conn_handle_expiry(connection.conn, now())
-      connection.send()
+  without conn =? connection.conn:
+    return
+
+  errorAsDefect:
+    checkResult ngtcp2_conn_handle_expiry(conn, now())
+    connection.send()
 
 proc close*(connection: Ngtcp2Connection): Datagram =
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_connection_close(
-    connection.conn,
+    !connection.conn,
     connection.path.toPathPtr,
     addr packetInfo,
     addr connection.buffer[0],
@@ -162,7 +165,7 @@ proc close*(connection: Ngtcp2Connection): Datagram =
   Datagram(data: data, ecn: ecn)
 
 proc closingDuration*(connection: Ngtcp2Connection): Duration =
-  3 * ngtcp2_conn_get_pto(connection.conn).int64.nanoseconds
+  3 * ngtcp2_conn_get_pto(!connection.conn).int64.nanoseconds
 
 proc isDraining*(connection: Ngtcp2Connection): bool =
-  ngtcp2_conn_is_in_draining_period(connection.conn).bool
+  ngtcp2_conn_is_in_draining_period(!connection.conn).bool

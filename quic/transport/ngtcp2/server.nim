@@ -1,5 +1,6 @@
 import pkg/chronos
 import pkg/ngtcp2
+import pkg/questionable
 import ../../helpers/openarray
 import ../packets
 import ./encryption
@@ -53,9 +54,10 @@ proc newNgtcp2Server*(local, remote: TransportAddress,
   let path = newPath(local, remote)
 
   result = newConnection(path)
+  var conn: ptr ngtcp2_conn
 
   doAssert 0 == ngtcp2_conn_server_new(
-    addr result.conn,
+    addr conn,
     unsafeAddr source,
     unsafeAddr id,
     path.toPathPtr,
@@ -65,6 +67,8 @@ proc newNgtcp2Server*(local, remote: TransportAddress,
     nil,
     addr result[]
   )
+
+  result.conn = some conn
 
 proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =
   let info = parseDatagram(datagram)

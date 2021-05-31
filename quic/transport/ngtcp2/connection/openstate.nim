@@ -1,4 +1,5 @@
 import pkg/chronos
+import pkg/questionable
 import ../../../udp/datagram
 import ../../quicconnection
 import ../../connectionid
@@ -11,7 +12,7 @@ import ./disconnectingstate
 
 type
   OpenConnection* = ref object of ConnectionState
-    quicConnection: QuicConnection
+    quicConnection: ?QuicConnection
     ngtcp2Connection: Ngtcp2Connection
 
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
@@ -21,12 +22,12 @@ proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
 
 method enter(state: OpenConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)
-  state.quicConnection = connection
+  state.quicConnection = some connection
 
 method leave(state: OpenConnection) =
   procCall leave(ConnectionState(state))
   state.ngtcp2Connection.destroy()
-  state.quicConnection = nil
+  state.quicConnection = QuicConnection.none
 
 method ids(state: OpenConnection): seq[ConnectionId] =
   state.ngtcp2Connection.ids
@@ -40,11 +41,11 @@ method receive(state: OpenConnection, datagram: Datagram) =
     let duration = state.ngtcp2Connection.closingDuration()
     let ids = state.ids
     let draining = newDrainingConnection(ids, duration)
-    state.quicConnection.switch(draining)
+    (!state.quicConnection).switch(draining)
     asyncSpawn draining.close()
 
 method openStream(state: OpenConnection): Future[Stream] {.async.} =
-  await state.quicConnection.handshake.wait()
+  await (!state.quicConnection).handshake.wait()
   result = state.ngtcp2Connection.openStream()
 
 method close(state: OpenConnection) {.async.} =
@@ -52,18 +53,18 @@ method close(state: OpenConnection) {.async.} =
   let duration = state.ngtcp2Connection.closingDuration()
   let ids = state.ids
   let closing = newClosingConnection(finalDatagram, ids, duration)
-  state.quicConnection.switch(closing)
+  (!state.quicConnection).switch(closing)
   await closing.close()
 
 method drop(state: OpenConnection) {.async.} =
   let disconnecting = newDisconnectingConnection(state.ids)
-  state.quicConnection.switch(disconnecting)
+  (!state.quicConnection).switch(disconnecting)
   await disconnecting.drop()
 
 method `onNewId=`*(state: OpenConnection, callback: IdCallback) =
-  state.ngtcp2Connection.onNewId = callback
+  state.ngtcp2Connection.onNewId = some callback
 
 method `onRemoveId=`*(state: OpenConnection, callback: IdCallback) =
-  state.ngtcp2Connection.onRemoveId = callback
+  state.ngtcp2Connection.onRemoveId = some callback
 
 {.pop.}

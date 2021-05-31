@@ -1,4 +1,5 @@
 import pkg/chronos
+import pkg/questionable
 import ../../../udp/datagram
 import ../../quicconnection
 import ../../connectionid
@@ -9,7 +10,7 @@ import ./closedstate
 
 type
   DrainingConnection* = ref object of ConnectionState
-    connection*: QuicConnection
+    connection*: ?QuicConnection
     ids: seq[ConnectionId]
     timeout: Timeout
     duration: Duration
@@ -34,14 +35,14 @@ proc onTimeout(state: DrainingConnection) =
 
 method enter*(state: DrainingConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)
-  state.connection = connection
+  state.connection = some connection
   state.timeout = newTimeout(proc = state.onTimeout())
   state.timeout.set(state.duration)
 
 method leave(state: DrainingConnection) =
   procCall leave(ConnectionState(state))
   state.timeout.stop()
-  state.connection = nil
+  state.connection = QuicConnection.none
 
 method ids(state: DrainingConnection): seq[ConnectionId] =
   state.ids
@@ -58,12 +59,12 @@ method openStream(state: DrainingConnection): Future[Stream] {.async.} =
 method close(state: DrainingConnection) {.async.} =
   await state.done.wait()
   let disconnecting = newDisconnectingConnection(state.ids)
-  state.connection.switch(disconnecting)
+  (!state.connection).switch(disconnecting)
   await disconnecting.close()
 
 method drop(state: DrainingConnection) {.async.} =
   let disconnecting = newDisconnectingConnection(state.ids)
-  state.connection.switch(disconnecting)
+  (!state.connection).switch(disconnecting)
   await disconnecting.drop()
 
 {.pop.}

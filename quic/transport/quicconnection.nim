@@ -1,4 +1,5 @@
 import pkg/chronos
+import pkg/questionable
 import ../udp/datagram
 import ./connectionid
 import ./stream
@@ -9,7 +10,7 @@ type
     outgoing*: AsyncQueue[Datagram]
     incoming*: AsyncQueue[Stream]
     handshake*: AsyncEvent
-    disconnect*: proc(): Future[void] {.gcsafe.}
+    disconnect*: ?proc(): Future[void] {.gcsafe.}
   ConnectionState* = ref object of RootObj
     entered: bool
   IdCallback* = proc(id: ConnectionId)

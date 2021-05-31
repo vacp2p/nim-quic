@@ -1,4 +1,5 @@
 import pkg/chronos
+import pkg/questionable
 import ./transport/connectionid
 import ./transport/stream
 import ./transport/ngtcp2
@@ -14,7 +15,7 @@ type
     udp: DatagramTransport
     quic: QuicConnection
     loop: Future[void]
-    onClose: proc() {.gcsafe.}
+    onClose: ?proc() {.gcsafe.}
     closed: AsyncEvent
   IncomingConnection = ref object of Connection
   OutgoingConnection = ref object of Connection
@@ -29,7 +30,7 @@ proc `onRemoveId=`*(connection: Connection, callback: proc(id: ConnectionId)) =
   connection.quic.onRemoveId = callback
 
 proc `onClose=`*(connection: Connection, callback: proc() {.gcsafe.}) =
-  connection.onClose = callback
+  connection.onClose = some callback
 
 proc startSending(connection: Connection, remote: TransportAddress) =
   proc send {.async.} =
@@ -49,8 +50,8 @@ method closeUdp(connection: OutgoingConnection) {.async.} =
 proc disconnect(connection: Connection) {.async.} =
   await connection.stopSending()
   await connection.closeUdp()
-  if connection.onClose != nil:
-    connection.onClose()
+  if onClose =? connection.onClose:
+    onClose()
   connection.closed.fire()
 
 proc newIncomingConnection*(udp: DatagramTransport,
@@ -59,7 +60,7 @@ proc newIncomingConnection*(udp: DatagramTransport,
   let quic = newQuicServerConnection(udp.localAddress, remote, datagram)
   let closed = newAsyncEvent()
   let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
-  quic.disconnect = proc {.async.} =
+  quic.disconnect = some proc {.async.} =
     await connection.disconnect()
   connection.startSending(remote)
   connection
@@ -69,7 +70,7 @@ proc newOutgoingConnection*(udp: DatagramTransport,
   let quic = newQuicClientConnection(udp.localAddress, remote)
   let closed = newAsyncEvent()
   let connection = OutgoingConnection(udp: udp, quic: quic, closed: closed)
-  quic.disconnect = proc {.async.} =
+  quic.disconnect = some proc {.async.} =
     await connection.disconnect()
   connection.startSending(remote)
   connection
