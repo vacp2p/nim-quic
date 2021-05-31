@@ -11,6 +11,3 @@ requires "nimcrypto >= 0.5.4 & < 0.6.0"
 requires "ngtcp2 >= 0.32.0 & < 0.33.0"
 requires "upraises >= 0.1.0 & < 0.2.0"
 requires "asynctest >= 0.2.1 & < 0.3.0"
-
-task lint, "format source files according to the official style guide":
-  exec "./lint.nims"
