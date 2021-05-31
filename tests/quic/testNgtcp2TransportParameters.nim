@@ -1,5 +1,6 @@
 import std/unittest
 import pkg/ngtcp2
+import pkg/questionable
 import pkg/quic/transport/ngtcp2/connection
 import pkg/quic/transport/ngtcp2/client
 import pkg/quic/transport/ngtcp2/params
@@ -30,4 +31,5 @@ suite "ngtcp2 transport parameters":
     settings.transport_params.active_connection_id_limit = 0
 
     expect IOError:
-      connection.conn.setRemoteTransportParameters(settings.transport_params)
+      let conn = !connection.conn
+      conn.setRemoteTransportParameters(settings.transport_params)

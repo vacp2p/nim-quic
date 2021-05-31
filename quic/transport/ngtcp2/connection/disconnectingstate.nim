@@ -1,4 +1,5 @@
 import pkg/chronos
+import pkg/questionable
 import ../../../udp/datagram
 import ../../quicconnection
 import ../../connectionid
@@ -7,7 +8,7 @@ import ./closedstate
 
 type
   DisconnectingConnection* = ref object of ConnectionState
-    connection: QuicConnection
+    connection: ?QuicConnection
     disconnect: Future[void]
     ids: seq[ConnectionId]
 
@@ -16,8 +17,8 @@ proc newDisconnectingConnection*(ids: seq[ConnectionId]):
   DisconnectingConnection(ids: ids)
 
 proc callDisconnect(connection: QuicConnection) {.async.} =
-  if connection.disconnect != nil:
-    await connection.disconnect()
+  if disconnect =? connection.disconnect:
+    await disconnect()
 
 {.push locks: "unknown".}
 
@@ -26,12 +27,12 @@ method ids*(state: DisconnectingConnection): seq[ConnectionId] =
 
 method enter(state: DisconnectingConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)
-  state.connection = connection
+  state.connection = some connection
   state.disconnect = callDisconnect(connection)
 
 method leave(state: DisconnectingConnection) =
   procCall leave(ConnectionState(state))
-  state.connection = nil
+  state.connection = QuicConnection.none
 
 method send(state: DisconnectingConnection) =
   raise newException(ClosedConnectionError, "connection is disconnecting")
@@ -44,10 +45,10 @@ method openStream(state: DisconnectingConnection): Future[Stream] {.async.} =
 
 method close(state: DisconnectingConnection) {.async.} =
   await state.disconnect
-  state.connection.switch(newClosedConnection())
+  (!state.connection).switch(newClosedConnection())
 
 method drop(state: DisconnectingConnection) {.async.} =
   await state.disconnect
-  state.connection.switch(newClosedConnection())
+  (!state.connection).switch(newClosedConnection())
 
 {.pop.}

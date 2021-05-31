@@ -1,4 +1,5 @@
 import pkg/ngtcp2
+import pkg/questionable
 import ../../helpers/openarray
 import ../connectionid
 import ./connection
@@ -24,15 +25,15 @@ proc getNewConnectionId(conn: ptr ngtcp2_conn,
   zeroMem(token, NGTCP2_STATELESS_RESET_TOKENLEN)
 
   let connection = cast[Ngtcp2Connection](userData)
-  if connection.onNewId != nil:
-    connection.onNewId(newId)
+  if onNewId =? connection.onNewId:
+    onNewId(newId)
 
 proc removeConnectionId(conn: ptr ngtcp2_conn,
                         id: ptr ngtcp2_cid,
                         userData: pointer): cint {.cdecl.} =
   let connection = cast[Ngtcp2Connection](userData)
-  if connection.onRemoveId != nil:
-    connection.onRemoveId(id.toConnectionId)
+  if onRemoveId =? connection.onRemoveId:
+    onRemoveId(id.toConnectionId)
 
 proc installConnectionIdCallback*(callbacks: var ngtcp2_conn_callbacks) =
   callbacks.get_new_connection_id = getNewConnectionId
