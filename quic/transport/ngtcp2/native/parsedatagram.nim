@@ -1,12 +1,8 @@
 import pkg/ngtcp2
 import ../../../helpers/openarray
+import ../../packetinfo
 import ../../connectionid
 import ./errors
-
-type
-  PacketInfo = object
-    source*, destination*: ConnectionId
-    version*: uint32
 
 proc toConnectionId(p: ptr byte, length: uint): ConnectionId =
   var bytes = newSeqUninitialized[byte](length)

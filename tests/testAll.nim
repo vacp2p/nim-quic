@@ -7,7 +7,7 @@ import ./quic/testVarInts
 import ./quic/testPacketNumber
 import ./quic/testConnectionId
 import ./quic/testNgtcp2TransportParameters
-import ./quic/testNgtcp2PacketInfo
+import ./quic/testParseDatagram
 import ./quic/testStreams
 import ./quic/testTimeout
 import ./quic/testQuicConnection

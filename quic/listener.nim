@@ -2,7 +2,7 @@ import std/tables
 import pkg/chronos
 import ./connection
 import ./transport/connectionid
-import ./transport/ngtcp2/native
+import ./transport/parsedatagram
 import ./udp/datagram
 
 type
