@@ -13,7 +13,7 @@ import ./path
 import ./streams
 import ./timestamp
 import ./handshake
-import ./packetinfo
+import ./parsedatagram
 
 proc onReceiveClientInitial(connection: ptr ngtcp2_conn,
                             dcid: ptr ngtcp2_cid,

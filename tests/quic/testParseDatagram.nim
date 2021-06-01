@@ -1,8 +1,8 @@
 import std/unittest
 import pkg/quic/transport/packets
-import pkg/quic/transport/ngtcp2/native/packetinfo
+import pkg/quic/transport/parsedatagram
 
-suite "ngtcp2 packet info":
+suite "parse ngtcp2 packet info":
 
   var packet: Packet
   var datagram: array[4096, byte]

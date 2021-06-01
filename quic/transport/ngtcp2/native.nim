@@ -3,7 +3,7 @@ import ./native/server
 import ./native/client
 import ./native/handshake
 import ./native/streams
-import ./native/packetinfo
+import ./native/parsedatagram
 
 export parseDatagram
 export Ngtcp2Connection
