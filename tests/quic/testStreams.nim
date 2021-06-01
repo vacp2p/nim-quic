@@ -3,7 +3,7 @@ import pkg/asynctest
 import pkg/chronos
 import pkg/quic/transport/stream
 import pkg/quic/transport/quicconnection
-import pkg/quic/transport/ngtcp2
+import pkg/quic/transport/ngtcp2/native
 import pkg/quic/udp/datagram
 import ../helpers/simulation
 import ../helpers/contains

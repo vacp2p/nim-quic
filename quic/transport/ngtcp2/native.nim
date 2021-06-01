@@ -1,9 +1,9 @@
-import ./ngtcp2/connection
-import ./ngtcp2/server
-import ./ngtcp2/client
-import ./ngtcp2/handshake
-import ./ngtcp2/streams
-import ./ngtcp2/packetinfo
+import ./native/connection
+import ./native/server
+import ./native/client
+import ./native/handshake
+import ./native/streams
+import ./native/packetinfo
 
 export parseDatagram
 export Ngtcp2Connection

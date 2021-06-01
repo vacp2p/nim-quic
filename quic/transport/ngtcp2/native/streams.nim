@@ -1,10 +1,10 @@
 import pkg/ngtcp2
 import pkg/questionable
-import ../../helpers/openarray
-import ../stream
+import ../../../helpers/openarray
+import ../../stream
+import ../stream/openstate
 import ./connection
 import ./errors
-import ./stream/openstate
 
 proc newStream(connection: Ngtcp2Connection, id: int64): Stream =
   newStream(id, newOpenStream(connection))

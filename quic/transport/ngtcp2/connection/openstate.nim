@@ -4,8 +4,8 @@ import ../../../udp/datagram
 import ../../quicconnection
 import ../../connectionid
 import ../../stream
-import ../connection
-import ../streams
+import ../native/connection
+import ../native/streams
 import ./closingstate
 import ./drainingstate
 import ./disconnectingstate

@@ -2,8 +2,8 @@ import pkg/chronos
 import pkg/ngtcp2
 import pkg/questionable
 import ../../stream
-import ../connection
-import ../errors
+import ../native/connection
+import ../native/errors
 import ./drainingstate
 import ./closedstate
 
