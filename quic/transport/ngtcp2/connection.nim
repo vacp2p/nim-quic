@@ -6,6 +6,7 @@ import pkg/questionable
 import ../../udp/datagram
 import ../../udp/congestion
 import ../../helpers/openarray
+import ../../helpers/errorasdefect
 import ../stream
 import ../timeout
 import ../connectionid
@@ -13,7 +14,6 @@ import ./path
 import ./errors
 import ./timestamp
 import ./pointers
-import ../../helpers/errorasdefect
 
 type
   Ngtcp2Connection* = ref object
