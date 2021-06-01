@@ -3,7 +3,7 @@ import ../helpers/errorasdefect
 import ../udp/datagram
 import ./quicconnection
 import ./stream
-import ./ngtcp2
+import ./ngtcp2/native
 import ./ngtcp2/connection/openstate
 
 proc newConnection(ngtcp2Connection: Ngtcp2Connection): QuicConnection =

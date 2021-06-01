@@ -1,6 +1,6 @@
 import pkg/ngtcp2
-import ../../helpers/openarray
-import ../connectionid
+import ../../../helpers/openarray
+import ../../connectionid
 import ./errors
 
 type

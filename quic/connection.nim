@@ -2,7 +2,6 @@ import pkg/chronos
 import pkg/questionable
 import ./transport/connectionid
 import ./transport/stream
-import ./transport/ngtcp2
 import ./transport/quicconnection
 import ./transport/quicclientserver
 import ./udp/datagram
