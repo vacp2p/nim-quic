@@ -7,6 +7,8 @@ import ../../connectionid
 import ../../stream
 import ../native/connection
 import ../native/streams
+import ../native/client
+import ../native/server
 import ./closingstate
 import ./drainingstate
 import ./disconnectingstate
@@ -18,6 +20,13 @@ type
 
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
   OpenConnection(ngtcp2Connection: ngtcp2Connection)
+
+proc openClientConnection*(local, remote: TransportAddress): OpenConnection =
+  newOpenConnection(newNgtcp2Client(local, remote))
+
+proc openServerConnection*(local, remote: TransportAddress,
+                           datagram: Datagram): OpenConnection =
+  newOpenConnection(newNgtcp2Server(local, remote, datagram.data))
 
 {.push locks: "unknown".}
 
