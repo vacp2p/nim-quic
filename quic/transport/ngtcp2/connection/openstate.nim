@@ -23,9 +23,17 @@ proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
 method enter(state: OpenConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)
   state.quicConnection = some connection
+  state.ngtcp2Connection.onNewId = some proc(id: ConnectionId) =
+    if not connection.onNewId.isNil:
+      connection.onNewId(id)
+  state.ngtcp2Connection.onRemoveId = some proc(id: ConnectionId) =
+    if not connection.onRemoveId.isNil:
+      connection.onRemoveId(id)
 
 method leave(state: OpenConnection) =
   procCall leave(ConnectionState(state))
+  state.ngtcp2Connection.onNewId = IdCallback.none
+  state.ngtcp2Connection.onRemoveId = IdCallback.none
   state.ngtcp2Connection.destroy()
   state.quicConnection = QuicConnection.none
 
@@ -60,11 +68,5 @@ method drop(state: OpenConnection) {.async.} =
   let disconnecting = newDisconnectingConnection(state.ids)
   (!state.quicConnection).switch(disconnecting)
   await disconnecting.drop()
-
-method `onNewId=`*(state: OpenConnection, callback: IdCallback) =
-  state.ngtcp2Connection.onNewId = some callback
-
-method `onRemoveId=`*(state: OpenConnection, callback: IdCallback) =
-  state.ngtcp2Connection.onRemoveId = some callback
 
 {.pop.}
