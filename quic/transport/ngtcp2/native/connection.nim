@@ -33,6 +33,11 @@ proc destroy*(connection: Ngtcp2Connection) =
     connection.timeout.stop()
     ngtcp2_conn_del(conn)
     connection.conn = none(ptr ngtcp2_conn)
+    connection.onSend = nil
+    connection.onIncomingStream = nil
+    connection.onHandshakeDone = nil
+    connection.onNewId = none proc(id: ConnectionId)
+    connection.onRemoveId = none proc(id: ConnectionId)
 
 proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe, upraises:[].}
 

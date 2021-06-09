@@ -1,6 +1,7 @@
 import pkg/chronos
 import pkg/questionable
 import ../../../udp/datagram
+import ../../../helpers/errorasdefect
 import ../../quicconnection
 import ../../connectionid
 import ../../stream
@@ -24,16 +25,21 @@ method enter(state: OpenConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)
   state.quicConnection = some connection
   state.ngtcp2Connection.onNewId = some proc(id: ConnectionId) =
-    if not connection.onNewId.isNil:
-      connection.onNewId(id)
+    if onNewId =? connection.onNewId.option:
+      onNewId(id)
   state.ngtcp2Connection.onRemoveId = some proc(id: ConnectionId) =
-    if not connection.onRemoveId.isNil:
-      connection.onRemoveId(id)
+    if onRemoveId =? connection.onRemoveId.option:
+      onRemoveId(id)
+  state.ngtcp2Connection.onSend = proc(datagram: Datagram) =
+    errorAsDefect:
+      connection.outgoing.putNoWait(datagram)
+  state.ngtcp2Connection.onIncomingStream = proc(stream: Stream) =
+    connection.incoming.putNoWait(stream)
+  state.ngtcp2Connection.onHandshakeDone = proc =
+    connection.handshake.fire()
 
 method leave(state: OpenConnection) =
   procCall leave(ConnectionState(state))
-  state.ngtcp2Connection.onNewId = IdCallback.none
-  state.ngtcp2Connection.onRemoveId = IdCallback.none
   state.ngtcp2Connection.destroy()
   state.quicConnection = QuicConnection.none
 
