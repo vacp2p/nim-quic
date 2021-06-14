@@ -174,3 +174,26 @@ proc closingDuration*(connection: Ngtcp2Connection): Duration =
 
 proc isDraining*(connection: Ngtcp2Connection): bool =
   ngtcp2_conn_is_in_draining_period(!connection.conn).bool
+
+proc isHandshakeCompleted*(connection: Ngtcp2Connection): bool =
+  ngtcp2_conn_get_handshake_completed(!connection.conn).bool
+
+proc openUniStream*(connection: Ngtcp2Connection): int64 =
+  checkResult ngtcp2_conn_open_uni_stream(!connection.conn, addr result, nil)
+
+proc setStreamUserData*(connection: Ngtcp2Connection,
+                        streamId: int64,
+                        userdata: pointer) =
+  let conn = !connection.conn
+  checkResult ngtcp2_conn_set_stream_user_data(conn, streamId, userdata)
+
+proc extendStreamOffset*(connection: Ngtcp2Connection,
+                         streamId: int64,
+                         amount: uint64) =
+  let conn = !connection.conn
+  checkResult conn.ngtcp2_conn_extend_max_stream_offset(streamId, amount)
+  conn.ngtcp2_conn_extend_max_offset(amount)
+
+proc shutdownStream*(connection: Ngtcp2Connection, streamId: int64) =
+  let conn = !connection.conn
+  checkResult ngtcp2_conn_shutdown_stream(conn, streamId, 0)

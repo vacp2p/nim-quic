@@ -1,5 +1,4 @@
 import pkg/chronos
-import pkg/ngtcp2
 import pkg/questionable
 import ../../stream
 import ../native/connection
@@ -20,9 +19,8 @@ proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
   )
 
 proc setUserData(state: OpenStream, userdata: pointer) =
-  let conn = !state.connection.conn
   let id = (!state.stream).id
-  checkResult ngtcp2_conn_set_stream_user_data(conn, id, userdata)
+  state.connection.setStreamUserData(id, userdata)
 
 proc clearUserData(state: OpenStream) =
   try:
@@ -31,10 +29,8 @@ proc clearUserData(state: OpenStream) =
     discard # stream already closed
 
 proc allowMoreIncomingBytes(state: OpenStream, amount: uint64) =
-  let conn = !state.connection.conn
   let stream = !state.stream
-  checkResult conn.ngtcp2_conn_extend_max_stream_offset(stream.id, amount)
-  conn.ngtcp2_conn_extend_max_offset(amount)
+  state.connection.extendStreamOffset(stream.id, amount)
   state.connection.send()
 
 method enter(state: OpenStream, stream: Stream) =
@@ -55,9 +51,8 @@ method write(state: OpenStream, bytes: seq[byte]): Future[void] =
   state.connection.send((!state.stream).id, bytes)
 
 method close(state: OpenStream) {.async.} =
-  let conn = !state.connection.conn
   let stream = (!state.stream)
-  checkResult ngtcp2_conn_shutdown_stream(conn, stream.id, 0)
+  state.connection.shutdownStream(stream.id)
   stream.switch(newClosedStream())
 
 proc onClose*(state: OpenStream) =
