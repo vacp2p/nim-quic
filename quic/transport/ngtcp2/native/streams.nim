@@ -1,17 +1,14 @@
 import pkg/ngtcp2
-import pkg/questionable
 import ../../../helpers/openarray
 import ../../stream
 import ../stream/openstate
 import ./connection
-import ./errors
 
 proc newStream(connection: Ngtcp2Connection, id: int64): Stream =
   newStream(id, newOpenStream(connection))
 
 proc openStream*(connection: Ngtcp2Connection): Stream =
-  var id: int64
-  checkResult ngtcp2_conn_open_uni_stream(!connection.conn, addr id, nil)
+  let id = connection.openUniStream()
   newStream(connection, id)
 
 proc onStreamOpen(conn: ptr ngtcp2_conn,
