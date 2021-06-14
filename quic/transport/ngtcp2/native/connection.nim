@@ -27,6 +27,7 @@ type
     onHandshakeDone*: proc()
     onNewId*: ?proc(id: ConnectionId)
     onRemoveId*: ?proc(id: ConnectionId)
+  Ngtcp2ConnectionClosed* = object of IOError
 
 proc destroy*(connection: Ngtcp2Connection) =
   if conn =? connection.conn:
@@ -50,13 +51,19 @@ proc newConnection*(path: Path): Ngtcp2Connection =
   connection
 
 proc ids*(connection: Ngtcp2Connection): seq[ConnectionId] =
-  let amount = ngtcp2_conn_get_num_scid(!connection.conn)
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
+  let amount = ngtcp2_conn_get_num_scid(conn)
   var scids = newSeq[ngtcp2_cid](amount)
-  discard ngtcp2_conn_get_scid(!connection.conn, scids.toPtr)
+  discard ngtcp2_conn_get_scid(conn, scids.toPtr)
   scids.mapIt(ConnectionId(it.data[0..<it.datalen]))
 
 proc updateTimeout*(connection: Ngtcp2Connection) =
-  let expiry = ngtcp2_conn_get_expiry(!connection.conn)
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
+  let expiry = ngtcp2_conn_get_expiry(conn)
   if expiry != uint64.high:
     connection.timeout.set(Moment.init(expiry.int64, 1.nanoseconds))
   else:
@@ -67,9 +74,12 @@ proc trySend(connection: Ngtcp2Connection,
              messagePtr: ptr byte = nil,
              messageLen: uint = 0,
              written: ptr int = nil): Datagram =
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream(
-    !connection.conn,
+    conn,
     connection.path.toPathPtr,
     addr packetInfo,
     addr connection.buffer[0],
@@ -122,10 +132,13 @@ proc send*(connection: Ngtcp2Connection,
 
 proc tryReceive(connection: Ngtcp2Connection, datagram: openArray[byte],
                 ecn: ECN) =
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
   var packetInfo: ngtcp2_pkt_info
   packetInfo.ecn = ecn.uint32
   checkResult ngtcp2_conn_read_pkt(
-    !connection.conn,
+    conn,
     connection.path.toPathPtr,
     unsafeAddr packetInfo,
     datagram.toUnsafePtr,
@@ -154,9 +167,12 @@ proc handleTimeout(connection: Ngtcp2Connection) =
     connection.send()
 
 proc close*(connection: Ngtcp2Connection): Datagram =
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_connection_close(
-    !connection.conn,
+    conn,
     connection.path.toPathPtr,
     addr packetInfo,
     addr connection.buffer[0],
@@ -170,30 +186,48 @@ proc close*(connection: Ngtcp2Connection): Datagram =
   Datagram(data: data, ecn: ecn)
 
 proc closingDuration*(connection: Ngtcp2Connection): Duration =
-  3 * ngtcp2_conn_get_pto(!connection.conn).int64.nanoseconds
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
+  3 * ngtcp2_conn_get_pto(conn).int64.nanoseconds
 
 proc isDraining*(connection: Ngtcp2Connection): bool =
-  ngtcp2_conn_is_in_draining_period(!connection.conn).bool
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
+  ngtcp2_conn_is_in_draining_period(conn).bool
 
 proc isHandshakeCompleted*(connection: Ngtcp2Connection): bool =
-  ngtcp2_conn_get_handshake_completed(!connection.conn).bool
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
+  ngtcp2_conn_get_handshake_completed(conn).bool
 
 proc openUniStream*(connection: Ngtcp2Connection): int64 =
-  checkResult ngtcp2_conn_open_uni_stream(!connection.conn, addr result, nil)
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
+  checkResult ngtcp2_conn_open_uni_stream(conn, addr result, nil)
 
 proc setStreamUserData*(connection: Ngtcp2Connection,
                         streamId: int64,
                         userdata: pointer) =
-  let conn = !connection.conn
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
   checkResult ngtcp2_conn_set_stream_user_data(conn, streamId, userdata)
 
 proc extendStreamOffset*(connection: Ngtcp2Connection,
                          streamId: int64,
                          amount: uint64) =
-  let conn = !connection.conn
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
   checkResult conn.ngtcp2_conn_extend_max_stream_offset(streamId, amount)
   conn.ngtcp2_conn_extend_max_offset(amount)
 
 proc shutdownStream*(connection: Ngtcp2Connection, streamId: int64) =
-  let conn = !connection.conn
+  without conn =? connection.conn:
+    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
   checkResult ngtcp2_conn_shutdown_stream(conn, streamId, 0)
