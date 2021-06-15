@@ -1,6 +1,7 @@
 import std/sequtils
 import pkg/asynctest
 import pkg/chronos
+import pkg/quic/errors
 import pkg/quic/transport/stream
 import pkg/quic/transport/quicconnection
 import pkg/quic/transport/ngtcp2/native
@@ -44,10 +45,10 @@ suite "streams":
     let stream = await client.openStream()
     await stream.close()
 
-    expect IOError:
+    expect QuicError:
       discard await stream.read()
 
-    expect IOError:
+    expect QuicError:
       await stream.write(@[1'u8, 2'u8, 3'u8])
 
   test "accepts incoming streams":
@@ -136,10 +137,10 @@ suite "streams":
     await clientStream.close()
     await sleepAsync(100.milliseconds) # wait for stream to be closed
 
-    expect IOError:
+    expect QuicError:
       discard await serverStream.read()
 
-    expect IOError:
+    expect QuicError:
       await serverStream.write(@[1'u8, 2'u8, 3'u8])
 
     await simulation.cancelAndWait()

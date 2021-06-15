@@ -1,5 +1,6 @@
 import pkg/asynctest
 import pkg/chronos
+import pkg/quic/errors
 import pkg/quic/transport/quicconnection
 import pkg/quic/transport/quicclientserver
 import pkg/quic/udp/datagram
@@ -31,7 +32,7 @@ suite "quic connection":
   test "raises error when datagram that starts server connection is invalid":
     let invalid = Datagram(data: @[0'u8])
 
-    expect IOError:
+    expect QuicError:
       discard newQuicServerConnection(zeroAddress, zeroAddress, invalid)
 
   test "performs handshake":

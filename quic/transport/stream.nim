@@ -1,4 +1,5 @@
 import pkg/chronos
+import ../errors
 
 type
   Stream* = ref object
@@ -6,7 +7,7 @@ type
     state: StreamState
   StreamState* = ref object of RootObj
     entered: bool
-  StreamError* = object of IOError
+  StreamError* = object of QuicError
 
 method enter*(state: StreamState, stream: Stream) {.base.} =
   doAssert not state.entered # states are not reentrant

@@ -1,8 +1,9 @@
 import pkg/ngtcp2
+import ../../../errors
 
 type
-  Ngtcp2Error* = object of IOError
-  Ngtcp2Defect* = object of Defect
+  Ngtcp2Error* = object of QuicError
+  Ngtcp2Defect* = object of QuicDefect
 
 proc checkResult*(result: cint) =
   if result < 0:
