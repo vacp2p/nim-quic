@@ -7,7 +7,6 @@ import ../../../errors
 import ../../../udp/datagram
 import ../../../udp/congestion
 import ../../../helpers/openarray
-import ../../../helpers/errorasdefect
 import ../../stream
 import ../../timeout
 import ../../connectionid

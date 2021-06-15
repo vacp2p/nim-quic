@@ -1,7 +1,7 @@
 import pkg/chronos
 import pkg/questionable
 import ../../../udp/datagram
-import ../../../helpers/errorasdefect
+import ../../../errors
 import ../../quicconnection
 import ../../connectionid
 import ../../stream
