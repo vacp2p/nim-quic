@@ -1,5 +1,4 @@
-import pkg/chronos
-import ../../../udp/datagram
+import ../../../basics
 import ../../quicconnection
 import ../../connectionid
 import ../../stream

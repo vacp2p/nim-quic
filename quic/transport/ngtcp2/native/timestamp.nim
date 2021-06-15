@@ -1,4 +1,4 @@
-import pkg/chronos
+import ../../../basics
 
 const ZeroMoment = Moment.init(0, 1.nanoseconds)
 

@@ -1,5 +1,4 @@
-import pkg/chronos
-import pkg/questionable
+import ../../../basics
 import ../../stream
 import ./closedstate
 

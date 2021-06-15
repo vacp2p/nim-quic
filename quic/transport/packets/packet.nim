@@ -1,4 +1,4 @@
-import pkg/upraises
+import ../../basics
 import ../connectionid
 import ../version
 import ./packetnumber

@@ -1,15 +1,13 @@
-import pkg/upraises
+import ../basics
 import ./packets/packet
 import ./packets/length
 import ./packets/read
 import ./packets/write
-import ../udp/datagram
 
 push: {.upraises: [].}
 
 export packet
 export length
-export datagram
 
 proc read(reader: var PacketReader, datagram: openArray[byte]): Packet =
   reader.readForm(datagram)

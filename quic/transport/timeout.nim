@@ -1,6 +1,4 @@
-import pkg/chronos
-import pkg/upraises
-import pkg/questionable
+import ../basics
 
 type Timeout* = ref object
   timer: ?TimerCallback
