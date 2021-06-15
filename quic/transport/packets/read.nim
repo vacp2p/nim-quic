@@ -1,5 +1,5 @@
 import pkg/stew/endians2
-import pkg/upraises
+import ../../basics
 import ../../helpers/bits
 import ./varints
 import ./packet

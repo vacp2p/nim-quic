@@ -1,5 +1,4 @@
-import pkg/chronos
-import ../udp/datagram
+import ../basics
 import ./quicconnection
 import ./ngtcp2/connection/openstate
 

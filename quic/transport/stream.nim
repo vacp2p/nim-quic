@@ -1,5 +1,4 @@
-import pkg/chronos
-import ../errors
+import ../basics
 
 type
   Stream* = ref object

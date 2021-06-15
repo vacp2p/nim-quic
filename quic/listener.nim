@@ -1,9 +1,8 @@
 import std/tables
-import pkg/chronos
+import ./basics
 import ./connection
 import ./transport/connectionid
 import ./transport/parsedatagram
-import ./udp/datagram
 
 type
   Listener* = ref object

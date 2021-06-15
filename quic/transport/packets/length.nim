@@ -1,4 +1,4 @@
-import pkg/upraises
+import ../../basics
 import ./varints
 import ./packet
 import ./packetnumber
