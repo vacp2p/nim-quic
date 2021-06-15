@@ -1,6 +1,7 @@
 import std/unittest
 import pkg/ngtcp2
 import pkg/questionable
+import pkg/quic/errors
 import pkg/quic/transport/ngtcp2/native/connection
 import pkg/quic/transport/ngtcp2/native/client
 import pkg/quic/transport/ngtcp2/native/params
@@ -22,7 +23,7 @@ suite "ngtcp2 transport parameters":
     var encoded = encodeTransportParameters(settings.transport_params)
     encoded[0] = 0xFF
 
-    expect IOError:
+    expect QuicError:
       discard decodeTransportParameters(encoded)
 
   test "raises when setting remote parameters fails":
@@ -30,6 +31,6 @@ suite "ngtcp2 transport parameters":
     defer: connection.destroy()
     settings.transport_params.active_connection_id_limit = 0
 
-    expect IOError:
+    expect QuicError:
       let conn = !connection.conn
       conn.setRemoteTransportParameters(settings.transport_params)

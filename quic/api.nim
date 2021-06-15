@@ -2,6 +2,7 @@ import pkg/chronos
 import ./listener
 import ./connection
 import ./udp/datagram
+import ./errors
 
 export Listener
 export Connection
@@ -14,6 +15,7 @@ export stop
 export drop
 export close
 export waitClosed
+export errors
 
 proc listen*(address: TransportAddress): Listener =
   newListener(address)

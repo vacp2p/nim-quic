@@ -1,5 +1,6 @@
 import pkg/chronos
 import pkg/questionable
+import ../errors
 import ../udp/datagram
 import ./connectionid
 import ./stream
@@ -16,7 +17,7 @@ type
   ConnectionState* = ref object of RootObj
     entered: bool
   IdCallback* = proc(id: ConnectionId) {.gcsafe.}
-  ConnectionError* = object of IOError
+  ConnectionError* = object of QuicError
 
 {.push base, locks: "unknown".}
 

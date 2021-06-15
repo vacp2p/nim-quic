@@ -3,6 +3,7 @@ import pkg/chronos
 import pkg/ngtcp2
 import pkg/upraises
 import pkg/questionable
+import ../../../errors
 import ../../../udp/datagram
 import ../../../udp/congestion
 import ../../../helpers/openarray
@@ -11,7 +12,7 @@ import ../../stream
 import ../../timeout
 import ../../connectionid
 import ./path
-import ./errors
+import ./errors as ngtcp2errors
 import ./timestamp
 import ./pointers
 
@@ -27,7 +28,7 @@ type
     onHandshakeDone*: proc()
     onNewId*: ?proc(id: ConnectionId)
     onRemoveId*: ?proc(id: ConnectionId)
-  Ngtcp2ConnectionClosed* = object of IOError
+  Ngtcp2ConnectionClosed* = object of QuicError
 
 proc destroy*(connection: Ngtcp2Connection) =
   if conn =? connection.conn:
