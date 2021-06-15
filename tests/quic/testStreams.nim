@@ -145,6 +145,26 @@ suite "streams":
 
     await simulation.cancelAndWait()
 
+  test "raises when underlying connection is closed by peer":
+    let simulation = simulateNetwork(client, server)
+
+    let clientStream = await client.openStream()
+    await clientStream.write(@[1'u8, 2'u8, 3'u8])
+
+    let serverStream = await server.incomingStream()
+    discard await serverStream.read()
+
+    await client.close()
+    await sleepAsync(100.milliseconds) # wait for connection to be closed
+
+    expect QuicError:
+      await serverStream.write(@[1'u8, 2'u8, 3'u8])
+
+    expect QuicError:
+      await serverStream.close()
+
+    await simulation.cancelAndWait()
+
   test "reads last bytes from stream that is closed by peer":
     let simulation = simulateNetwork(client, server)
     let message = @[1'u8, 2'u8, 3'u8]
