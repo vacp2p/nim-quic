@@ -10,9 +10,12 @@ proc exampleQuicDatagram*: seq[byte] =
   result = newSeq[byte](4096)
   result.write(packet)
 
-proc sendTo*(datagram: seq[byte], remote: TransportAddress) {.async.} =
+proc newDatagramTransport*: DatagramTransport =
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
     discard
-  let udp = newDatagramTransport(onReceive)
+  newDatagramTransport(onReceive)
+
+proc sendTo*(datagram: seq[byte], remote: TransportAddress) {.async.} =
+  let udp = newDatagramTransport()
   await udp.sendTo(remote, datagram.toUnsafePtr, datagram.len)
   await udp.closeWait()
