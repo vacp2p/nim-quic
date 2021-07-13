@@ -29,10 +29,22 @@ proc `onRemoveId=`*(connection: Connection, callback: IdCallback) =
 proc `onClose=`*(connection: Connection, callback: proc() {.gcsafe.}) =
   connection.onClose = some callback
 
+proc drop*(connection: Connection) {.async.} =
+  await connection.quic.drop()
+
+proc close*(connection: Connection) {.async.} =
+  await connection.quic.close()
+
+proc waitClosed*(connection: Connection) {.async.} =
+  await connection.closed.wait()
+
 proc startSending(connection: Connection, remote: TransportAddress) =
   proc send {.async.} =
-    let datagram = await connection.quic.outgoing.get()
-    await connection.udp.sendTo(remote, datagram.data)
+    try:
+      let datagram = await connection.quic.outgoing.get()
+      await connection.udp.sendTo(remote, datagram.data)
+    except TransportError:
+      await connection.drop()
   connection.loop = asyncLoop(send)
 
 proc stopSending(connection: Connection) {.async.} =
@@ -85,12 +97,3 @@ proc openStream*(connection: Connection,
 
 proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
   result = await connection.quic.incomingStream()
-
-proc drop*(connection: Connection) {.async.} =
-  await connection.quic.drop()
-
-proc close*(connection: Connection) {.async.} =
-  await connection.quic.close()
-
-proc waitClosed*(connection: Connection) {.async.} =
-  await connection.closed.wait()
