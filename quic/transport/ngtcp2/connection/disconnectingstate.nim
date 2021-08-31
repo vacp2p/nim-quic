@@ -44,10 +44,12 @@ method openStream(state: DisconnectingConnection,
 
 method close(state: DisconnectingConnection) {.async.} =
   await state.disconnect
-  (!state.connection).switch(newClosedConnection())
+  if connection =? state.connection:
+    connection.switch(newClosedConnection())
 
 method drop(state: DisconnectingConnection) {.async.} =
   await state.disconnect
-  (!state.connection).switch(newClosedConnection())
+  if connection =? state.connection:
+    connection.switch(newClosedConnection())
 
 {.pop.}

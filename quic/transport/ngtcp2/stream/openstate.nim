@@ -18,8 +18,8 @@ proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
   )
 
 proc setUserData(state: OpenStream, userdata: pointer) =
-  let id = (!state.stream).id
-  state.connection.setStreamUserData(id, userdata)
+  if stream =? state.stream:
+    state.connection.setStreamUserData(stream.id, userdata)
 
 proc clearUserData(state: OpenStream) =
   try:
@@ -47,18 +47,21 @@ method read(state: OpenStream): Future[seq[byte]] {.async.} =
   state.allowMoreIncomingBytes(result.len.uint64)
 
 method write(state: OpenStream, bytes: seq[byte]): Future[void] =
-  state.connection.send((!state.stream).id, bytes)
+  without stream =? state.stream:
+    raise newException(QuicError, "stream is closed")
+  state.connection.send(stream.id, bytes)
 
 method close(state: OpenStream) {.async.} =
-  let stream = (!state.stream)
-  state.connection.shutdownStream(stream.id)
-  stream.switch(newClosedStream())
+  if stream =? state.stream:
+    state.connection.shutdownStream(stream.id)
+    stream.switch(newClosedStream())
 
 proc onClose*(state: OpenStream) =
-  if state.incoming.empty:
-    (!state.stream).switch(newClosedStream())
-  else:
-    (!state.stream).switch(newDrainingStream(state.incoming))
+  if stream =? state.stream:
+    if state.incoming.empty:
+      stream.switch(newClosedStream())
+    else:
+      stream.switch(newDrainingStream(state.incoming))
 
 proc receive*(state: OpenStream, bytes: seq[byte]) =
   state.incoming.putNoWait(bytes)
