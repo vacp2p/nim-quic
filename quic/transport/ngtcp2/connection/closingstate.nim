@@ -14,7 +14,8 @@ proc newClosingConnection*(finalDatagram: Datagram, ids: seq[ConnectionId],
   state
 
 proc sendFinalDatagram(state: ClosingConnection) =
-  (!state.connection).outgoing.putNoWait(state.finalDatagram)
+  if connection =? state.connection:
+    connection.outgoing.putNoWait(state.finalDatagram)
 
 {.push locks: "unknown".}
 

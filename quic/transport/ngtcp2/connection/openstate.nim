@@ -57,29 +57,34 @@ method send(state: OpenConnection) =
 
 method receive(state: OpenConnection, datagram: Datagram) =
   state.ngtcp2Connection.receive(datagram)
-  if state.ngtcp2Connection.isDraining:
+  if state.ngtcp2Connection.isDraining and
+     quicConnection =? state.quicConnection:
     let duration = state.ngtcp2Connection.closingDuration()
     let ids = state.ids
     let draining = newDrainingConnection(ids, duration)
-    (!state.quicConnection).switch(draining)
+    quicConnection.switch(draining)
     asyncSpawn draining.close()
 
 method openStream(state: OpenConnection,
                   unidirectional: bool): Future[Stream] {.async.} =
-  await (!state.quicConnection).handshake.wait()
+  without quicConnection =? state.quicConnection:
+    raise newException(QuicError, "connection is closed")
+  await quicConnection.handshake.wait()
   result = state.ngtcp2Connection.openStream(unidirectional = unidirectional)
 
 method close(state: OpenConnection) {.async.} =
-  let finalDatagram = state.ngtcp2Connection.close()
-  let duration = state.ngtcp2Connection.closingDuration()
-  let ids = state.ids
-  let closing = newClosingConnection(finalDatagram, ids, duration)
-  (!state.quicConnection).switch(closing)
-  await closing.close()
+  if quicConnection =? state.quicConnection:
+    let finalDatagram = state.ngtcp2Connection.close()
+    let duration = state.ngtcp2Connection.closingDuration()
+    let ids = state.ids
+    let closing = newClosingConnection(finalDatagram, ids, duration)
+    quicConnection.switch(closing)
+    await closing.close()
 
 method drop(state: OpenConnection) {.async.} =
-  let disconnecting = newDisconnectingConnection(state.ids)
-  (!state.quicConnection).switch(disconnecting)
-  await disconnecting.drop()
+  if quicConnection =? state.quicConnection:
+    let disconnecting = newDisconnectingConnection(state.ids)
+    quicConnection.switch(disconnecting)
+    await disconnecting.drop()
 
 {.pop.}

@@ -21,11 +21,12 @@ method leave(state: DrainingStream) =
 
 method read(state: DrainingStream): Future[seq[byte]] {.async.} =
   result = state.remaining.popFirstNoWait()
-  if state.remaining.empty:
-    (!state.stream).switch(newClosedStream())
+  if state.remaining.empty and stream =? state.stream:
+    stream.switch(newClosedStream())
 
 method write(state: DrainingStream, bytes: seq[byte]) {.async.} =
   raise newException(DrainingStreamError, "stream is draining")
 
 method close(state: DrainingStream) {.async.} =
-  (!state.stream).switch(newClosedStream())
+  if stream =? state.stream:
+    stream.switch(newClosedStream())

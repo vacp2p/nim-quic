@@ -57,13 +57,15 @@ method openStream(state: DrainingConnection,
 
 method close(state: DrainingConnection) {.async.} =
   await state.done.wait()
-  let disconnecting = newDisconnectingConnection(state.ids)
-  (!state.connection).switch(disconnecting)
-  await disconnecting.close()
+  if connection =? state.connection:
+    let disconnecting = newDisconnectingConnection(state.ids)
+    connection.switch(disconnecting)
+    await disconnecting.close()
 
 method drop(state: DrainingConnection) {.async.} =
-  let disconnecting = newDisconnectingConnection(state.ids)
-  (!state.connection).switch(disconnecting)
-  await disconnecting.drop()
+  if connection =? state.connection:
+    let disconnecting = newDisconnectingConnection(state.ids)
+    connection.switch(disconnecting)
+    await disconnecting.drop()
 
 {.pop.}
