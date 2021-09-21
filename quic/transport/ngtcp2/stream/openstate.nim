@@ -32,6 +32,8 @@ proc allowMoreIncomingBytes(state: OpenStream, amount: uint64) =
   state.connection.extendStreamOffset(stream.id, amount)
   state.connection.send()
 
+{.push locks:"unknown".}
+
 method enter(state: OpenStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = some stream
@@ -56,12 +58,17 @@ method close(state: OpenStream) {.async.} =
     state.connection.shutdownStream(stream.id)
     stream.switch(newClosedStream())
 
-proc onClose*(state: OpenStream) =
+method onClose*(state: OpenStream) =
   if stream =? state.stream:
     if state.incoming.empty:
       stream.switch(newClosedStream())
     else:
       stream.switch(newDrainingStream(state.incoming))
+
+method isClosed*(state: OpenStream): bool =
+  false
+
+{.pop.}
 
 proc receive*(state: OpenStream, bytes: seq[byte]) =
   state.incoming.putNoWait(bytes)

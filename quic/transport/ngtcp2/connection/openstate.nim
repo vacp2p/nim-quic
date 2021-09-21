@@ -9,14 +9,16 @@ import ../native/server
 import ./closingstate
 import ./drainingstate
 import ./disconnectingstate
+import ./openstreams
 
 type
   OpenConnection* = ref object of ConnectionState
     quicConnection: ?QuicConnection
     ngtcp2Connection: Ngtcp2Connection
+    streams: OpenStreams
 
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
-  OpenConnection(ngtcp2Connection: ngtcp2Connection)
+  OpenConnection(ngtcp2Connection: ngtcp2Connection, streams: OpenStreams.new)
 
 proc openClientConnection*(local, remote: TransportAddress): OpenConnection =
   newOpenConnection(newNgtcp2Client(local, remote))
@@ -40,12 +42,14 @@ method enter(state: OpenConnection, connection: QuicConnection) =
     errorAsDefect:
       connection.outgoing.putNoWait(datagram)
   state.ngtcp2Connection.onIncomingStream = proc(stream: Stream) =
+    state.streams.add(stream)
     connection.incoming.putNoWait(stream)
   state.ngtcp2Connection.onHandshakeDone = proc =
     connection.handshake.fire()
 
 method leave(state: OpenConnection) =
   procCall leave(ConnectionState(state))
+  state.streams.closeAll()
   state.ngtcp2Connection.destroy()
   state.quicConnection = QuicConnection.none
 
@@ -71,6 +75,7 @@ method openStream(state: OpenConnection,
     raise newException(QuicError, "connection is closed")
   await quicConnection.handshake.wait()
   result = state.ngtcp2Connection.openStream(unidirectional = unidirectional)
+  state.streams.add(result)
 
 method close(state: OpenConnection) {.async.} =
   if quicConnection =? state.quicConnection:
