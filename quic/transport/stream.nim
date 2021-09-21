@@ -5,9 +5,12 @@ type
   Stream* = ref object
     id: int64
     state: StreamState
+    closed*: AsyncEvent
   StreamState* = ref object of RootObj
     entered: bool
   StreamError* = object of QuicError
+
+{.push locks:"unknown".}
 
 method enter*(state: StreamState, stream: Stream) {.base.} =
   doAssert not state.entered # states are not reentrant
@@ -25,8 +28,16 @@ method write*(state: StreamState, bytes: seq[byte]) {.base, async.} =
 method close*(state: StreamState) {.base, async.} =
   doAssert false # override this method
 
+method onClose*(state: StreamState) {.base.} =
+  doAssert false # override this method
+
+method isClosed*(state: StreamState): bool {.base.} =
+  doAssert false # override this method
+
+{.pop.}
+
 proc newStream*(id: int64, state: StreamState): Stream =
-  let stream = Stream(state: state, id: id)
+  let stream = Stream(state: state, id: id, closed: newAsyncEvent())
   state.enter(stream)
   stream
 
@@ -46,6 +57,12 @@ proc write*(stream: Stream, bytes: seq[byte]) {.async.} =
 
 proc close*(stream: Stream) {.async.} =
   await stream.state.close()
+
+proc onClose*(stream: Stream) =
+  stream.state.onClose()
+
+proc isClosed*(stream: Stream): bool =
+  stream.state.isClosed()
 
 proc isUnidirectional*(stream: Stream): bool =
   stream.id.byte.bits[6].bool

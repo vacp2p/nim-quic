@@ -12,6 +12,8 @@ proc newDrainingStream*(messages: AsyncQueue[seq[byte]]): DrainingStream =
   doAssert messages.len > 0
   DrainingStream(remaining: messages)
 
+{.push locks:"unknown".}
+
 method enter(state: DrainingStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = some stream
@@ -30,3 +32,11 @@ method write(state: DrainingStream, bytes: seq[byte]) {.async.} =
 method close(state: DrainingStream) {.async.} =
   if stream =? state.stream:
     stream.switch(newClosedStream())
+
+method onClose(state: DrainingStream) =
+  discard
+
+method isClosed*(state: DrainingStream): bool =
+  false
+
+{.pop.}
