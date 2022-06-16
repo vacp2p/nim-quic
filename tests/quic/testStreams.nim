@@ -1,5 +1,5 @@
 import std/sequtils
-import pkg/asynctest
+import pkg/asynctest/unittest2
 import pkg/chronos
 import pkg/quic/errors
 import pkg/quic/transport/stream

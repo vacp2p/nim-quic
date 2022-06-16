@@ -1,5 +1,5 @@
-import std/unittest
 import std/sequtils
+import pkg/unittest2
 import pkg/quic/transport/packets
 import pkg/quic/helpers/bits
 
@@ -19,7 +19,7 @@ suite "packet reading":
   test "checks fixed bit":
     datagram.write(shortPacket())
     datagram[0].bits[1] = 0
-    expect Exception:
+    expect CatchableError:
       discard readPacket(datagram)
 
   test "reads packet type":

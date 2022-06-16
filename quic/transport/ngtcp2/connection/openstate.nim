@@ -53,7 +53,7 @@ method leave(state: OpenConnection) =
   state.ngtcp2Connection.destroy()
   state.quicConnection = QuicConnection.none
 
-method ids(state: OpenConnection): seq[ConnectionId] =
+method ids(state: OpenConnection): seq[ConnectionId] {.upraises: [].} =
   state.ngtcp2Connection.ids
 
 method send(state: OpenConnection) =

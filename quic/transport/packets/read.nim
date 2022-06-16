@@ -5,7 +5,7 @@ import ./varints
 import ./packet
 import ./reader
 
-push: {.upraises: [].}
+push: {.upraises: [QuicError].}
 
 export reader
 
@@ -13,7 +13,8 @@ proc readForm*(reader: var PacketReader, datagram: openArray[byte]) =
   reader.packet = Packet(form: PacketForm(datagram[reader.next].bits[0]))
 
 proc readFixedBit*(reader: var PacketReader, datagram: openArray[byte]) =
-  doAssert datagram[reader.next].bits[1] == 1
+  if datagram[reader.next].bits[1] != 1:
+    raise newException(QuicError, "Unexpected fixed bit value")
 
 proc peekVersion(reader: var PacketReader, datagram: openArray[byte]): uint32 =
   fromBytesBE(uint32, reader.peek(datagram, 4))

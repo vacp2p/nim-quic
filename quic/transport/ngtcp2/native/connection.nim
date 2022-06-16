@@ -48,7 +48,7 @@ proc newConnection*(path: Path): Ngtcp2Connection =
 
 proc ids*(connection: Ngtcp2Connection): seq[ConnectionId] =
   without conn =? connection.conn:
-    raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+    return
 
   let amount = ngtcp2_conn_get_num_scid(conn)
   var scids = newSeq[ngtcp2_cid](amount)

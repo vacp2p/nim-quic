@@ -1,5 +1,5 @@
-import std/unittest
 import std/math
+import pkg/unittest2
 import pkg/quic/transport/packets/varints
 
 suite "variable length integer encoding":
