@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
-        nim: [1.2.6, stable]
+        nim: [1.2.18] #TODO, stable]
     steps:
     - uses: actions/checkout@v2
     - uses: iffy/install-nim@v3
