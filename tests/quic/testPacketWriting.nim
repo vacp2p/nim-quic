@@ -1,5 +1,5 @@
-import std/unittest
 import std/sequtils
+import pkg/unittest2
 import pkg/stew/endians2
 import pkg/quic/transport/packets
 import pkg/quic/helpers/bits

@@ -28,7 +28,7 @@ proc addConnection(listener: Listener, connection: Connection,
     listener.connections[newId] = connection
   connection.onRemoveId = proc(oldId: ConnectionId) =
     listener.connections.del(oldId)
-  connection.onClose = proc =
+  connection.onClose = proc {.upraises: [].} =
     for id in connection.ids & firstId:
       listener.connections.del(id)
   listener.incoming.putNoWait(connection)

@@ -26,15 +26,15 @@ proc newDrainingConnection*(ids: seq[ConnectionId],
   state.init(ids, duration)
   state
 
-proc onTimeout(state: DrainingConnection) =
+proc onTimeout(state: DrainingConnection) {.upraises: [].} =
   state.done.fire()
 
-{.push locks: "unknown".}
+push: {.locks: "unknown", upraises: [QuicError].}
 
 method enter*(state: DrainingConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)
   state.connection = some connection
-  state.timeout = newTimeout(proc = state.onTimeout())
+  state.timeout = newTimeout(proc {.upraises: [].} = state.onTimeout())
   state.timeout.set(state.duration)
 
 method leave(state: DrainingConnection) =
@@ -42,7 +42,7 @@ method leave(state: DrainingConnection) =
   state.timeout.stop()
   state.connection = QuicConnection.none
 
-method ids(state: DrainingConnection): seq[ConnectionId] =
+method ids(state: DrainingConnection): seq[ConnectionId] {.upraises: [].} =
   state.ids
 
 method send(state: DrainingConnection) =

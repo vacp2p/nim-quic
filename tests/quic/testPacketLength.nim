@@ -1,4 +1,4 @@
-import std/unittest
+import pkg/unittest2
 import std/sequtils
 import pkg/quic/transport/packets
 import pkg/quic/transport/packets/varints
