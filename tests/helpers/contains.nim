@@ -1,4 +1,3 @@
-import std/strutils
-
 proc contains*(a: seq[byte], sub: seq[byte]): bool =
-  cast[string](a).contains(cast[string](sub))
+  for i in 0 ..< a.len - sub.len:
+    if a[i ..< i + sub.len] == sub: return true
