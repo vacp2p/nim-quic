@@ -4,7 +4,7 @@ import ./closedstate
 
 type
   DrainingStream* = ref object of StreamState
-    stream: ?Stream
+    stream: Option[Stream]
     remaining: AsyncQueue[seq[byte]]
   DrainingStreamError* = object of StreamError
 
@@ -23,15 +23,16 @@ method leave(state: DrainingStream) =
 
 method read(state: DrainingStream): Future[seq[byte]] {.async.} =
   result = state.remaining.popFirstNoWait()
-  if state.remaining.empty and stream =? state.stream:
+  if state.remaining.empty:
+    let stream = state.stream.getOr: return
     stream.switch(newClosedStream())
 
 method write(state: DrainingStream, bytes: seq[byte]) {.async.} =
   raise newException(DrainingStreamError, "stream is draining")
 
 method close(state: DrainingStream) {.async.} =
-  if stream =? state.stream:
-    stream.switch(newClosedStream())
+  let stream = state.stream.getOr: return
+  stream.switch(newClosedStream())
 
 method onClose(state: DrainingStream) =
   discard

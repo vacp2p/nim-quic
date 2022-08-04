@@ -13,7 +13,7 @@ import ./openstreams
 
 type
   OpenConnection* = ref object of ConnectionState
-    quicConnection: ?QuicConnection
+    quicConnection: Option[QuicConnection]
     ngtcp2Connection: Ngtcp2Connection
     streams: OpenStreams
 
@@ -33,11 +33,11 @@ method enter(state: OpenConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)
   state.quicConnection = some connection
   state.ngtcp2Connection.onNewId = some proc(id: ConnectionId) =
-    if onNewId =? connection.onNewId.option:
-      onNewId(id)
+    if isNil(connection.onNewId): return
+    connection.onNewId(id)
   state.ngtcp2Connection.onRemoveId = some proc(id: ConnectionId) =
-    if onRemoveId =? connection.onRemoveId.option:
-      onRemoveId(id)
+    if isNil(connection.onRemoveId): return
+    connection.onRemoveId(id)
   state.ngtcp2Connection.onSend = proc(datagram: Datagram) =
     errorAsDefect:
       connection.outgoing.putNoWait(datagram)
@@ -61,8 +61,8 @@ method send(state: OpenConnection) =
 
 method receive(state: OpenConnection, datagram: Datagram) =
   state.ngtcp2Connection.receive(datagram)
-  if state.ngtcp2Connection.isDraining and
-     quicConnection =? state.quicConnection:
+  let quicConnection = state.quicConnection.getOr: return
+  if state.ngtcp2Connection.isDraining:
     let duration = state.ngtcp2Connection.closingDuration()
     let ids = state.ids
     let draining = newDrainingConnection(ids, duration)
@@ -71,25 +71,25 @@ method receive(state: OpenConnection, datagram: Datagram) =
 
 method openStream(state: OpenConnection,
                   unidirectional: bool): Future[Stream] {.async.} =
-  without quicConnection =? state.quicConnection:
+  let quicConnection = state.quicConnection.getOr:
     raise newException(QuicError, "connection is closed")
   await quicConnection.handshake.wait()
   result = state.ngtcp2Connection.openStream(unidirectional = unidirectional)
   state.streams.add(result)
 
 method close(state: OpenConnection) {.async.} =
-  if quicConnection =? state.quicConnection:
-    let finalDatagram = state.ngtcp2Connection.close()
-    let duration = state.ngtcp2Connection.closingDuration()
-    let ids = state.ids
-    let closing = newClosingConnection(finalDatagram, ids, duration)
-    quicConnection.switch(closing)
-    await closing.close()
+  let quicConnection = state.quicConnection.getOr: return
+  let finalDatagram = state.ngtcp2Connection.close()
+  let duration = state.ngtcp2Connection.closingDuration()
+  let ids = state.ids
+  let closing = newClosingConnection(finalDatagram, ids, duration)
+  quicConnection.switch(closing)
+  await closing.close()
 
 method drop(state: OpenConnection) {.async.} =
-  if quicConnection =? state.quicConnection:
-    let disconnecting = newDisconnectingConnection(state.ids)
-    quicConnection.switch(disconnecting)
-    await disconnecting.drop()
+  let quicConnection = state.quicConnection.getOr: return
+  let disconnecting = newDisconnectingConnection(state.ids)
+  quicConnection.switch(disconnecting)
+  await disconnecting.drop()
 
 {.pop.}

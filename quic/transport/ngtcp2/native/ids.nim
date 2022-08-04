@@ -24,16 +24,18 @@ proc getNewConnectionId(conn: ptr ngtcp2_conn,
   id[] = newId.toCid
   zeroMem(token, NGTCP2_STATELESS_RESET_TOKENLEN)
 
-  let connection = cast[Ngtcp2Connection](userData)
-  if onNewId =? connection.onNewId:
-    onNewId(newId)
+  let
+    connection = cast[Ngtcp2Connection](userData)
+    onNewId = connection.onNewId.getOr: return
+  onNewId(newId)
 
 proc removeConnectionId(conn: ptr ngtcp2_conn,
                         id: ptr ngtcp2_cid,
                         userData: pointer): cint {.cdecl.} =
-  let connection = cast[Ngtcp2Connection](userData)
-  if onRemoveId =? connection.onRemoveId:
-    onRemoveId(id.toConnectionId)
+  let
+    connection = cast[Ngtcp2Connection](userData)
+    onRemoveId = connection.onRemoveId.getOr: return
+  onRemoveId(id.toConnectionId)
 
 proc installConnectionIdCallback*(callbacks: var ngtcp2_conn_callbacks) =
   callbacks.get_new_connection_id = getNewConnectionId
