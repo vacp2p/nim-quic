@@ -1,19 +1,16 @@
-import pkg/asynctest/unittest2
 import pkg/chronos
+import pkg/chronos/unittest2/asynctests
 import pkg/quic
 
 suite "api":
-
-  let address = initTAddress("127.0.0.1:48579")
-  var listener: Listener
-
   setup:
-    listener = listen(address)
+    let address = initTAddress("127.0.0.1:48579")
+    var listener = listen(address)
 
   teardown:
-    await listener.stop()
+    waitFor listener.stop()
 
-  test "opens and drops connections":
+  asyncTest "opens and drops connections":
     let dialing = dial(address)
     let accepting = listener.accept()
 
@@ -23,7 +20,7 @@ suite "api":
     await outgoing.drop()
     await incoming.drop()
 
-  test "opens and closes streams":
+  asyncTest "opens and closes streams":
     let dialing = dial(address)
     let accepting = listener.accept()
 
@@ -39,7 +36,7 @@ suite "api":
     await outgoing.drop()
     await incoming.drop()
 
-  test "waits until peer closes connection":
+  asyncTest "waits until peer closes connection":
     let dialing = dial(address)
     let accepting = listener.accept()
 
@@ -49,7 +46,7 @@ suite "api":
     await incoming.close()
     await outgoing.waitClosed()
 
-  test "accepts multiple incoming connections":
+  asyncTest "accepts multiple incoming connections":
     let accepting1 = listener.accept()
     let outgoing1 = await dial(address)
     let incoming1 = await accepting1
@@ -65,7 +62,7 @@ suite "api":
     await incoming1.drop()
     await incoming2.drop()
 
-  test "writes to and reads from streams":
+  asyncTest "writes to and reads from streams":
     let message = @[1'u8, 2'u8, 3'u8]
 
     let outgoing = await dial(address)
