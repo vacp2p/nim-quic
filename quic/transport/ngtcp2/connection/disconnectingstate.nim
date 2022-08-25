@@ -6,7 +6,7 @@ import ./closedstate
 
 type
   DisconnectingConnection* = ref object of ConnectionState
-    connection: ?QuicConnection
+    connection: Option[QuicConnection]
     disconnect: Future[void]
     ids: seq[ConnectionId]
 
@@ -15,8 +15,8 @@ proc newDisconnectingConnection*(ids: seq[ConnectionId]):
   DisconnectingConnection(ids: ids)
 
 proc callDisconnect(connection: QuicConnection) {.async.} =
-  if disconnect =? connection.disconnect:
-    await disconnect()
+  let disconnect = connection.disconnect.getOr: return
+  await disconnect()
 
 {.push locks: "unknown".}
 
@@ -44,12 +44,12 @@ method openStream(state: DisconnectingConnection,
 
 method close(state: DisconnectingConnection) {.async.} =
   await state.disconnect
-  if connection =? state.connection:
-    connection.switch(newClosedConnection())
+  let connection = state.connection.getOr: return
+  connection.switch(newClosedConnection())
 
 method drop(state: DisconnectingConnection) {.async.} =
   await state.disconnect
-  if connection =? state.connection:
-    connection.switch(newClosedConnection())
+  let connection = state.connection.getOr: return
+  connection.switch(newClosedConnection())
 
 {.pop.}

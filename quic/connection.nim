@@ -12,7 +12,7 @@ type
     udp: DatagramTransport
     quic: QuicConnection
     loop: Future[void]
-    onClose: ?proc() {.gcsafe, upraises: [].}
+    onClose: Option[proc() {.gcsafe, upraises: [].}]
     closed: AsyncEvent
   IncomingConnection = ref object of Connection
   OutgoingConnection = ref object of Connection
@@ -59,8 +59,8 @@ method closeUdp(connection: OutgoingConnection) {.async.} =
 proc disconnect(connection: Connection) {.async.} =
   await connection.stopSending()
   await connection.closeUdp()
-  if onClose =? connection.onClose:
-    onClose()
+  if connection.onClose.isSome():
+    (connection.onClose.unsafeGet())()
   connection.closed.fire()
 
 proc newIncomingConnection*(udp: DatagramTransport,

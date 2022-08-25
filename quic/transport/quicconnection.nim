@@ -8,7 +8,7 @@ type
     outgoing*: AsyncQueue[Datagram]
     incoming*: AsyncQueue[Stream]
     handshake*: AsyncEvent
-    disconnect*: ?proc(): Future[void] {.gcsafe, upraises: [].}
+    disconnect*: Option[proc(): Future[void] {.gcsafe, upraises: [].}]
     onNewId*: IdCallback
     onRemoveId*: IdCallback
   ConnectionState* = ref object of RootObj

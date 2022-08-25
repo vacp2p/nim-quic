@@ -1,6 +1,6 @@
+import std/options
 import pkg/unittest2
 import pkg/ngtcp2
-import pkg/questionable
 import pkg/quic/errors
 import pkg/quic/transport/ngtcp2/native/connection
 import pkg/quic/transport/ngtcp2/native/client
@@ -32,5 +32,5 @@ suite "ngtcp2 transport parameters":
     settings.transport_params.active_connection_id_limit = 0
 
     expect QuicError:
-      let conn = !connection.conn
+      let conn = connection.conn.unsafeGet()
       conn.setRemoteTransportParameters(settings.transport_params)

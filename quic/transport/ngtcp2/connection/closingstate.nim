@@ -14,11 +14,11 @@ proc newClosingConnection*(finalDatagram: Datagram, ids: seq[ConnectionId],
   state
 
 proc sendFinalDatagram(state: ClosingConnection) =
-  if connection =? state.connection:
-    try:
-      connection.outgoing.putNoWait(state.finalDatagram)
-    except AsyncQueueFullError:
-      raise newException(QuicError, "Outgoing queue is full")
+  let connection = state.connection.getOr: return
+  try:
+    connection.outgoing.putNoWait(state.finalDatagram)
+  except AsyncQueueFullError:
+    raise newException(QuicError, "Outgoing queue is full")
 
 {.push locks: "unknown".}
 

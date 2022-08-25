@@ -8,7 +8,7 @@ import ./closedstate
 
 type
   DrainingConnection* = ref object of ConnectionState
-    connection*: ?QuicConnection
+    connection*: Option[QuicConnection]
     ids: seq[ConnectionId]
     timeout: Timeout
     duration: Duration
@@ -57,15 +57,15 @@ method openStream(state: DrainingConnection,
 
 method close(state: DrainingConnection) {.async.} =
   await state.done.wait()
-  if connection =? state.connection:
-    let disconnecting = newDisconnectingConnection(state.ids)
-    connection.switch(disconnecting)
-    await disconnecting.close()
+  let connection = state.connection.getOr: return
+  let disconnecting = newDisconnectingConnection(state.ids)
+  connection.switch(disconnecting)
+  await disconnecting.close()
 
 method drop(state: DrainingConnection) {.async.} =
-  if connection =? state.connection:
-    let disconnecting = newDisconnectingConnection(state.ids)
-    connection.switch(disconnecting)
-    await disconnecting.drop()
+  let connection = state.connection.getOr: return
+  let disconnecting = newDisconnectingConnection(state.ids)
+  connection.switch(disconnecting)
+  await disconnecting.drop()
 
 {.pop.}

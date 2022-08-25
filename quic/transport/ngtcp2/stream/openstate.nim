@@ -7,7 +7,7 @@ import ./closedstate
 
 type
   OpenStream* = ref object of StreamState
-    stream: ?Stream
+    stream: Option[Stream]
     connection: Ngtcp2Connection
     incoming: AsyncQueue[seq[byte]]
 
@@ -18,8 +18,8 @@ proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
   )
 
 proc setUserData(state: OpenStream, userdata: pointer) =
-  if stream =? state.stream:
-    state.connection.setStreamUserData(stream.id, userdata)
+  let stream = state.stream.getOr: return
+  state.connection.setStreamUserData(stream.id, userdata)
 
 proc clearUserData(state: OpenStream) =
   try:
@@ -28,7 +28,7 @@ proc clearUserData(state: OpenStream) =
     discard # stream already closed
 
 proc allowMoreIncomingBytes(state: OpenStream, amount: uint64) =
-  let stream = !state.stream
+  let stream = state.stream.get()
   state.connection.extendStreamOffset(stream.id, amount)
   state.connection.send()
 
@@ -49,21 +49,21 @@ method read(state: OpenStream): Future[seq[byte]] {.async.} =
   state.allowMoreIncomingBytes(result.len.uint64)
 
 method write(state: OpenStream, bytes: seq[byte]): Future[void] =
-  without stream =? state.stream:
+  let stream = state.stream.getOr:
     raise newException(QuicError, "stream is closed")
   state.connection.send(stream.id, bytes)
 
 method close(state: OpenStream) {.async.} =
-  if stream =? state.stream:
-    state.connection.shutdownStream(stream.id)
-    stream.switch(newClosedStream())
+  let stream = state.stream.getOr: return
+  state.connection.shutdownStream(stream.id)
+  stream.switch(newClosedStream())
 
 method onClose*(state: OpenStream) =
-  if stream =? state.stream:
-    if state.incoming.empty:
-      stream.switch(newClosedStream())
-    else:
-      stream.switch(newDrainingStream(state.incoming))
+  let stream = state.stream.getOr: return
+  if state.incoming.empty:
+    stream.switch(newClosedStream())
+  else:
+    stream.switch(newDrainingStream(state.incoming))
 
 method isClosed*(state: OpenStream): bool =
   false
