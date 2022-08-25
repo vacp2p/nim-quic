@@ -1,6 +1,6 @@
 import std/sequtils
-import pkg/asynctest/unittest2
 import pkg/chronos
+import pkg/chronos/unittest2/asynctests
 import pkg/quic/errors
 import pkg/quic/transport/stream
 import pkg/quic/transport/quicconnection
@@ -10,47 +10,44 @@ import ../helpers/simulation
 import ../helpers/contains
 
 suite "streams":
-
-  var client, server: QuicConnection
-
   setup:
-    (client, server) = await performHandshake()
+    var (client, server) = waitFor performHandshake()
 
   teardown:
-    await client.drop()
-    await server.drop()
+    waitFor client.drop()
+    waitFor server.drop()
 
-  test "opens uni-directional streams":
+  asyncTest "opens uni-directional streams":
     let stream1, stream2 = await client.openStream(unidirectional = true)
     check stream1 != stream2
     check stream1.isUnidirectional
     check stream2.isUnidirectional
 
-  test "opens bi-directional streams":
+  asyncTest "opens bi-directional streams":
     let stream1, stream2 = await client.openStream()
     check stream1 != stream2
     check not stream1.isUnidirectional
     check not stream2.isUnidirectional
 
-  test "closes stream":
+  asyncTest "closes stream":
     let stream = await client.openStream()
     await stream.close()
 
-  test "writes to stream":
+  asyncTest "writes to stream":
     let stream = await client.openStream()
     let message = @[1'u8, 2'u8, 3'u8]
     await stream.write(message)
 
     check client.outgoing.anyIt(it.data.contains(message))
 
-  test "writes zero-length message":
+  asyncTest "writes zero-length message":
     let stream = await client.openStream()
     await stream.write(@[])
     let datagram = await client.outgoing.get()
 
     check datagram.len > 0
 
-  test "raises when reading from or writing to closed stream":
+  asyncTest "raises when reading from or writing to closed stream":
     let stream = await client.openStream()
     await stream.close()
 
@@ -60,7 +57,7 @@ suite "streams":
     expect QuicError:
       await stream.write(@[1'u8, 2'u8, 3'u8])
 
-  test "accepts incoming streams":
+  asyncTest "accepts incoming streams":
     let simulation = simulateNetwork(client, server)
 
     let clientStream = await client.openStream()
@@ -71,7 +68,7 @@ suite "streams":
 
     await simulation.cancelAndWait()
 
-  test "reads from stream":
+  asyncTest "reads from stream":
     let simulation = simulateNetwork(client, server)
     let message = @[1'u8, 2'u8, 3'u8]
 
@@ -86,7 +83,7 @@ suite "streams":
 
     await simulation.cancelAndWait()
 
-  test "writes long messages to stream":
+  asyncTest "writes long messages to stream":
     let simulation = simulateNetwork(client, server)
 
     let stream = await client.openStream()
@@ -99,7 +96,7 @@ suite "streams":
 
     await simulation.cancelAndWait()
 
-  test "halts sender until receiver has caught up":
+  asyncTest "halts sender until receiver has caught up":
     let simulation = simulateNetwork(client, server)
     let message = repeat(42'u8, sizeof(Ngtcp2Connection.buffer))
 
@@ -120,7 +117,7 @@ suite "streams":
 
     await simulation.cancelAndWait()
 
-  test "handles packet loss":
+  asyncTest "handles packet loss":
     let simulation = simulateLossyNetwork(client, server)
 
     let message = @[1'u8, 2'u8, 3'u8]
@@ -134,7 +131,7 @@ suite "streams":
 
     await simulation.cancelAndWait()
 
-  test "raises when stream is closed by peer":
+  asyncTest "raises when stream is closed by peer":
     let simulation = simulateNetwork(client, server)
 
     let clientStream = await client.openStream()
@@ -154,7 +151,7 @@ suite "streams":
 
     await simulation.cancelAndWait()
 
-  test "closes stream when underlying connection is closed by peer":
+  asyncTest "closes stream when underlying connection is closed by peer":
     let simulation = simulateNetwork(client, server)
 
     let clientStream = await client.openStream()
@@ -170,7 +167,7 @@ suite "streams":
 
     await simulation.cancelAndWait()
 
-  test "reads last bytes from stream that is closed by peer":
+  asyncTest "reads last bytes from stream that is closed by peer":
     let simulation = simulateNetwork(client, server)
     let message = @[1'u8, 2'u8, 3'u8]
 
