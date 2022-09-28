@@ -1,7 +1,7 @@
 import ../basics
 
 type Timeout* = ref object
-  timer: Opt[TimerCallback]
+  timer: Option[TimerCallback]
   onExpiry: proc () {.gcsafe, upraises:[].}
   expired: AsyncEvent
 
@@ -9,7 +9,7 @@ proc setTimer(timeout: Timeout, moment: Moment) =
   proc onTimeout(_: pointer) =
     timeout.expired.fire()
     timeout.onExpiry()
-  timeout.timer = Opt.some(setTimer(moment, onTimeout))
+  timeout.timer = some setTimer(moment, onTimeout)
 
 const skip = proc () = discard
 

@@ -63,4 +63,4 @@ proc newNgtcp2Client*(local, remote: TransportAddress): Ngtcp2Connection =
     addr result[]
   )
 
-  result.conn = Opt.some(conn)
+  result.conn = conn.some

@@ -67,7 +67,7 @@ proc newNgtcp2Server*(local, remote: TransportAddress,
     addr result[]
   )
 
-  result.conn = Opt.some(conn)
+  result.conn = some conn
 
 proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =
   let info = parseDatagram(datagram)
