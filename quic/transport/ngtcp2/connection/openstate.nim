@@ -32,16 +32,14 @@ proc openServerConnection*(local, remote: TransportAddress,
 method enter(state: OpenConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)
   state.quicConnection = Opt.some(connection)
-  # Workaround weird bug
-  proc onNewId(id: ConnectionId) =
-    if isNil(connection.onNewId): return
-    connection.onNewId(id)
-  state.ngtcp2Connection.onNewId = Opt.some(onNewId)
 
-  proc onRemoveId(id: ConnectionId) =
+  state.ngtcp2Connection.onNewId = Opt.some proc(id: ConnectionId) =
+     if isNil(connection.onNewId): return
+     connection.onNewId(id)
+
+  state.ngtcp2Connection.onRemoveId = Opt.some proc (id: ConnectionId) =
     if isNil(connection.onRemoveId): return
     connection.onRemoveId(id)
-  state.ngtcp2Connection.onRemoveId = Opt.some(onRemoveId)
   state.ngtcp2Connection.onSend = proc(datagram: Datagram) =
     errorAsDefect:
       connection.outgoing.putNoWait(datagram)
