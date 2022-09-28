@@ -6,7 +6,7 @@ import ./closedstate
 
 type
   DisconnectingConnection* = ref object of ConnectionState
-    connection: Option[QuicConnection]
+    connection: Opt[QuicConnection]
     disconnect: Future[void]
     ids: seq[ConnectionId]
 
@@ -15,7 +15,7 @@ proc newDisconnectingConnection*(ids: seq[ConnectionId]):
   DisconnectingConnection(ids: ids)
 
 proc callDisconnect(connection: QuicConnection) {.async.} =
-  let disconnect = connection.disconnect.getOr: return
+  let disconnect = connection.disconnect.valueOr: return
   await disconnect()
 
 {.push locks: "unknown".}
@@ -25,12 +25,12 @@ method ids*(state: DisconnectingConnection): seq[ConnectionId] =
 
 method enter(state: DisconnectingConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)
-  state.connection = some connection
+  state.connection = Opt.some(connection)
   state.disconnect = callDisconnect(connection)
 
 method leave(state: DisconnectingConnection) =
   procCall leave(ConnectionState(state))
-  state.connection = QuicConnection.none
+  state.connection = Opt.none(QuicConnection)
 
 method send(state: DisconnectingConnection) =
   raise newException(ClosedConnectionError, "connection is disconnecting")
@@ -44,12 +44,12 @@ method openStream(state: DisconnectingConnection,
 
 method close(state: DisconnectingConnection) {.async.} =
   await state.disconnect
-  let connection = state.connection.getOr: return
+  let connection = state.connection.valueOr: return
   connection.switch(newClosedConnection())
 
 method drop(state: DisconnectingConnection) {.async.} =
   await state.disconnect
-  let connection = state.connection.getOr: return
+  let connection = state.connection.valueOr: return
   connection.switch(newClosedConnection())
 
 {.pop.}
