@@ -12,7 +12,7 @@ type
     udp: DatagramTransport
     quic: QuicConnection
     loop: Future[void]
-    onClose: Option[proc() {.gcsafe, upraises: [].}]
+    onClose: Opt[proc() {.gcsafe, upraises: [].}]
     closed: AsyncEvent
   IncomingConnection = ref object of Connection
   OutgoingConnection = ref object of Connection
@@ -27,7 +27,7 @@ proc `onRemoveId=`*(connection: Connection, callback: IdCallback) =
   connection.quic.onRemoveId = callback
 
 proc `onClose=`*(connection: Connection, callback: proc() {.gcsafe, upraises: [].}) =
-  connection.onClose = some callback
+  connection.onClose = Opt.some(callback)
 
 proc drop*(connection: Connection) {.async.} =
   await connection.quic.drop()
@@ -69,8 +69,9 @@ proc newIncomingConnection*(udp: DatagramTransport,
   let quic = newQuicServerConnection(udp.localAddress, remote, datagram)
   let closed = newAsyncEvent()
   let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
-  quic.disconnect = some proc {.async.} =
+  proc onDisconnect {.async.} =
     await connection.disconnect()
+  quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
   connection
 
@@ -79,8 +80,9 @@ proc newOutgoingConnection*(udp: DatagramTransport,
   let quic = newQuicClientConnection(udp.localAddress, remote)
   let closed = newAsyncEvent()
   let connection = OutgoingConnection(udp: udp, quic: quic, closed: closed)
-  quic.disconnect = some proc {.async.} =
+  proc onDisconnect {.async.} =
     await connection.disconnect()
+  quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
   connection
 

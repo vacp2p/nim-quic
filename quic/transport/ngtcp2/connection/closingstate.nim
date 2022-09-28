@@ -14,7 +14,7 @@ proc newClosingConnection*(finalDatagram: Datagram, ids: seq[ConnectionId],
   state
 
 proc sendFinalDatagram(state: ClosingConnection) =
-  let connection = state.connection.getOr: return
+  let connection = state.connection.valueOr: return
   try:
     connection.outgoing.putNoWait(state.finalDatagram)
   except AsyncQueueFullError:

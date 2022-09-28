@@ -8,7 +8,7 @@ import ./closedstate
 
 type
   DrainingConnection* = ref object of ConnectionState
-    connection*: Option[QuicConnection]
+    connection*: Opt[QuicConnection]
     ids: seq[ConnectionId]
     timeout: Timeout
     duration: Duration
@@ -33,14 +33,14 @@ push: {.locks: "unknown", upraises: [QuicError].}
 
 method enter*(state: DrainingConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)
-  state.connection = some connection
+  state.connection = Opt.some(connection)
   state.timeout = newTimeout(proc {.upraises: [].} = state.onTimeout())
   state.timeout.set(state.duration)
 
 method leave(state: DrainingConnection) =
   procCall leave(ConnectionState(state))
   state.timeout.stop()
-  state.connection = QuicConnection.none
+  state.connection = Opt.none(QuicConnection)
 
 method ids(state: DrainingConnection): seq[ConnectionId] {.upraises: [].} =
   state.ids
@@ -57,13 +57,13 @@ method openStream(state: DrainingConnection,
 
 method close(state: DrainingConnection) {.async.} =
   await state.done.wait()
-  let connection = state.connection.getOr: return
+  let connection = state.connection.valueOr: return
   let disconnecting = newDisconnectingConnection(state.ids)
   connection.switch(disconnecting)
   await disconnecting.close()
 
 method drop(state: DrainingConnection) {.async.} =
-  let connection = state.connection.getOr: return
+  let connection = state.connection.valueOr: return
   let disconnecting = newDisconnectingConnection(state.ids)
   connection.switch(disconnecting)
   await disconnecting.drop()
