@@ -20,6 +20,10 @@ proc hasConnection(listener: Listener, id: ConnectionId): bool =
 proc getConnection(listener: Listener, id: ConnectionId): Connection =
   listener.connections[id]
 
+proc localAddress*(listener: Listener): TransportAddress {.
+    raises: [Defect, TransportOsError].} =
+  listener.udp.localAddress()
+
 proc addConnection(listener: Listener, connection: Connection,
                    firstId: ConnectionId) =
   for id in connection.ids & firstId:

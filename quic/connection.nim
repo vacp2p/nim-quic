@@ -92,6 +92,14 @@ proc startHandshake*(connection: Connection) =
 proc receive*(connection: Connection, datagram: Datagram) =
   connection.quic.receive(datagram)
 
+proc remoteAddress*(connection: Connection): TransportAddress {.
+    raises: [Defect, TransportOsError].} =
+  connection.udp.remoteAddress()
+
+proc localAddress*(connection: Connection): TransportAddress {.
+    raises: [Defect, TransportOsError].} =
+  connection.udp.localAddress()
+
 proc openStream*(connection: Connection,
                  unidirectional = false): Future[Stream] {.async.} =
   await connection.quic.handshake.wait()
