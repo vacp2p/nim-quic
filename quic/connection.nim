@@ -10,6 +10,7 @@ export Stream, close, read, write
 type
   Connection* = ref object of RootObj
     udp: DatagramTransport
+    remote: TransportAddress
     quic: QuicConnection
     loop: Future[void]
     onClose: Opt[proc() {.gcsafe, upraises: [].}]
@@ -71,6 +72,7 @@ proc newIncomingConnection*(udp: DatagramTransport,
   let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
   proc onDisconnect {.async.} =
     await connection.disconnect()
+  connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
   connection
@@ -82,6 +84,7 @@ proc newOutgoingConnection*(udp: DatagramTransport,
   let connection = OutgoingConnection(udp: udp, quic: quic, closed: closed)
   proc onDisconnect {.async.} =
     await connection.disconnect()
+  connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
   connection
@@ -94,7 +97,7 @@ proc receive*(connection: Connection, datagram: Datagram) =
 
 proc remoteAddress*(connection: Connection): TransportAddress {.
     raises: [Defect, TransportOsError].} =
-  connection.udp.remoteAddress()
+  connection.remote
 
 proc localAddress*(connection: Connection): TransportAddress {.
     raises: [Defect, TransportOsError].} =
