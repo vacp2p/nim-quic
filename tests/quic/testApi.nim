@@ -4,8 +4,8 @@ import pkg/quic
 
 suite "api":
   setup:
-    let address = initTAddress("127.0.0.1:48579")
-    var listener = listen(address)
+    var listener = listen(initTAddress("127.0.0.1:0"))
+    let address = listener.localAddress
 
   teardown:
     waitFor listener.stop()
@@ -16,6 +16,11 @@ suite "api":
 
     let outgoing = await dialing
     let incoming = await accepting
+
+    check:
+      outgoing.remoteAddress.port == address.port
+      outgoing.localAddress.port == incoming.remoteAddress.port
+      incoming.localAddress.port == address.port
 
     await outgoing.drop()
     await incoming.drop()

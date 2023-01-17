@@ -7,8 +7,10 @@ import ../helpers/udp
 suite "listener":
 
   setup:
-    let address = initTAddress("127.0.0.1:45346")
-    var listener = newListener(address)
+    var listener = newListener(initTAddress("127.0.0.1:0"))
+    let address = listener.localAddress
+
+    check address.port != Port(0)
 
   teardown:
     waitFor listener.stop()

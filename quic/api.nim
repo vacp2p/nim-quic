@@ -8,6 +8,8 @@ export Listener
 export Connection
 export Stream
 export openStream
+export localAddress
+export remoteAddress
 export incomingStream
 export read
 export write
