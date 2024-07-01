@@ -44,7 +44,8 @@ proc startSending(connection: Connection, remote: TransportAddress) =
     try:
       let datagram = await connection.quic.outgoing.get()
       await connection.udp.sendTo(remote, datagram.data)
-    except TransportError:
+    except TransportError as e:
+      connection.loop.fail(e) # This might need to be revisited
       await connection.drop()
   connection.loop = asyncLoop(send)
 
