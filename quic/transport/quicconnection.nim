@@ -1,6 +1,10 @@
+import pkg/chronicles
 import ../basics
 import ./connectionid
 import ./stream
+
+logScope:
+  topics = "quic quicconnection"
 
 type
   QuicConnection* = ref object
@@ -57,9 +61,11 @@ proc newQuicConnection*(state: ConnectionState): QuicConnection =
   connection
 
 proc switch*(connection: QuicConnection, newState: ConnectionState) =
+  trace "Switching quic connection state"
   connection.state.leave()
   connection.state = newState
   connection.state.enter(connection)
+  trace "Switched quic connection state"
 
 proc ids*(connection: QuicConnection): seq[ConnectionId] =
   connection.state.ids()
@@ -80,5 +86,7 @@ proc incomingStream*(connection: QuicConnection): Future[Stream] =
 proc close*(connection: QuicConnection): Future[void] =
   connection.state.close()
 
-proc drop*(connection: QuicConnection): Future[void] =
-  connection.state.drop()
+proc drop*(connection: QuicConnection): Future[void] {.async.} =
+  trace "Dropping quic connection"
+  await connection.state.drop()
+  trace "Drop quic connection done"

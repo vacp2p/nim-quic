@@ -1,3 +1,5 @@
+import chronicles
+
 import ./basics
 import ./transport/connectionid
 import ./transport/stream
@@ -6,6 +8,9 @@ import ./transport/quicclientserver
 import ./helpers/asyncloop
 
 export Stream, close, read, write
+
+logScope:
+  topics = "quic connection"
 
 type
   Connection* = ref object of RootObj
@@ -31,7 +36,9 @@ proc `onClose=`*(connection: Connection, callback: proc() {.gcsafe, upraises: []
   connection.onClose = Opt.some(callback)
 
 proc drop*(connection: Connection) {.async.} =
+  trace "Dropping connection"
   await connection.quic.drop()
+  trace "Dropped connection"
 
 proc close*(connection: Connection) {.async.} =
   await connection.quic.close()
@@ -40,17 +47,25 @@ proc waitClosed*(connection: Connection) {.async.} =
   await connection.closed.wait()
 
 proc startSending(connection: Connection, remote: TransportAddress) =
+  debug "Starting sending loop"
   proc send {.async.} =
     try:
+      trace "Getting datagram"
       let datagram = await connection.quic.outgoing.get()
+      trace "Sending datagraom", remote
       await connection.udp.sendTo(remote, datagram.data)
+      trace "Sent datagraom"
     except TransportError as e:
+      debug "Failed to send datagram", errorMsg = e.msg
+      trace "Failing connection loop future with error"
       connection.loop.fail(e) # This might need to be revisited, see https://github.com/status-im/nim-quic/pull/41 for more details
       await connection.drop()
   connection.loop = asyncLoop(send)
 
 proc stopSending(connection: Connection) {.async.} =
+  debug "Stopping sending loop"
   await connection.loop.cancelAndWait()
+  debug "Stopped sending loop"
 
 method closeUdp(connection: Connection) {.async, base, upraises: [].} =
   discard
@@ -59,11 +74,20 @@ method closeUdp(connection: OutgoingConnection) {.async.} =
   await connection.udp.closeWait()
 
 proc disconnect(connection: Connection) {.async.} =
+  trace "Disconnecting connection"
+  trace "Stop sending in the connection"
   await connection.stopSending()
+  trace "Stopped sending in the connection"
+  trace "Closing udp"
   await connection.closeUdp()
+  trace "Closed udp"
   if connection.onClose.isSome():
+    trace "Calling onClose"
     (connection.onClose.unsafeGet())()
+    trace "Called onClose"
+  trace "Firing closed event"
   connection.closed.fire()
+  trace "Fired closed event"
 
 proc newIncomingConnection*(udp: DatagramTransport,
                            remote: TransportAddress): Connection =
@@ -72,7 +96,9 @@ proc newIncomingConnection*(udp: DatagramTransport,
   let closed = newAsyncEvent()
   let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
   proc onDisconnect {.async.} =
+    trace "Calling onDisconnect for newIncomingConnection"
     await connection.disconnect()
+    trace "Called onDisconnect for newIncomingConnection"
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
@@ -84,7 +110,9 @@ proc newOutgoingConnection*(udp: DatagramTransport,
   let closed = newAsyncEvent()
   let connection = OutgoingConnection(udp: udp, quic: quic, closed: closed)
   proc onDisconnect {.async.} =
+    trace "Calling onDisconnect for newOutgoingConnection"
     await connection.disconnect()
+    trace "Called onDisconnect for newOutgoingConnection"
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)

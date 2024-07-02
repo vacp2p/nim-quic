@@ -1,7 +1,12 @@
+import chronicles
+
 import ../../../basics
 import ../../quicconnection
 import ../../connectionid
 import ../../stream
+
+logScope:
+  topics = "quic closedstate"
 
 type
   ClosedConnection* = ref object of ConnectionState
@@ -29,6 +34,8 @@ method close(state: ClosedConnection) {.async.} =
   discard
 
 method drop(state: ClosedConnection) {.async.} =
+  trace "Dropping ClosedConnection state"
   discard
+  trace "Dropped ClosedConnection state"
 
 {.pop.}
