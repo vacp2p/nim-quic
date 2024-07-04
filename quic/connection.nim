@@ -47,7 +47,7 @@ proc waitClosed*(connection: Connection) {.async.} =
   await connection.closed.wait()
 
 proc startSending(connection: Connection, remote: TransportAddress) =
-  debug "Starting sending loop"
+  trace "Starting sending loop"
   proc send {.async.} =
     try:
       trace "Getting datagram"
@@ -56,16 +56,16 @@ proc startSending(connection: Connection, remote: TransportAddress) =
       await connection.udp.sendTo(remote, datagram.data)
       trace "Sent datagraom"
     except TransportError as e:
-      debug "Failed to send datagram", errorMsg = e.msg
+      trace "Failed to send datagram", errorMsg = e.msg
       trace "Failing connection loop future with error"
       connection.loop.fail(e) # This might need to be revisited, see https://github.com/status-im/nim-quic/pull/41 for more details
       await connection.drop()
   connection.loop = asyncLoop(send)
 
 proc stopSending(connection: Connection) {.async.} =
-  debug "Stopping sending loop"
+  trace "Stopping sending loop"
   await connection.loop.cancelAndWait()
-  debug "Stopped sending loop"
+  trace "Stopped sending loop"
 
 method closeUdp(connection: Connection) {.async, base, upraises: [].} =
   discard
