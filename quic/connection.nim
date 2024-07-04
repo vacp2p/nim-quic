@@ -45,7 +45,7 @@ proc startSending(connection: Connection, remote: TransportAddress) =
       let datagram = await connection.quic.outgoing.get()
       await connection.udp.sendTo(remote, datagram.data)
     except TransportError as e:
-      connection.loop.fail(e) # This might need to be revisited
+      connection.loop.fail(e) # This might need to be revisited, see https://github.com/status-im/nim-quic/pull/41 for more details
       await connection.drop()
   connection.loop = asyncLoop(send)
 
