@@ -102,7 +102,7 @@ proc writePacketNumber(writer: var PacketWriter, datagram: var openArray[byte],
 
 proc writePacketNumberAndPayload*(writer: var PacketWriter,
                                   datagram: var openArray[byte]) =
-  let packetnumber = writer.packet.packetnumber.toMinimalBytes
+  let packetnumber = writer.packet.packetNumber.toMinimalBytes
   let payload = writer.packet.payload
   writer.writePacketLength(datagram, packetnumber.len + payload.len)
   writer.writePacketNumber(datagram, packetnumber)
