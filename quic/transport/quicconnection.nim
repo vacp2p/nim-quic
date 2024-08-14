@@ -12,15 +12,15 @@ type
     outgoing*: AsyncQueue[Datagram]
     incoming*: AsyncQueue[Stream]
     handshake*: AsyncEvent
-    disconnect*: Opt[proc(): Future[void] {.gcsafe, upraises: [].}]
+    disconnect*: Opt[proc(): Future[void] {.gcsafe, raises: [].}]
     onNewId*: IdCallback
     onRemoveId*: IdCallback
   ConnectionState* = ref object of RootObj
     entered: bool
-  IdCallback* = proc(id: ConnectionId) {.gcsafe, upraises: [].}
+  IdCallback* = proc(id: ConnectionId) {.gcsafe, raises: [].}
   ConnectionError* = object of QuicError
 
-push: {.base, locks: "unknown", upraises: [QuicError].}
+{.push base, locks: "unknown", raises: [QuicError].}
 
 method enter*(state: ConnectionState, connection: QuicConnection) =
   doAssert not state.entered # states are not reentrant
@@ -29,7 +29,7 @@ method enter*(state: ConnectionState, connection: QuicConnection) =
 method leave*(state: ConnectionState) =
   discard
 
-method ids*(state: ConnectionState): seq[ConnectionId] {.upraises: [].} =
+method ids*(state: ConnectionState): seq[ConnectionId] {.raises: [].} =
   doAssert false # override this method
 
 method send*(state: ConnectionState) =

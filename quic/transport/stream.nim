@@ -10,7 +10,7 @@ type
     entered: bool
   StreamError* = object of QuicError
 
-push: {.locks:"unknown", upraises: [QuicError].}
+{.push locks:"unknown", raises: [QuicError].}
 
 method enter*(state: StreamState, stream: Stream) {.base.} =
   doAssert not state.entered # states are not reentrant

@@ -18,7 +18,7 @@ type
     remote: TransportAddress
     quic: QuicConnection
     loop: Future[void]
-    onClose: Opt[proc() {.gcsafe, upraises: [].}]
+    onClose: Opt[proc() {.gcsafe, raises: [].}]
     closed: AsyncEvent
   IncomingConnection = ref object of Connection
   OutgoingConnection = ref object of Connection
@@ -32,7 +32,7 @@ proc `onNewId=`*(connection: Connection, callback: IdCallback) =
 proc `onRemoveId=`*(connection: Connection, callback: IdCallback) =
   connection.quic.onRemoveId = callback
 
-proc `onClose=`*(connection: Connection, callback: proc() {.gcsafe, upraises: [].}) =
+proc `onClose=`*(connection: Connection, callback: proc() {.gcsafe, raises: [].}) =
   connection.onClose = Opt.some(callback)
 
 proc drop*(connection: Connection) {.async.} =
@@ -67,7 +67,7 @@ proc stopSending(connection: Connection) {.async.} =
   await connection.loop.cancelAndWait()
   trace "Stopped sending loop"
 
-method closeUdp(connection: Connection) {.async, base, upraises: [].} =
+method closeUdp(connection: Connection) {.async, base, raises: [].} =
   discard
 
 method closeUdp(connection: OutgoingConnection) {.async.} =

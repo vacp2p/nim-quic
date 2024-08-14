@@ -1,6 +1,6 @@
-import pkg/[chronos, upraises]
+import pkg/chronos
 
-proc asyncLoop*(repeat: proc: Future[void] {.gcsafe, upraises: [CatchableError].}): Future[void] {.async.} =
+proc asyncLoop*(repeat: proc: Future[void] {.gcsafe, raises: [CatchableError].}): Future[void] {.async.} =
   ## Repeatedly calls the async proc `repeat` until cancelled.
   ## Any `Error`s that are raised in `repeat` are considered fatal and therefore
   ## re-raised as `Defect`s.

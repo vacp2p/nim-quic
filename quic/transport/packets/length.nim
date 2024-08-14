@@ -3,7 +3,7 @@ import ./varints
 import ./packet
 import ./packetnumber
 
-push: {.upraises: [].}
+{.push raises: [].}
 
 proc len*(packet: Packet): int =
   case packet.form

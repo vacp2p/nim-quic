@@ -3,8 +3,6 @@ import ../connectionid
 import ../version
 import ./packetnumber
 
-push: {.upraises: [].}
-
 export connectionid
 export PacketNumber
 
