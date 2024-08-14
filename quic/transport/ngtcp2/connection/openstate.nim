@@ -1,3 +1,5 @@
+import chronicles
+
 import ../../../basics
 import ../../quicconnection
 import ../../connectionid
@@ -10,6 +12,9 @@ import ./closingstate
 import ./drainingstate
 import ./disconnectingstate
 import ./openstreams
+
+logScope:
+  topics = "quic disconnectingstate"
 
 type
   OpenConnection* = ref object of ConnectionState
@@ -30,6 +35,7 @@ proc openServerConnection*(local, remote: TransportAddress,
 {.push locks: "unknown".}
 
 method enter(state: OpenConnection, connection: QuicConnection) =
+  trace "Entering OpenConnection state"
   procCall enter(ConnectionState(state), connection)
   state.quicConnection = Opt.some(connection)
   # Workaround weird bug
@@ -50,12 +56,15 @@ method enter(state: OpenConnection, connection: QuicConnection) =
     connection.incoming.putNoWait(stream)
   state.ngtcp2Connection.onHandshakeDone = proc =
     connection.handshake.fire()
+  trace "Entered OpenConnection state"
 
 method leave(state: OpenConnection) =
+  trace "Leaving OpenConnection state"
   procCall leave(ConnectionState(state))
   state.streams.closeAll()
   state.ngtcp2Connection.destroy()
   state.quicConnection = Opt.none(QuicConnection)
+  trace "Left OpenConnection state"
 
 method ids(state: OpenConnection): seq[ConnectionId] {.upraises: [].} =
   state.ngtcp2Connection.ids
@@ -91,9 +100,11 @@ method close(state: OpenConnection) {.async.} =
   await closing.close()
 
 method drop(state: OpenConnection) {.async.} =
+  trace "Dropping OpenConnection state"
   let quicConnection = state.quicConnection.valueOr: return
   let disconnecting = newDisconnectingConnection(state.ids)
   quicConnection.switch(disconnecting)
   await disconnecting.drop()
+  trace "Dropped OpenConnection state"
 
 {.pop.}
