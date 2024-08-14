@@ -18,7 +18,7 @@ type
     buffer*: array[4096, byte]
     flowing*: AsyncEvent
     timeout*: Timeout
-    onSend*: proc(datagram: Datagram) {.gcsafe, upraises:[].}
+    onSend*: proc(datagram: Datagram) {.gcsafe, raises:[].}
     onIncomingStream*: proc(stream: Stream)
     onHandshakeDone*: proc()
     onNewId*: Opt[proc(id: ConnectionId)]
@@ -36,7 +36,7 @@ proc destroy*(connection: Ngtcp2Connection) =
   connection.onNewId = Opt.none(proc(id: ConnectionId))
   connection.onRemoveId = Opt.none(proc(id: ConnectionId))
 
-proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe, upraises:[].}
+proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe, raises:[].}
 
 proc newConnection*(path: Path): Ngtcp2Connection =
   let connection = Ngtcp2Connection()

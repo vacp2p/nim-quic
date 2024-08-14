@@ -66,7 +66,7 @@ method leave(state: OpenConnection) =
   state.quicConnection = Opt.none(QuicConnection)
   trace "Left OpenConnection state"
 
-method ids(state: OpenConnection): seq[ConnectionId] {.upraises: [].} =
+method ids(state: OpenConnection): seq[ConnectionId] {.raises: [].} =
   state.ngtcp2Connection.ids
 
 method send(state: OpenConnection) =

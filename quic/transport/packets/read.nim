@@ -5,7 +5,7 @@ import ./varints
 import ./packet
 import ./reader
 
-push: {.upraises: [QuicError].}
+{.push raises: [QuicError].}
 
 export reader
 

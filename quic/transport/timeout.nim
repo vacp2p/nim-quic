@@ -2,7 +2,7 @@ import ../basics
 
 type Timeout* = ref object
   timer: Opt[TimerCallback]
-  onExpiry: proc () {.gcsafe, upraises:[].}
+  onExpiry: proc () {.gcsafe, raises:[].}
   expired: AsyncEvent
 
 proc setTimer(timeout: Timeout, moment: Moment) =
@@ -13,7 +13,7 @@ proc setTimer(timeout: Timeout, moment: Moment) =
 
 const skip = proc () = discard
 
-proc newTimeout*(onExpiry: proc () {.gcsafe, upraises:[].} = skip): Timeout =
+proc newTimeout*(onExpiry: proc () {.gcsafe, raises:[].} = skip): Timeout =
   Timeout(onExpiry: onExpiry, expired: newAsyncEvent())
 
 proc stop*(timeout: Timeout) =
