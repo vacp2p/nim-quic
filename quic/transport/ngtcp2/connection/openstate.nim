@@ -14,7 +14,7 @@ import ./disconnectingstate
 import ./openstreams
 
 logScope:
-  topics = "quic disconnectingstate"
+  topics = "quic openstate"
 
 type
   OpenConnection* = ref object of ConnectionState

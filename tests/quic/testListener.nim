@@ -17,7 +17,7 @@ suite "listener":
 
   asyncTest "creates connections":
     await exampleQuicDatagram().sendTo(address)
-    let connection = await listener.waitForIncoming()
+    let connection = await listener.waitForIncoming().wait(100.milliseconds)
 
     check connection != nil
 

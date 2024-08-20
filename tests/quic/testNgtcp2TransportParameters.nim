@@ -5,22 +5,23 @@ import pkg/quic/errors
 import pkg/quic/transport/ngtcp2/native/connection
 import pkg/quic/transport/ngtcp2/native/client
 import pkg/quic/transport/ngtcp2/native/params
+import pkg/quic/transport/ngtcp2/native/settings
 import ../helpers/addresses
 
 suite "ngtcp2 transport parameters":
 
-  var settings: ngtcp2_settings
+  var transport_params: ngtcp2_transport_params
 
   setup:
-    ngtcp2_settings_default(addr settings)
+    transport_params = defaultTransportParameters()
 
   test "encoding and decoding":
-    let encoded = encodeTransportParameters(settings.transport_params)
+    let encoded = encodeTransportParameters(transport_params)
     let decoded = decodeTransportParameters(encoded)
-    check decoded == settings.transport_params
+    check decoded == transport_params
 
   test "raises when decoding fails":
-    var encoded = encodeTransportParameters(settings.transport_params)
+    var encoded = encodeTransportParameters(transport_params)
     encoded[0] = 0xFF
 
     expect QuicError:
@@ -29,8 +30,8 @@ suite "ngtcp2 transport parameters":
   test "raises when setting remote parameters fails":
     let connection = newNgtcp2Client(zeroAddress, zeroAddress)
     defer: connection.destroy()
-    settings.transport_params.active_connection_id_limit = 0
+    transport_params.active_connection_id_limit = 0
 
     expect QuicError:
       let conn = connection.conn.get()
-      conn.setRemoteTransportParameters(settings.transport_params)
+      conn.setRemoteTransportParameters(transport_params)

@@ -51,6 +51,6 @@ proc performHandshake*:
   let clientLoop = networkLoop(client, server)
   let serverLoop = networkLoop(server, client)
   await allFutures(client.handshake.wait(), server.handshake.wait())
-  serverLoop.cancel()
-  clientLoop.cancel()
+  await serverLoop.cancelAndWait()
+  await clientLoop.cancelAndWait()
   result = (client, server)

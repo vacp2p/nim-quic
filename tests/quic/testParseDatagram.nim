@@ -1,6 +1,7 @@
 import std/unittest
-import pkg/quic/transport/packets
-import pkg/quic/transport/parsedatagram
+
+import pkg/ngtcp2
+import pkg/quic/transport/[packets, parsedatagram, version]
 
 suite "parse ngtcp2 packet info":
 
@@ -8,7 +9,7 @@ suite "parse ngtcp2 packet info":
   var datagram: array[4096, byte]
 
   setup:
-    packet = initialPacket(42'u32)
+    packet = initialPacket(CurrentQuicVersion)
     packet.source = randomConnectionId()
     packet.destination = randomConnectionId()
     datagram = typeof(datagram).default

@@ -15,7 +15,10 @@ type
   CryptoContext = ngtcp2_crypto_ctx
 
 proc dummyCryptoContext: CryptoContext =
-  CryptoContext(max_encryption: 1000)
+  var ctx = CryptoContext()
+  ctx.max_encryption = 1000
+  ctx.aead.max_overhead = aeadlen
+  return ctx
 
 proc dummyKey: Key =
   Key(iv: cast[seq[byte]]("dummykey"))
@@ -57,7 +60,6 @@ proc installHandshakeKeys*(connection: ptr ngtcp2_conn) =
   )
 
 proc install1RttKeys*(connection: ptr ngtcp2_conn) =
-  ngtcp2_conn_set_aead_overhead(connection, aeadlen)
   let secret = dummySecret()
   let rx, tx = dummyKey()
   doAssert 0 == ngtcp2_conn_install_rx_key(

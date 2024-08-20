@@ -37,6 +37,6 @@ proc removeConnectionId(conn: ptr ngtcp2_conn,
     onRemoveId = connection.onRemoveId.valueOr: return
   onRemoveId(id.toConnectionId)
 
-proc installConnectionIdCallback*(callbacks: var ngtcp2_conn_callbacks) =
+proc installConnectionIdCallback*(callbacks: var ngtcp2_callbacks) =
   callbacks.get_new_connection_id = getNewConnectionId
   callbacks.remove_connection_id = removeConnectionId

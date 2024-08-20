@@ -10,23 +10,15 @@ proc toConnectionId(p: ptr byte, length: uint): ConnectionId =
   ConnectionId(bytes)
 
 proc parseDatagram*(datagram: openArray[byte]): PacketInfo =
-  var version: uint32
-  var destinationId: ptr uint8
-  var destinationIdLen: uint
-  var sourceId: ptr uint8
-  var sourceIdLen: uint
+  var version: ngtcp2_version_cid;
   checkResult ngtcp2_pkt_decode_version_cid(
     addr version,
-    addr destinationId,
-    addr destinationIdLen,
-    addr sourceId,
-    addr sourceIdLen,
     unsafeAddr datagram[0],
     datagram.len.uint,
     DefaultConnectionIdLength
   )
   PacketInfo(
-    source: toConnectionId(sourceId, sourceIdLen),
-    destination: toConnectionId(destinationId, destinationIdLen),
-    version: version
+    source: toConnectionId(version.scid, version.scidlen),
+    destination: toConnectionId(version.dcid, version.dcidlen),
+    version: version.version.uint32
   )
