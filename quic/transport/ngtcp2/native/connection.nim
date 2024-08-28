@@ -137,7 +137,7 @@ proc tryReceive(connection: Ngtcp2Connection, datagram: openArray[byte],
     conn,
     connection.path.toPathPtr,
     NGTCP2_PKT_INFO_V1,
-    unsafeAddr packetInfo,
+    addr packetInfo,
     datagram.toUnsafePtr,
     datagram.len.uint,
     now()
@@ -167,7 +167,7 @@ proc close*(connection: Ngtcp2Connection): Datagram =
     raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
 
   var ccerr: ngtcp2_ccerr
-  ngtcp2_ccerr_default(unsafeAddr ccerr)
+  ngtcp2_ccerr_default(addr ccerr)
 
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_connection_close_versioned(

@@ -28,6 +28,7 @@ proc getNewConnectionId(conn: ptr ngtcp2_conn,
     connection = cast[Ngtcp2Connection](userData)
     onNewId = connection.onNewId.valueOr: return
   onNewId(newId)
+  return 0
 
 proc removeConnectionId(conn: ptr ngtcp2_conn,
                         id: ptr ngtcp2_cid,

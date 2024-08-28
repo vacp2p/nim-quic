@@ -57,13 +57,13 @@ suite "quic connection":
 
   asyncTest "notifies about id changes":
     let (client, server) = await setupConnection()
-
-    server.onNewId = proc (id: ConnectionId) =
-      check id != ConnectionId.default
-
+    var newId: ConnectionId
+    client.onNewId = proc (id: ConnectionId) =
+      newId = id
     let simulation = simulateNetwork(client, server)
 
     await server.handshake.wait()
+    check newId != ConnectionId.default
 
     await simulation.cancelAndWait()
     await client.drop

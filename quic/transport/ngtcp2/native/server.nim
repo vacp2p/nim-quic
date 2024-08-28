@@ -54,7 +54,10 @@ proc onDeleteCryptoCipherCtx(conn: ptr ngtcp2_conn,
 proc onGetPathChallengeData(conn: ptr ngtcp2_conn,
                           data: ptr uint8,
                           userData: pointer): cint {.cdecl.} =
-  doAssert NGTCP2_PATH_CHALLENGE_DATALEN == randomBytes(data, NGTCP2_PATH_CHALLENGE_DATALEN)
+  let bytesWritten = randomBytes(data, NGTCP2_PATH_CHALLENGE_DATALEN)
+  if bytesWritten != NGTCP2_PATH_CHALLENGE_DATALEN:
+    return NGTCP2_ERR_CALLBACK_FAILURE
+  return 0
 
 proc newNgtcp2Server*(local, remote: TransportAddress,
                      source, destination: ngtcp2_cid): Ngtcp2Connection =
@@ -94,7 +97,7 @@ proc newNgtcp2Server*(local, remote: TransportAddress,
     NGTCP2_SETTINGS_V2,
     addr settings,
     NGTCP2_TRANSPORT_PARAMS_V1,
-    unsafeAddr transportParams,
+    addr transportParams,
     nil,
     addr result[]
   )
