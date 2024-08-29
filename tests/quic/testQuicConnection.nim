@@ -56,10 +56,16 @@ suite "quic connection":
     check server.ids != client.ids
 
   asyncTest "notifies about id changes":
-    let (client, server) = await setupConnection()
+    let client = newQuicClientConnection(zeroAddress, zeroAddress)
+    client.send()
+    let datagram = await client.outgoing.get()
+
+    let server = newQuicServerConnection(zeroAddress, zeroAddress, datagram)
     var newId: ConnectionId
-    client.onNewId = proc (id: ConnectionId) =
+    server.onNewId = proc (id: ConnectionId) =
       newId = id
+    server.receive(datagram)
+
     let simulation = simulateNetwork(client, server)
 
     await server.handshake.wait()
