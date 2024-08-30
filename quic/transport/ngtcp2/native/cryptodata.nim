@@ -2,7 +2,7 @@ import pkg/ngtcp2
 import ./params
 
 proc submitCryptoData*(connection: ptr ngtcp2_conn,
-                       level: ngtcp2_crypto_level) =
+                       level: ngtcp2_encryption_level) =
   var cryptoData = connection.encodeTransportParameters()
   doAssert 0 == ngtcp2_conn_submit_crypto_data(
     connection,

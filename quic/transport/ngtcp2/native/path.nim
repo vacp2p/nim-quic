@@ -18,7 +18,6 @@ proc newPath*(local, remote: TransportAddress): Path =
     addr path.storage,
     cast[ptr SockAddr](addr localAddress),
     localLength,
-    nil,
     cast[ptr SockAddr](addr remoteAddress),
     remoteLength,
     nil

@@ -22,6 +22,7 @@ proc onStreamOpen(conn: ptr ngtcp2_conn,
   connection.onIncomingStream(newStream(connection, stream_id))
 
 proc onStreamClose(conn: ptr ngtcp2_conn,
+                   flags: uint32,
                    stream_id: int64,
                    app_error_code: uint64,
                    user_data: pointer,
@@ -43,7 +44,7 @@ proc onReceiveStreamData(connection: ptr ngtcp2_conn,
   copyMem(bytes.toUnsafePtr, data, datalen)
   state.receive(bytes)
 
-proc installStreamCallbacks*(callbacks: var ngtcp2_conn_callbacks) =
+proc installStreamCallbacks*(callbacks: var ngtcp2_callbacks) =
   callbacks.stream_open = onStreamOpen
   callbacks.stream_close = onStreamClose
   callbacks.recv_stream_data = onReceiveStreamData

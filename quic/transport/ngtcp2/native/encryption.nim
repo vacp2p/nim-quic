@@ -46,7 +46,7 @@ proc dummyUpdateKey(conn: ptr ngtcp2_conn,
                      user_data: pointer): cint {.cdecl.} =
   discard
 
-proc installEncryptionCallbacks*(callbacks: var ngtcp2_conn_callbacks) =
+proc installEncryptionCallbacks*(callbacks: var ngtcp2_callbacks) =
   callbacks.encrypt = dummyEncrypt
   callbacks.decrypt = dummyDecrypt
   callbacks.hp_mask = dummyHpMask
