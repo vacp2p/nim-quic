@@ -52,7 +52,7 @@ proc startSending(connection: Connection, remote: TransportAddress) =
     try:
       trace "Getting datagram"
       let datagram = await connection.quic.outgoing.get()
-      trace "Sending datagraom", remote
+      trace "Sending datagraom"
       await connection.udp.sendTo(remote, datagram.data)
       trace "Sent datagraom"
     except TransportError as e:
