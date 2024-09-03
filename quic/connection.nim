@@ -58,7 +58,8 @@ proc startSending(connection: Connection, remote: TransportAddress) =
     except TransportError as e:
       trace "Failed to send datagram", errorMsg = e.msg
       trace "Failing connection loop future with error"
-      connection.loop.fail(e) # This might need to be revisited, see https://github.com/status-im/nim-quic/pull/41 for more details
+      if not connection.loop.finished:
+        connection.loop.fail(e) # This might need to be revisited, see https://github.com/status-im/nim-quic/pull/41 for more details
       await connection.drop()
   connection.loop = asyncLoop(send)
 
