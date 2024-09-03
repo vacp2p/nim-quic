@@ -33,30 +33,30 @@ suite "variable length integer encoding":
 suite "variable length integer decoding":
 
   test "decodes 1 byte integers":
-    check fromVarInt(@[0'u8]) == 0'u64
+    check fromVarInt(@[0'u8]) == 0
     check fromVarInt(@[42'u8]) == 42
     check fromVarInt(@[63'u8]) == 63
 
   test "decodes 2 byte integers":
-    check fromVarInt(@[0b01000000'u8, 0'u8]) == 0'u64
+    check fromVarInt(@[0b01000000'u8, 0'u8]) == 0
     check fromVarInt(@[0b01000001'u8, 0'u8]) == 256
-    check fromVarInt(@[0b01111111'u8, 0xFF'u8]) == 2'u64^14-1
+    check fromVarInt(@[0b01111111'u8, 0xFF'u8]) == 2^14-1
 
   test "decodes 4 byte integers":
-    check fromVarInt(@[0b10000000'u8, 0'u8, 0'u8, 0'u8]) == 0'u64
-    check fromVarInt(@[0b10000001'u8, 0'u8, 0'u8, 0'u8]) == 2'u64^24
-    check fromVarInt(@[0b10111111'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8]) == 2'u64^30-1
+    check fromVarInt(@[0b10000000'u8, 0'u8, 0'u8, 0'u8]) == 0
+    check fromVarInt(@[0b10000001'u8, 0'u8, 0'u8, 0'u8]) == 2^24
+    check fromVarInt(@[0b10111111'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8]) == 2^30-1
 
   test "decodes 8 byte integers":
     check fromVarInt(@[
       0b11000000'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8
-    ]) == 0'u64
+    ]) == 0
     check fromVarInt(@[
       0b11000001'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8
-    ]) == 2'u64^56
+    ]) == 2^56
     check fromVarInt(@[
       0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8
-    ]) == 2'u64^62-1
+    ]) == 2^62-1
 
 suite "variable length":
 

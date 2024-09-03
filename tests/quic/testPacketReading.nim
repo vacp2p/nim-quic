@@ -76,7 +76,7 @@ suite "packet reading":
     check readPacket(datagram[0..<length]).retry.integrity == integrity
 
   test "reads packet number from handshake packet":
-    const packetnumber = 0xABCD'u16
+    const packetnumber = 0xABCD
     var packet = handshakePacket()
     packet.handshake.packetnumber = packetnumber
     datagram.write(packet)
@@ -90,7 +90,7 @@ suite "packet reading":
     check readPacket(datagram).handshake.payload == payload
 
   test "reads packet number from 0-RTT packet":
-    const packetnumber = 0xABCD'u16
+    const packetnumber = 0xABCD
     var packet = zeroRttPacket()
     packet.rtt.packetnumber = packetnumber
     datagram.write(packet)
@@ -111,7 +111,7 @@ suite "packet reading":
     check readPacket(datagram).initial.token == token
 
   test "reads packet number from initial packet":
-    const packetnumber = 0xABCD'u16
+    const packetnumber = 0xABCD
     var packet = initialPacket()
     packet.initial.packetnumber = packetnumber
     datagram.write(packet)
@@ -150,7 +150,7 @@ suite "packet reading":
     check readPacket(datagram).destination == destination
 
   test "reads packet number from short packet":
-    const packetnumber = 0xABCD'u16
+    const packetnumber = 0xABCD
     var packet = shortPacket()
     packet.short.packetnumber = packetnumber
     packet.destination = ConnectionId(repeat(0'u8, DefaultConnectionIdLength))

@@ -2,7 +2,7 @@ import std/math
 import pkg/stew/endians2
 
 type
-  VarIntCompatible* = range[0'u64..2'u64^62-1]
+  VarIntCompatible* = range[0..2^62-1]
 
 proc toVarInt*(value: VarIntCompatible): seq[byte] =
   case value
@@ -16,7 +16,7 @@ proc toVarInt*(value: VarIntCompatible): seq[byte] =
     @(toBytesBE(length or value.uint32))
   else:
     const length = 0b11'u64 shl 62
-    @(toBytesBE(length or value))
+    @(toBytesBE(length or value.uint64))
 
 proc varintlen*(varint: openArray[byte]): int =
   2^(varint[0] shr 6)
