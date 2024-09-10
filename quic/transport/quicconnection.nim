@@ -42,10 +42,10 @@ method openStream*(state: ConnectionState,
                    unidirectional: bool): Future[Stream] =
   doAssert false # override this method
 
-method drop*(state: ConnectionState): Future[void] =
+method drop*(state: ConnectionState): Future[void] {.gcsafe.} =
   doAssert false # override this method
 
-method close*(state: ConnectionState): Future[void] =
+method close*(state: ConnectionState): Future[void] {.gcsafe.} =
   doAssert false # override this method
 
 {.pop.}

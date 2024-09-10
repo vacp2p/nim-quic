@@ -109,7 +109,7 @@ proc `payload=`(packet: var Packet, payload: seq[byte]) =
     else: discard
 
 proc readPacketLength(reader: var PacketReader,
-                      datagram: openArray[byte]): uint64 =
+                      datagram: openArray[byte]): int =
   case reader.packet.form:
   of formLong: reader.readVarInt(datagram)
   of formShort: datagram.len - reader.next
@@ -122,7 +122,7 @@ proc readPacketNumberAndPayload*(reader: var PacketReader,
                                  datagram: openArray[byte]) =
   let length = reader.readPacketLength(datagram)
   let packetnumberLength = reader.readPacketNumberLength(datagram)
-  let payloadLength = length - packetnumberLength.uint64
+  let payloadLength = length - packetnumberLength
   reader.readPacketNumber(datagram, packetnumberLength)
   reader.readPayload(datagram, payloadLength.int)
 

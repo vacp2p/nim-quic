@@ -10,11 +10,11 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
-        nim: [1.6.20]
+        nim: [1.6.20, 2.0.8]
     steps:
     - uses: actions/checkout@v2
     - uses: iffy/install-nim@v3

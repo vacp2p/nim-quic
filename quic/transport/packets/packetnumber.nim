@@ -2,10 +2,10 @@ import std/math
 import pkg/stew/endians2
 
 type
-  PacketNumber* = range[0'u64..2'u64^62-1]
+  PacketNumber* = range[0..2^62-1]
 
 proc toMinimalBytes*(packetnumber: PacketNumber): seq[byte] =
-  let bytes = packetnumber.toBytesBE
+  let bytes = packetnumber.uint64.toBytesBE
   var length = bytes.len
   while length > 1 and bytes[bytes.len - length] == 0:
     length = length - 1
