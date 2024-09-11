@@ -2,7 +2,7 @@ import std/math
 import pkg/stew/endians2
 
 type
-  VarIntCompatible* = range[0..2^62-1]
+  VarIntCompatible* = range[0'i64..2'i64^62-1]
 
 proc toVarInt*(value: VarIntCompatible): seq[byte] =
   case value
@@ -22,7 +22,7 @@ proc varintlen*(varint: openArray[byte]): int =
   2^(varint[0] shr 6)
 
 proc fromVarInt*(varint: openArray[byte]): VarIntCompatible =
-  case varintlen(varint)
+  let r = case varintlen(varint)
   of 1:
     varint[0].uint64
   of 2:
@@ -34,3 +34,4 @@ proc fromVarInt*(varint: openArray[byte]): VarIntCompatible =
   else:
     const mask = not(0b11'u64 shl 62)
     fromBytesBE(uint64, varint) and mask
+  r.int64

@@ -95,7 +95,7 @@ proc readPacketNumber(reader: var PacketReader, datagram: openArray[byte],
     padded[padded.len-bytes.len..<padded.len] = bytes
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
-  reader.packet.packetnumber = fromBytesBE(uint32, padded)
+  reader.packet.packetnumber = fromBytesBE(uint32, padded).int64
 
 proc `payload=`(packet: var Packet, payload: seq[byte]) =
   case packet.form

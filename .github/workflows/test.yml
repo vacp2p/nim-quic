@@ -9,18 +9,47 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macOS-latest, windows-latest]
-        nim: [1.6.20, 2.0.8]
+        platform:
+          - os: linux
+            runner: ubuntu-latest
+            cpu: amd64
+            shell: bash
+          - os: linux
+            runner: ubuntu-latest
+            cpu: i386
+            shell: bash
+          - os: macos
+            runner: macos-latest
+            cpu: amd64
+            shell: bash
+          - os: windows
+            runner: windows-latest
+            cpu: amd64
+            shell: msys2 {0}
+        nim:
+          - branch: version-1-6
+          - branch: version-2-0
+
+    name: '${{ matrix.platform.os }}-${{ matrix.platform.cpu }} (Nim ${{ matrix.nim.branch }})'
+    runs-on: ${{ matrix.platform.runner }}
     steps:
-    - uses: actions/checkout@v2
-    - uses: iffy/install-nim@v3
-      with:
-        version: ${{ matrix.nim }}
-    - name: Build
-      run: nimble install -y
-    - name: Test
-      run: nimble test -y
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Nim
+        uses: vacp2p/nim-libp2p/.github/actions/install_nim@master
+        with:
+          os: ${{ matrix.platform.os }}
+          cpu: ${{ matrix.platform.cpu }}
+          shell: ${{ matrix.platform.shell }}
+          nim_branch: ${{ matrix.nim.branch }}
+
+      - name: Install dependencies
+        run: nimble install -y
+
+      - name: Test
+        run: nimble test -y

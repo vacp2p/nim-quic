@@ -23,11 +23,11 @@ suite "variable length integer encoding":
   test "encodes 30-62 bit numbers as 8 bytes":
     check toVarInt(2^30) ==
       @[0b11000000'u8, 0'u8, 0'u8, 0'u8, 0b01000000'u8, 0'u8, 0'u8, 0'u8]
-    check toVarInt(2^32) ==
+    check toVarInt(2'i64^32) ==
       @[0b11000000'u8, 0'u8, 0'u8, 1'u8, 0'u8, 0'u8, 0'u8, 0'u8]
-    check toVarInt(2^56) ==
+    check toVarInt(2'i64^56) ==
       @[0b11000001'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8]
-    check toVarInt(2^62-1) ==
+    check toVarInt(2'i64^62-1) ==
       @[0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8]
 
 suite "variable length integer decoding":
@@ -53,10 +53,10 @@ suite "variable length integer decoding":
     ]) == 0
     check fromVarInt(@[
       0b11000001'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8
-    ]) == 2^56
+    ]) == 2'i64^56
     check fromVarInt(@[
       0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8, 0xFF'u8
-    ]) == 2^62-1
+    ]) == 2'i64^62-1
 
 suite "variable length":
 
