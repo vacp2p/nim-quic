@@ -73,7 +73,7 @@ suite "packet writing":
     const packetnumber = 0xAABBCCDD'u32
     const payload = repeat(0xAB'u8, 1024)
     var packet = handshakePacket()
-    packet.handshake.packetnumber = packetnumber
+    packet.handshake.packetnumber = packetnumber.int64
     packet.handshake.payload = payload
     datagram.write(packet)
     check datagram[7..8] == (sizeof(packetnumber) + payload.len).toVarInt
@@ -81,7 +81,7 @@ suite "packet writing":
   test "writes handshake packet number":
     const packetnumber = 0xAABBCCDD'u32
     var packet = handshakePacket()
-    packet.handshake.packetnumber = packetnumber
+    packet.handshake.packetnumber = packetnumber.int64
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
     check datagram[8..11] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
@@ -97,7 +97,7 @@ suite "packet writing":
     const packetnumber = 0xAABBCCDD'u32
     const payload = repeat(0xAB'u8, 1024)
     var packet = zeroRttPacket()
-    packet.rtt.packetnumber = packetnumber
+    packet.rtt.packetnumber = packetnumber.int64
     packet.rtt.payload = payload
     datagram.write(packet)
     check datagram[7..8] == (sizeof(packetnumber) + payload.len).toVarInt
@@ -105,7 +105,7 @@ suite "packet writing":
   test "writes 0-RTT packet number":
     const packetnumber = 0xAABBCCDD'u32
     var packet = zeroRttPacket()
-    packet.rtt.packetnumber = packetnumber
+    packet.rtt.packetnumber = packetnumber.int64
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
     check datagram[8..11] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
@@ -129,7 +129,7 @@ suite "packet writing":
     const packetnumber = 0xAABBCCDD'u32
     const payload = repeat(0xAB'u8, 1024)
     var packet = initialPacket()
-    packet.initial.packetnumber = packetnumber
+    packet.initial.packetnumber = packetnumber.int64
     packet.initial.payload = payload
     datagram.write(packet)
     check datagram[8..9] == (sizeof(packetnumber) + payload.len).toVarInt
@@ -137,7 +137,7 @@ suite "packet writing":
   test "writes initial packet number":
     const packetnumber = 0xAABBCCDD'u32
     var packet = initialPacket()
-    packet.initial.packetnumber = packetnumber
+    packet.initial.packetnumber = packetnumber.int64
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
     check datagram[9..12] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
@@ -184,7 +184,7 @@ suite "packet writing":
   test "writes packet number for short packet":
     const packetnumber = 0xAABB'u16
     var packet = shortPacket()
-    packet.short.packetnumber = packetnumber
+    packet.short.packetnumber = packetnumber.int64
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
     check datagram[1..2] == @[0xAA'u8, 0xBB'u8]

@@ -6,7 +6,7 @@ suite "packet numbers":
 
   test "packet numbers are in the range 0 to 2^62-1":
     check PacketNumber.low == 0
-    check PacketNumber.high == 2 ^ 62 - 1
+    check PacketNumber.high == 2'i64 ^ 62 - 1
 
   test "conversion to bytes":
     check 0.toMinimalBytes == @[0'u8]

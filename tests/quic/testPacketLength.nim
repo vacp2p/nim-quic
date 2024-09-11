@@ -29,7 +29,7 @@ suite "packet length":
     var packet = handshakePacket()
     packet.destination = destination
     packet.source = source
-    packet.handshake.packetnumber = 0x00BBCCDD'u32
+    packet.handshake.packetnumber = 0x00BBCCDD'u32.int64
     packet.handshake.payload = repeat(0xEE'u8, 1024)
     check packet.len == 7 +
       destination.len +
@@ -42,7 +42,7 @@ suite "packet length":
     var packet = zeroRttPacket()
     packet.destination = destination
     packet.source = source
-    packet.rtt.packetnumber = 0x00BBCCDD'u32
+    packet.rtt.packetnumber = 0x00BBCCDD'u32.int64
     packet.rtt.payload = repeat(0xEE'u8, 1024)
     check packet.len == 7 +
       destination.len +
@@ -56,7 +56,7 @@ suite "packet length":
     packet.destination = destination
     packet.source = source
     packet.initial.token = token
-    packet.initial.packetnumber = 0x00BBCCDD'u32
+    packet.initial.packetnumber = 0x00BBCCDD'u32.int64
     packet.initial.payload = repeat(0xEE'u8, 1024)
     check packet.len == 7 +
       destination.len +
@@ -70,7 +70,7 @@ suite "packet length":
   test "knows the length of a short packet":
     var packet = shortPacket()
     packet.destination = destination
-    packet.short.packetnumber = 0x00BBCCDD'u32
+    packet.short.packetnumber = 0x00BBCCDD'u32.int64
     packet.short.payload = repeat(0xEE'u8, 1024)
     check packet.len == 1 +
       destination.len +
