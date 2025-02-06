@@ -21,13 +21,9 @@ proc sendFinalDatagram(state: ClosingConnection) =
   except AsyncQueueFullError:
     raise newException(QuicError, "Outgoing queue is full")
 
-{.push locks: "unknown".}
-
 method enter(state: ClosingConnection, connection: QuicConnection) =
   procCall enter(DrainingConnection(state), connection)
   state.sendFinalDatagram()
 
 method receive(state: ClosingConnection, datagram: Datagram) =
   state.sendFinalDatagram()
-
-{.pop.}

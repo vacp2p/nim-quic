@@ -1,6 +1,7 @@
 type
   QuicError* = object of IOError
   QuicDefect* = object of Defect
+  QuicConfigError* = object of CatchableError
 
 template errorAsDefect*(body): untyped =
   try:

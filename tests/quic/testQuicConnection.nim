@@ -1,16 +1,17 @@
-import pkg/chronos
-import pkg/chronos/unittest2/asynctests
-import pkg/quic/errors
-import pkg/quic/transport/quicconnection
-import pkg/quic/transport/quicclientserver
-import pkg/quic/udp/datagram
-import pkg/quic/transport/connectionid
+import chronos
+import chronos/unittest2/asynctests
+import quic/errors
+import quic/transport/[quicconnection, quicclientserver, tlsbackend]
+import quic/udp/datagram
+import quic/transport/connectionid
 import ../helpers/simulation
 import ../helpers/addresses
+import ../helpers/certificate
 
 suite "quic connection":
   asyncTest "sends outgoing datagrams":
-    let client = newQuicClientConnection(zeroAddress, zeroAddress)
+    let clientTLSBackend = TLSBackend.init(false, @[], @[])
+    let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
     defer:
       await client.drop()
     client.send()
@@ -18,14 +19,17 @@ suite "quic connection":
     check datagram.len > 0
 
   asyncTest "processes received datagrams":
-    let client = newQuicClientConnection(zeroAddress, zeroAddress)
+    let clientTLSBackend = TLSBackend.init(false, @[], @[])
+    let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
     defer:
       await client.drop()
 
     client.send()
     let datagram = await client.outgoing.get()
 
-    let server = newQuicServerConnection(zeroAddress, zeroAddress, datagram)
+    let serverTLSBackend = TLSBackend.init(true, @[], @[])
+    let server =
+      newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, datagram)
     defer:
       await server.drop()
 
@@ -35,7 +39,9 @@ suite "quic connection":
     let invalid = Datagram(data: @[0'u8])
 
     expect QuicError:
-      discard newQuicServerConnection(zeroAddress, zeroAddress, invalid)
+      let serverTLSBackend = TLSBackend.init(true, @[], @[])
+      discard
+        newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, invalid)
 
   asyncTest "performs handshake":
     let (client, server) = await performHandshake()
@@ -60,11 +66,14 @@ suite "quic connection":
     check server.ids != client.ids
 
   asyncTest "notifies about id changes":
-    let client = newQuicClientConnection(zeroAddress, zeroAddress)
+    let clientTLSBackend = TLSBackend.init(false, @[], @[])
+    let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
     client.send()
     let datagram = await client.outgoing.get()
 
-    let server = newQuicServerConnection(zeroAddress, zeroAddress, datagram)
+    let serverTLSBackend = TLSBackend.init(true, testCertificate(), testPrivateKey())
+    let server =
+      newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, datagram)
     var newId: ConnectionId
     server.onNewId = proc(id: ConnectionId) =
       newId = id
@@ -80,7 +89,8 @@ suite "quic connection":
     await server.drop
 
   asyncTest "raises ConnectionError when closed":
-    let connection = newQuicClientConnection(zeroAddress, zeroAddress)
+    let clientTLSBackend = TLSBackend.init(false, @[], @[])
+    let connection = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
     await connection.drop()
 
     expect ConnectionError:
@@ -93,7 +103,8 @@ suite "quic connection":
       discard await connection.openStream()
 
   asyncTest "has empty list of ids when closed":
-    let connection = newQuicClientConnection(zeroAddress, zeroAddress)
+    let clientTLSBackend = TLSBackend.init(false, @[], @[])
+    let connection = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
     await connection.drop()
 
     check connection.ids.len == 0

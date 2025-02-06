@@ -1,4 +1,4 @@
-import pkg/ngtcp2
+import ngtcp2
 import ../../../errors
 
 type

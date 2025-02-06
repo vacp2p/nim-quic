@@ -1,6 +1,9 @@
-import pkg/chronos
-import pkg/chronos/unittest2/asynctests
-import pkg/quic/connection
+import chronos
+import chronos/unittest2/asynctests
+import results
+
+import quic/connection
+import quic/transport/tlsbackend
 import ../helpers/udp
 
 suite "connections":
@@ -9,8 +12,8 @@ suite "connections":
 
   asyncTest "handles error when writing to udp transport by closing connection":
     let udp = newDatagramTransport()
-    let connection = newOutgoingConnection(udp, address)
-
+    let tlsBackend = TLSBackend.init(false, @[], @[])
+    let connection = newOutgoingConnection(tlsBackend, udp, address)
     await udp.closeWait()
     connection.startHandshake()
 

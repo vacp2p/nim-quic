@@ -24,8 +24,6 @@ proc callDisconnect(connection: QuicConnection) {.async.} =
   await disconnect()
   trace "Called disconnect proc on QuicConnection"
 
-{.push locks: "unknown".}
-
 method ids*(state: DisconnectingConnection): seq[ConnectionId] =
   state.ids
 
@@ -68,5 +66,3 @@ method drop(state: DisconnectingConnection) {.async.} =
     return
   connection.switch(newClosedConnection())
   trace "dropped DisconnectingConnection state"
-
-{.pop.}

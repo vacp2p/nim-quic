@@ -1,10 +1,14 @@
-import pkg/chronos
-import pkg/chronos/unittest2/asynctests
-import pkg/quic
+import chronos
+import chronos/unittest2/asynctests
+import quic
+import quic/transport/tlsbackend
+import ../helpers/certificate
 
 suite "api":
   setup:
-    var listener = listen(initTAddress("127.0.0.1:0"))
+    var listener = listen(
+      initTAddress("127.0.0.1:0"), TLSConfig.init(testCertificate(), testPrivateKey())
+    )
     let address = listener.localAddress
 
   teardown:

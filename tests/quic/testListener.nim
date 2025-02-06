@@ -1,12 +1,14 @@
-import pkg/chronos
-import pkg/chronos/unittest2/asynctests
-import pkg/quic
-import pkg/quic/listener
+import chronos
+import chronos/unittest2/asynctests
+import quic
+import quic/listener
+import quic/transport/tlsbackend
 import ../helpers/udp
 
 suite "listener":
   setup:
-    var listener = newListener(initTAddress("127.0.0.1:0"))
+    let tlsBackend = TLSBackend.init(true, @[], @[])
+    var listener = newListener(tlsBackend, initTAddress("127.0.0.1:0"))
     let address = listener.localAddress
 
     check address.port != Port(0)

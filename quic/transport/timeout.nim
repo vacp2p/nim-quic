@@ -1,4 +1,5 @@
 import ../basics
+import chronicles
 
 type Timeout* = ref object
   timer: Opt[TimerCallback]
@@ -6,6 +7,7 @@ type Timeout* = ref object
   expired: AsyncEvent
 
 proc setTimer(timeout: Timeout, moment: Moment) =
+  trace "setTimer"
   proc onTimeout(_: pointer) =
     timeout.expired.fire()
     timeout.onExpiry()
@@ -16,6 +18,7 @@ const skip = proc() =
   discard
 
 proc newTimeout*(onExpiry: proc() {.gcsafe, raises: [].} = skip): Timeout =
+  trace "newTimeout"
   Timeout(onExpiry: onExpiry, expired: newAsyncEvent())
 
 proc stop*(timeout: Timeout) =
@@ -32,3 +35,4 @@ proc set*(timeout: Timeout, duration: Duration) =
 
 proc expired*(timeout: Timeout) {.async.} =
   await timeout.expired.wait()
+  trace "EXPIRED"

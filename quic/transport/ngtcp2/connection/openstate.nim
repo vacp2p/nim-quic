@@ -4,10 +4,12 @@ import ../../../basics
 import ../../quicconnection
 import ../../connectionid
 import ../../stream
+import ../../tlsbackend
 import ../native/connection
 import ../native/streams
 import ../native/client
 import ../native/server
+import ../native/errors
 import ./closingstate
 import ./drainingstate
 import ./disconnectingstate
@@ -24,42 +26,59 @@ type OpenConnection* = ref object of ConnectionState
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
   OpenConnection(ngtcp2Connection: ngtcp2Connection, streams: OpenStreams.new)
 
-proc openClientConnection*(local, remote: TransportAddress): OpenConnection =
-  newOpenConnection(newNgtcp2Client(local, remote))
+proc openClientConnection*(
+    tlsBackend: TLSBackend, local, remote: TransportAddress
+): OpenConnection =
+  let ngtcp2Conn = newNgtcp2Client(tlsBackend, local, remote)
+  newOpenConnection(ngtcp2Conn)
 
 proc openServerConnection*(
-    local, remote: TransportAddress, datagram: Datagram
+    tlsBackend: TLSBackend, local, remote: TransportAddress, datagram: Datagram
 ): OpenConnection =
-  newOpenConnection(newNgtcp2Server(local, remote, datagram.data))
+  newOpenConnection(newNgtcp2Server(tlsBackend, local, remote, datagram.data))
 
 {.push locks: "unknown".}
+
+method close(state: OpenConnection) {.async.}
 
 method enter(state: OpenConnection, connection: QuicConnection) =
   trace "Entering OpenConnection state"
   procCall enter(ConnectionState(state), connection)
   state.quicConnection = Opt.some(connection)
   # Workaround weird bug
-  proc onNewId(id: ConnectionId) =
+  var onNewId = proc(id: ConnectionId) =
     if isNil(connection.onNewId):
       return
     connection.onNewId(id)
 
-  state.ngtcp2Connection.onNewId = Opt.some(onNewId)
-
-  proc onRemoveId(id: ConnectionId) =
+  var onRemoveId = proc(id: ConnectionId) =
     if isNil(connection.onRemoveId):
       return
     connection.onRemoveId(id)
 
+  state.ngtcp2Connection.onNewId = Opt.some(onNewId)
   state.ngtcp2Connection.onRemoveId = Opt.some(onRemoveId)
+
   state.ngtcp2Connection.onSend = proc(datagram: Datagram) =
     errorAsDefect:
       connection.outgoing.putNoWait(datagram)
+
   state.ngtcp2Connection.onIncomingStream = proc(stream: Stream) =
     state.streams.add(stream)
     connection.incoming.putNoWait(stream)
   state.ngtcp2Connection.onHandshakeDone = proc() =
     connection.handshake.fire()
+
+  state.ngtcp2Connection.onTimeout = proc() {.gcsafe, raises: [].} =
+    try:
+      trace "WAITING FOR CLOSE"
+      waitFor connection.close()
+      trace "CLOSED"
+    except QuicError:
+      trace "QUIC ERROR"
+    except CatchableError:
+      trace "CATCHABLE ERROR"
+
   trace "Entered OpenConnection state"
 
 method leave(state: OpenConnection) =
@@ -77,15 +96,23 @@ method send(state: OpenConnection) =
   state.ngtcp2Connection.send()
 
 method receive(state: OpenConnection, datagram: Datagram) =
-  state.ngtcp2Connection.receive(datagram)
-  let quicConnection = state.quicConnection.valueOr:
-    return
-  if state.ngtcp2Connection.isDraining:
-    let duration = state.ngtcp2Connection.closingDuration()
-    let ids = state.ids
-    let draining = newDrainingConnection(ids, duration)
-    quicConnection.switch(draining)
-    asyncSpawn draining.close()
+  var isDraining = false
+  try:
+    state.ngtcp2Connection.receive(datagram)
+  except Ngtcp2Error as e:
+    trace "ngtcp2 error on receive", code = $e.msg
+    isDraining = state.ngtcp2Connection.isDraining
+    if not isDraining:
+      raise newException(QuicError, "could not receive - code:" & $e.msg)
+  finally:
+    let quicConnection = state.quicConnection.valueOr:
+      return
+    if isDraining:
+      let duration = state.ngtcp2Connection.closingDuration()
+      let ids = state.ids
+      let draining = newDrainingConnection(ids, duration)
+      quicConnection.switch(draining)
+      asyncSpawn draining.close()
 
 method openStream(
     state: OpenConnection, unidirectional: bool

@@ -1,4 +1,4 @@
-import pkg/ngtcp2
+import ngtcp2
 
 proc defaultSettings*(): ngtcp2_settings =
   ngtcp2_settings_default_versioned(NGTCP2_SETTINGS_V2, addr result)

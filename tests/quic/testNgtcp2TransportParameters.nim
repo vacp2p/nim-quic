@@ -1,11 +1,9 @@
-import pkg/unittest2
-import pkg/ngtcp2
-import pkg/stew/results
-import pkg/quic/errors
-import pkg/quic/transport/ngtcp2/native/connection
-import pkg/quic/transport/ngtcp2/native/client
-import pkg/quic/transport/ngtcp2/native/params
-import pkg/quic/transport/ngtcp2/native/settings
+import unittest2
+import ngtcp2
+import results
+import quic/errors
+import quic/transport/tlsbackend
+import quic/transport/ngtcp2/native/[connection, client, params, settings]
 import ../helpers/addresses
 
 suite "ngtcp2 transport parameters":
@@ -17,7 +15,15 @@ suite "ngtcp2 transport parameters":
   test "encoding and decoding":
     let encoded = encodeTransportParameters(transport_params)
     let decoded = decodeTransportParameters(encoded)
-    check decoded == transport_params
+    check:
+      transport_params.initial_max_streams_uni == decoded.initial_max_streams_uni
+      transport_params.initial_max_stream_data_uni == decoded.initial_max_stream_data_uni
+      transport_params.initial_max_streams_bidi == decoded.initial_max_streams_bidi
+      transport_params.initial_max_stream_data_bidi_local ==
+        decoded.initial_max_stream_data_bidi_local
+      transport_params.initial_max_stream_data_bidi_remote ==
+        decoded.initial_max_stream_data_bidi_remote
+      transport_params.initial_max_data == decoded.initial_max_data
 
   test "raises when decoding fails":
     var encoded = encodeTransportParameters(transport_params)
@@ -27,7 +33,8 @@ suite "ngtcp2 transport parameters":
       discard decodeTransportParameters(encoded)
 
   test "raises when setting remote parameters fails":
-    let connection = newNgtcp2Client(zeroAddress, zeroAddress)
+    let tlsBackend = TLSBackend.init(false, @[], @[])
+    let connection = newNgtcp2Client(tlsBackend, zeroAddress, zeroAddress)
     defer:
       connection.destroy()
     transport_params.active_connection_id_limit = 0

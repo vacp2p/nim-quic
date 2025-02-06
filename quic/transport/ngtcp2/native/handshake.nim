@@ -1,4 +1,4 @@
-import pkg/ngtcp2
+import ngtcp2
 import ./connection
 
 proc onHandshakeDone(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
