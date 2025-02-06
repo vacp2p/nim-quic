@@ -19,12 +19,14 @@ export close
 export waitClosed
 export errors
 
-proc listen*(address: TransportAddress): Listener =
+# TODO: receive certificate and privk 
+proc listen*(address: TransportAddress, config: uint): Listener =
   newListener(address)
 
 proc accept*(listener: Listener): Future[Connection] {.async.} =
   result = await listener.waitForIncoming()
 
+# TODO: receive certificate and privk ?
 proc dial*(address: TransportAddress): Future[Connection] {.async.} =
   var connection: Connection
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =

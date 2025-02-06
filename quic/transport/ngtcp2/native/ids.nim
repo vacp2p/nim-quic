@@ -24,6 +24,12 @@ proc getNewConnectionId(conn: ptr ngtcp2_conn,
   id[] = newId.toCid
   zeroMem(token, NGTCP2_STATELESS_RESET_TOKENLEN)
 
+  # TODO: should ngtcp2_crypto_generate_stateless_reset_token so
+  # we can signal the other peer that the connection is no longer valid?
+  # ngtcp2_crypto_generate_stateless_reset_token(
+  #   token, some_static_secret_data, config.static_secret.size(), cid) !=
+  # 0) 
+
   let
     connection = cast[Ngtcp2Connection](userData)
     onNewId = connection.onNewId.valueOr: return
