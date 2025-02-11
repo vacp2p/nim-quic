@@ -1,5 +1,5 @@
 import std/sequtils
-import pkg/ngtcp2
+import ngtcp2
 import ../../../basics
 import ../../../udp/congestion
 import ../../../helpers/openarray

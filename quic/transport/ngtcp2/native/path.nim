@@ -1,5 +1,5 @@
 import std/nativesockets
-import pkg/ngtcp2
+import ngtcp2
 import ../../../basics
 
 type Path* = ref object
@@ -16,9 +16,9 @@ proc newPath*(local, remote: TransportAddress): Path =
   var path = Path()
   ngtcp2_path_storage_init(
     addr path.storage,
-    cast[ptr SockAddr](addr localAddress),
+    cast[ptr struct_sockaddr](addr localAddress),
     localLength,
-    cast[ptr SockAddr](addr remoteAddress),
+    cast[ptr struct_sockaddr](addr remoteAddress),
     remoteLength,
     nil
   )

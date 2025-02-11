@@ -7,7 +7,6 @@ import ../../packets
 import ../../version
 import ./encryption
 import ./ids
-import ./keys
 import ./settings
 import ./cryptodata
 import ./connection
@@ -29,7 +28,7 @@ proc newNgtcp2Server*(local, remote: TransportAddress,
   callbacks.delete_crypto_cipher_ctx = ngtcp2_crypto_delete_crypto_cipher_ctx_cb
   callbacks.get_path_challenge_data = ngtcp2_crypto_get_path_challenge_data_cb
   callbacks.version_negotiation = ngtcp2_crypto_version_negotiation_cb
-  callbacks.rand = rand
+  callbacks.rand = onRand
 
   installConnectionIdCallback(callbacks)
   installEncryptionCallbacks(callbacks)

@@ -1,4 +1,4 @@
-import pkg/ngtcp2
+import ngtcp2
 
 proc installEncryptionCallbacks*(callbacks: var ngtcp2_callbacks) =
   callbacks.encrypt =  ngtcp2_crypto_encrypt_cb
