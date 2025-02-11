@@ -20,7 +20,7 @@ export waitClosed
 export errors
 
 # TODO: receive certificate and privk 
-proc listen*(address: TransportAddress, config: uint): Listener =
+proc listen*(address: TransportAddress): Listener =
   newListener(address)
 
 proc accept*(listener: Listener): Future[Connection] {.async.} =
