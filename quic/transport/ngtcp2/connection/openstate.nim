@@ -1,9 +1,11 @@
 import chronicles
+import results
 
 import ../../../basics
 import ../../quicconnection
 import ../../connectionid
 import ../../stream
+import ../../tlsbackend
 import ../native/connection
 import ../native/streams
 import ../native/client
@@ -25,8 +27,9 @@ type
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
   OpenConnection(ngtcp2Connection: ngtcp2Connection, streams: OpenStreams.new)
 
-proc openClientConnection*(local, remote: TransportAddress): OpenConnection =
-  newOpenConnection(newNgtcp2Client(local, remote))
+proc openClientConnection*(tlsBackend: TLSBackend, local, remote: TransportAddress): Result[OpenConnection, string] =
+  let ngtcp2Conn = ?newNgtcp2Client(tlsBackend, local, remote)
+  ok(newOpenConnection(ngtcp2Conn))
 
 proc openServerConnection*(local, remote: TransportAddress,
                            datagram: Datagram): OpenConnection =

@@ -7,6 +7,7 @@ import ../../stream
 import ../../timeout
 import ../../connectionid
 import ./path
+import ./picotls
 import ./errors as ngtcp2errors
 import ./timestamp
 import ./pointers
@@ -14,6 +15,10 @@ import ./pointers
 type
   Ngtcp2Connection* = ref object
     conn*: Opt[ptr ngtcp2_conn]
+    tlsConn*: PicoTLSConnection
+    cptls*: ptr ngtcp2_crypto_picotls_ctx
+    connref*: ptr ngtcp2_crypto_conn_ref
+    
     path*: Path
     buffer*: array[4096, byte]
     flowing*: AsyncEvent
@@ -29,12 +34,17 @@ proc destroy*(connection: Ngtcp2Connection) =
   let conn = connection.conn.valueOr: return
   connection.timeout.stop()
   ngtcp2_conn_del(conn)
+  # TODO: ngtcp2_crypto_picotls_deconfigure_session ON DESTROY
+  
+  connection.tlsConn.destroy()
   connection.conn = Opt.none(ptr ngtcp2_conn)
   connection.onSend = nil
   connection.onIncomingStream = nil
   connection.onHandshakeDone = nil
   connection.onNewId = Opt.none(proc(id: ConnectionId))
   connection.onRemoveId = Opt.none(proc(id: ConnectionId))
+  connection.tlsConn = nil
+  
 
 proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe, raises:[].}
 

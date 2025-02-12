@@ -1,3 +1,4 @@
+import results
 import pkg/unittest2
 import ../helpers/async
 import pkg/quic
@@ -8,7 +9,12 @@ suite "examples from Readme":
   test "outgoing and incoming connections":
 
     proc outgoing {.async.} =
-      let connection = await dial(initTAddress("127.0.0.1:12345"))
+      let q = Quic.init().valueOr:
+        raise newException(CatchableError, error)
+
+
+      let connection = await q.dial(initTAddress("127.0.0.1:12345"))
+
       let stream = await connection.openStream()
       let message = cast[seq[byte]]("some message")
       await stream.write(message)
@@ -16,7 +22,11 @@ suite "examples from Readme":
       await connection.waitClosed()
 
     proc incoming {.async.} =
-      let listener = listen(initTAddress("127.0.0.1:12345"))
+      let q = Quic.init().valueOr:
+        raise newException(CatchableError, error)
+      
+      let listener = q.listen(initTAddress("127.0.0.1:12345"))
+
       let connection = await listener.accept()
       let stream = await connection.incomingStream()
       let message = await stream.read()

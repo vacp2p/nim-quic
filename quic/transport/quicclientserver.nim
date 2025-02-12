@@ -1,9 +1,12 @@
+import results
 import ../basics
+import ./tlsbackend
 import ./quicconnection
 import ./ngtcp2/connection/openstate
 
-proc newQuicClientConnection*(local, remote: TransportAddress): QuicConnection =
-  newQuicConnection(openClientConnection(local, remote))
+proc newQuicClientConnection*(tlsBackend: TLSBackend, local, remote: TransportAddress): Result[QuicConnection, string] =
+  let openConn = ?openClientConnection(tlsBackend, local, remote)
+  ok(newQuicConnection(openConn))
 
 proc newQuicServerConnection*(local, remote: TransportAddress,
                               datagram: Datagram): QuicConnection =

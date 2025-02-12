@@ -1,10 +1,12 @@
 import chronicles
+import results
 
 import ./basics
 import ./transport/connectionid
 import ./transport/stream
 import ./transport/quicconnection
 import ./transport/quicclientserver
+import ./transport/tlsbackend
 import ./helpers/asyncloop
 
 export Stream, close, read, write
@@ -105,9 +107,10 @@ proc newIncomingConnection*(udp: DatagramTransport,
   connection.startSending(remote)
   connection
 
-proc newOutgoingConnection*(udp: DatagramTransport,
-                           remote: TransportAddress): Connection =
-  let quic = newQuicClientConnection(udp.localAddress, remote)
+proc newOutgoingConnection*(tlsBackend: TLSBackend,
+                            udp: DatagramTransport,
+                           remote: TransportAddress): Result[Connection, string] =
+  let quic = ?newQuicClientConnection(tlsBackend, udp.localAddress, remote)
   let closed = newAsyncEvent()
   let connection = OutgoingConnection(udp: udp, quic: quic, closed: closed)
   proc onDisconnect {.async.} =
@@ -117,7 +120,7 @@ proc newOutgoingConnection*(udp: DatagramTransport,
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
-  connection
+  ok(connection)
 
 proc startHandshake*(connection: Connection) =
   connection.quic.send()

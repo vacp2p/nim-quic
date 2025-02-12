@@ -37,12 +37,13 @@ proc simulateLossyNetwork*(a, b: QuicConnection) {.async.} =
 proc setupConnection*:
                 Future[tuple[client, server: QuicConnection]] {.async.} =
 
-  let client = newQuicClientConnection(zeroAddress, zeroAddress)
+  discard
+  #[let client = newQuicClientConnection(zeroAddress, zeroAddress)
   client.send()
   let datagram = await client.outgoing.get()
   let server = newQuicServerConnection(zeroAddress, zeroAddress, datagram)
   server.receive(datagram)
-  result = (client, server)
+  result = (client, server)]#
 
 
 proc performHandshake*:

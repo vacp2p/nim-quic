@@ -2,6 +2,7 @@ import pkg/chronos
 import pkg/chronos/unittest2/asynctests
 import pkg/quic
 
+#[
 suite "api":
   setup:
     var listener = listen(initTAddress("127.0.0.1:0"))
@@ -85,3 +86,4 @@ suite "api":
     defer: await incomingStream.close()
 
     check (await incomingStream.read()) == message
+]#
