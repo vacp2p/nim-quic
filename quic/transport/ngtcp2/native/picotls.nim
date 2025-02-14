@@ -4,14 +4,16 @@ import results
 type
     PicoTLSContext* = ref object
         context*: ptr ptls_context_t
-        sign_cert: ptls_sign_certificate_t
+        signCert: ptr ptls_openssl_sign_certificate_t
 
     PicoTLSConnection* = ref object
         conn*: ptr ptls_t
 
 
 proc loadCertificate(ctx: ptr ptls_context_t, certificate: seq[byte]): Result[void, string] = 
-    var buf = create(ptls_cred_buffer_t) # TODO: free
+    var buf = create(ptls_cred_buffer_t)
+    defer:
+        dealloc(buf)
     buf.off = 0;
     buf.owns_base = 0;
     buf.len = uint(len(certificate))
@@ -38,18 +40,31 @@ proc init*(t: typedesc[PicoTLSContext], certificate: seq[byte], key: seq[byte]):
     ctx.key_exchanges = cast[ptr ptr ptls_key_exchange_algorithm_t](addr ptls_openssl_key_exchanges)
     ctx.cipher_suites = cast[ptr ptr ptls_cipher_suite_t](addr ptls_openssl_cipher_suites)
 
+    let picoCtx = PicoTLSContext(
+        context: ctx,
+    )
+
     if len(key) != 0 and len(certificate) != 0:
-        var signCert = create(ptls_openssl_sign_certificate_t)  # TODO: free
-        ?loadPrivateKey(signCert, key)
-        ctx.sign_certificate = addr signCert.super
+        picoCtx.signCert = create(ptls_openssl_sign_certificate_t)
+        ?loadPrivateKey(picoCtx.signCert , key)
+        ctx.sign_certificate = addr picoCtx.signCert.super
 
         # TODO: implement custom certificate validation
         
         ?loadCertificate(ctx, certificate)
 
-    ok(PicoTLSContext(
-        context: ctx,
-    ))
+    ok(picoCtx)
+
+proc destroy*(p: PicoTLSContext) =
+    if (p.signCert != nil):
+        ptls_openssl_dispose_sign_certificate(p.signCert)
+        for i in 0..<p.context.certificates.count:
+            let curr = cast[ptr type(ptls_iovec_t)](cast[uint](p.context.certificates) + uint(i) * uint(sizeof(ptls_iovec_t)))
+            dealloc(curr)
+        dealloc(p.context.certificates.list)
+        dealloc(p.signCert)
+
+    dealloc(p.context)
   
 proc newConnection*(p: PicoTLSContext, isServer: bool): PicoTLSConnection =
     return PicoTLSConnection(
@@ -61,4 +76,5 @@ proc newConnection*(p: PicoTLSContext, isServer: bool): PicoTLSConnection =
 
 proc destroy*(p: PicoTLSConnection) =
     ptls_free(p.conn)
+    dealloc(p.conn)
     p.conn = nil

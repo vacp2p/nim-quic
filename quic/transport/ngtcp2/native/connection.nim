@@ -33,19 +33,22 @@ type
 proc destroy*(connection: Ngtcp2Connection) =
   let conn = connection.conn.valueOr: return
   connection.timeout.stop()
-  ngtcp2_conn_del(conn)
-  # TODO: ngtcp2_crypto_picotls_deconfigure_session ON DESTROY
-  
+  ngtcp2_conn_del(conn)  
+  ngtcp2_crypto_picotls_deconfigure_session(connection.cptls)
   connection.tlsConn.destroy()
+  dealloc(connection.cptls.handshake_properties.additional_extensions)
+  dealloc(connection.connref)
+  dealloc(connection.cptls)
+  connection.cptls = nil
+  connection.connref = nil
+  connection.tlsConn = nil
   connection.conn = Opt.none(ptr ngtcp2_conn)
   connection.onSend = nil
   connection.onIncomingStream = nil
   connection.onHandshakeDone = nil
   connection.onNewId = Opt.none(proc(id: ConnectionId))
   connection.onRemoveId = Opt.none(proc(id: ConnectionId))
-  connection.tlsConn = nil
   
-
 proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe, raises:[].}
 
 proc newConnection*(path: Path): Ngtcp2Connection =

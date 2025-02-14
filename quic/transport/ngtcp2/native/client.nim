@@ -31,10 +31,6 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
   installClientHandshakeCallback(callbacks)
   installStreamCallbacks(callbacks)
 
-  var ret = ngtcp2_crypto_picotls_configure_client_context(tlsBackend.picoTLS.context)
-  if ret != 0:
-    return err("could not configure client context: " & $ret)
-
   var settings = defaultSettings()
   var transportParams = defaultTransportParameters()
   settings.initial_ts = now()
@@ -44,10 +40,8 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
 
   let nConn = newConnection(path)
 
-  # TODO: ptls_openssl_dispose_sign_certificate(addr sign_cert_) on destroy
-
   var conn: ptr ngtcp2_conn
-  ret = ngtcp2_conn_client_new_versioned(
+  var ret = ngtcp2_conn_client_new_versioned(
     addr conn,
     unsafeAddr destination,
     unsafeAddr source,
@@ -66,23 +60,23 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
     return err("could not create new client versioned conn: " & $ret)
 
 
-  let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx) # TODO: free
+  let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx)
 
   ngtcp2_crypto_picotls_ctx_init(cptls) 
 
-  var tls = tlsBackend.picoTLS.newConnection(false) # free?
+  var tls = tlsBackend.picoTLS.newConnection(false)
   cptls.ptls = tls.conn
   
   var addExtensions = cast[ptr UncheckedArray[ptls_raw_extension_t]](alloc(ptls_raw_extension_t.sizeof*2))
   addExtensions[0] = ptls_raw_extension_t(type_field: high(uint16))
   addExtensions[1] = ptls_raw_extension_t(type_field: high(uint16))
-  cptls.handshake_properties = ptls_handshake_properties_t( # TODO: free
+  cptls.handshake_properties = ptls_handshake_properties_t(
     additional_extensions: cast[ptr ptls_raw_extension_t](addExtensions)
   )
 
   ngtcp2_conn_set_tls_native_handle(conn, cptls)
 
-  var connref = create(ngtcp2_crypto_conn_ref) # TODO: free
+  var connref = create(ngtcp2_crypto_conn_ref)
   connref.user_data = conn
   connref.get_conn = proc(connRef: ptr ngtcp2_crypto_conn_ref) : ptr ngtcp2_conn {.cdecl.} =
       cast[ptr ngtcp2_conn](connRef.user_data)
