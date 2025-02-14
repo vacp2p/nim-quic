@@ -1,5 +1,4 @@
 import ngtcp2
-import nimcrypto
 import results
 import ../../version
 import ../../../basics
@@ -15,9 +14,6 @@ import ./rand
 import ./streams
 import ./timestamp
 import ./handshake
-
-proc getConn(connRef: ptr ngtcp2_crypto_conn_ref) : ptr ngtcp2_conn {.cdecl.} =
-  cast[ptr ngtcp2_conn](connRef.user_data)
 
 proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): Result[Ngtcp2Connection, string] =
   var callbacks: ngtcp2_callbacks
@@ -49,7 +45,6 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
   let nConn = newConnection(path)
 
   # TODO: ptls_openssl_dispose_sign_certificate(addr sign_cert_) on destroy
-  # TODO: figure out if clients use certificates in quic in js / rust
 
   var conn: ptr ngtcp2_conn
   ret = ngtcp2_conn_client_new_versioned(
@@ -68,7 +63,7 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
     addr nConn[]
   )
   if ret != 0:
-    return err("could not create new versioned conn: " & $ret)
+    return err("could not create new client versioned conn: " & $ret)
 
 
   let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx) # TODO: free
@@ -89,10 +84,11 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
 
   var connref = create(ngtcp2_crypto_conn_ref) # TODO: free
   connref.user_data = conn
-  connref.get_conn = getConn
+  connref.get_conn = proc(connRef: ptr ngtcp2_crypto_conn_ref) : ptr ngtcp2_conn {.cdecl.} =
+      cast[ptr ngtcp2_conn](connRef.user_data)
 
   var dataPtr = ptls_get_data_ptr(tls.conn)
-  dataPtr[] = addr connref
+  dataPtr[] = connref
 
   ret = ngtcp2_crypto_picotls_configure_client_session(cptls, conn)
   if ret != 0:

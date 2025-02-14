@@ -21,29 +21,30 @@ export close
 export waitClosed
 export errors
 
-type Quic* = ref object
-  clientTLSBackend: TLSBackend
+type Quic = ref object of RootObj
+  tlsBackend: TLSBackend
 
-proc init*(t: typedesc[Quic], certificate: seq[byte] = @[], key: seq[byte] = @[]): Result[Quic, string] =
-  let clientTLSBackend = ?TLSBackend.init(certificate, key)
-  ok(Quic(
-    clientTLSBackend: clientTLSBackend
+type QuicClient* = ref object of Quic
+type QuicServer* = ref object of Quic
+
+proc init*[T: QuicClient | QuicServer](t: typedesc[T], certificate: seq[byte] = @[], key: seq[byte] = @[]): Result[T, string] =
+  ok(T(
+    tlsBackend: ?TLSBackend.init(certificate, key)
   ))
 
-proc listen*(self: Quic, address: TransportAddress): Listener =
-  # TODO: create context for listening the first time
-  newListener(address)
+proc listen*(self: QuicServer, address: TransportAddress): Listener =
+  newListener(self.tlsBackend, address)
 
 proc accept*(listener: Listener): Future[Connection] {.async.} =
   result = await listener.waitForIncoming()
 
-proc dial*(self: Quic, address: TransportAddress): Future[Connection] {.async.} =
+proc dial*(self: QuicClient, address: TransportAddress): Future[Connection] {.async.} =
   var connection: Connection
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
     let datagram = Datagram(data: udp.getMessage())
     connection.receive(datagram)
   let udp = newDatagramTransport(onReceive)
-  connection = newOutgoingConnection(self.clientTLSBackend, udp, address).valueOr:
+  connection = newOutgoingConnection(self.tlsBackend, udp, address).valueOr:
     raise newException(QuicError, error)
   connection.startHandshake()
   result = connection

@@ -31,9 +31,9 @@ proc openClientConnection*(tlsBackend: TLSBackend, local, remote: TransportAddre
   let ngtcp2Conn = ?newNgtcp2Client(tlsBackend, local, remote)
   ok(newOpenConnection(ngtcp2Conn))
 
-proc openServerConnection*(local, remote: TransportAddress,
-                           datagram: Datagram): OpenConnection =
-  newOpenConnection(newNgtcp2Server(local, remote, datagram.data))
+proc openServerConnection*(tlsBackend: TLSBackend, local, remote: TransportAddress,
+                           datagram: Datagram): Result[OpenConnection, string] =
+  ok(newOpenConnection(?newNgtcp2Server(tlsBackend, local, remote, datagram.data)))
 
 {.push locks: "unknown".}
 

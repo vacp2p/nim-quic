@@ -1,26 +1,23 @@
 import pkg/ngtcp2
-import pkg/nimcrypto
-
 import ../../../basics
-import ../../../helpers/openarray
 import ../../packets
+import ../../tlsbackend
 import ../../version
 import ./encryption
 import ./ids
 import ./settings
-import ./cryptodata
 import ./connection
 import ./path
+import ./picotls
 import ./rand
 import ./streams
 import ./timestamp
 import ./handshake
 import ./parsedatagram
 
-
-
-proc newNgtcp2Server*(local, remote: TransportAddress,
-                     source, destination: ngtcp2_cid): Ngtcp2Connection =
+proc newNgtcp2Server*(tlsBackend: TLSBackend,
+                      local, remote: TransportAddress,
+                     source, destination: ngtcp2_cid): Result[Ngtcp2Connection, string] =
   var callbacks: ngtcp2_callbacks
   callbacks.recv_client_initial =  ngtcp2_crypto_recv_client_initial_cb
   callbacks.recv_crypto_data =  ngtcp2_crypto_recv_crypto_data_cb
@@ -35,6 +32,12 @@ proc newNgtcp2Server*(local, remote: TransportAddress,
   installServerHandshakeCallback(callbacks)
   installStreamCallbacks(callbacks)
 
+  # TODO: this should probably be moved to an upper layer since
+  # One context will be reused
+  var ret = ngtcp2_crypto_picotls_configure_server_context(tlsBackend.picoTLS.context)
+  if ret != 0:
+    return err("could not configure server context: " & $ret)
+
   var settings = defaultSettings()
   var transportParams = defaultTransportParameters()
   transportParams.original_dcid = destination
@@ -44,10 +47,12 @@ proc newNgtcp2Server*(local, remote: TransportAddress,
   let id = randomConnectionId().toCid
   let path = newPath(local, remote)
 
-  result = newConnection(path)
-  var conn: ptr ngtcp2_conn
+  let nConn = newConnection(path)
 
-  doAssert 0 == ngtcp2_conn_server_new_versioned(
+  # TODO: ptls_openssl_dispose_sign_certificate(addr sign_cert_) on destroy
+
+  var conn: ptr ngtcp2_conn
+  ret = ngtcp2_conn_server_new_versioned(
     addr conn,
     unsafeAddr source,
     unsafeAddr id,
@@ -60,16 +65,52 @@ proc newNgtcp2Server*(local, remote: TransportAddress,
     NGTCP2_TRANSPORT_PARAMS_V1,
     addr transportParams,
     nil,
-    addr result[]
+    addr nConn[]
+  )
+  if ret != 0:
+    return err("could not create new server versioned conn: " & $ret)
+
+  let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx) # TODO: free
+
+  ngtcp2_crypto_picotls_ctx_init(cptls) 
+
+  var tls = tlsBackend.picoTLS.newConnection(true) # free?
+  cptls.ptls = tls.conn
+
+  
+  var addExtensions = cast[ptr UncheckedArray[ptls_raw_extension_t]](alloc(ptls_raw_extension_t.sizeof*2))
+  addExtensions[0] = ptls_raw_extension_t(type_field: high(uint16))
+  addExtensions[1] = ptls_raw_extension_t(type_field: high(uint16))
+  cptls.handshake_properties = ptls_handshake_properties_t( # TODO: free
+    additional_extensions: cast[ptr ptls_raw_extension_t](addExtensions)
   )
 
-  result.conn = Opt.some(conn)
+  ngtcp2_conn_set_tls_native_handle(conn, cptls)
+
+  var connref = create(ngtcp2_crypto_conn_ref) # TODO: free
+  connref.user_data = conn
+  connref.get_conn =  proc(connRef: ptr ngtcp2_crypto_conn_ref) : ptr ngtcp2_conn {.cdecl.} =
+      cast[ptr ngtcp2_conn](connRef.user_data)
+
+  var dataPtr = ptls_get_data_ptr(tls.conn)
+  dataPtr[] = connref
+
+  ret = ngtcp2_crypto_picotls_configure_server_session(cptls)
+  if ret != 0:
+    return err("could not configure server session: " & $ret)
+  
+  nConn.conn = Opt.some(conn)
+  nConn.tlsConn = tls
+  nConn.cptls = cptls
+  nConn.connref = connref
+  
+  ok(nConn)
 
 proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =
   let info = parseDatagram(datagram)
   (source: info.source.toCid, dest: info.destination.toCid)
 
-proc newNgtcp2Server*(local, remote: TransportAddress,
-    datagram: openArray[byte]): Ngtcp2Connection =
+proc newNgtcp2Server*(tlsBackend: TLSBackend, local, remote: TransportAddress,
+    datagram: openArray[byte]): Result[Ngtcp2Connection, string] =
   let (source, destination) = extractIds(datagram)
-  newNgtcp2Server(local, remote, source, destination)
+  newNgtcp2Server(tlsBackend, local, remote, source, destination)

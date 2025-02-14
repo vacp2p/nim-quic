@@ -54,7 +54,7 @@ proc startSending(connection: Connection, remote: TransportAddress) =
     try:
       trace "Getting datagram"
       let datagram = await connection.quic.outgoing.get()
-      trace "Sending datagraom"
+      trace "Sending datagram"
       await connection.udp.sendTo(remote, datagram.data)
       trace "Sent datagraom"
     except TransportError as e:
@@ -92,10 +92,10 @@ proc disconnect(connection: Connection) {.async.} =
   connection.closed.fire()
   trace "Fired closed event"
 
-proc newIncomingConnection*(udp: DatagramTransport,
-                           remote: TransportAddress): Connection =
+proc newIncomingConnection*(tlsBackend: TLSBackend, udp: DatagramTransport,
+                           remote: TransportAddress): Result[Connection, string] =
   let datagram = Datagram(data: udp.getMessage())
-  let quic = newQuicServerConnection(udp.localAddress, remote, datagram)
+  let quic = ?newQuicServerConnection(tlsBackend, udp.localAddress, remote, datagram)
   let closed = newAsyncEvent()
   let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
   proc onDisconnect {.async.} =
@@ -105,7 +105,7 @@ proc newIncomingConnection*(udp: DatagramTransport,
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
-  connection
+  ok(connection)
 
 proc newOutgoingConnection*(tlsBackend: TLSBackend,
                             udp: DatagramTransport,

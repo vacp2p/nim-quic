@@ -7,7 +7,6 @@ type
 
 
 proc init*(t: typedesc[TLSBackend], certificate: seq[byte], key: seq[byte]): Result[TLSBackend, string] =
-    let p = ?PicoTLSContext.init(certificate, key)
-    ok(TLSBackend(
-        picoTLS: p
+    ok(TLSBackend( 
+        picoTLS: ?PicoTLSContext.init(certificate, key)
     ))

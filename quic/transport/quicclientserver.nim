@@ -8,6 +8,7 @@ proc newQuicClientConnection*(tlsBackend: TLSBackend, local, remote: TransportAd
   let openConn = ?openClientConnection(tlsBackend, local, remote)
   ok(newQuicConnection(openConn))
 
-proc newQuicServerConnection*(local, remote: TransportAddress,
-                              datagram: Datagram): QuicConnection =
-  newQuicConnection(openServerConnection(local, remote, datagram))
+proc newQuicServerConnection*(tlsBackend: TLSBackend, local, remote: TransportAddress,
+                              datagram: Datagram): Result[QuicConnection, string] =
+  let openConn = ?openServerConnection(tlsBackend, local, remote, datagram)
+  ok(newQuicConnection(openConn))
