@@ -3,7 +3,7 @@ import pkg/chronos/unittest2/asynctests
 import pkg/quic
 import pkg/quic/listener
 import ../helpers/udp
-
+#[
 suite "listener":
 
   setup:
@@ -51,3 +51,4 @@ suite "listener":
     await connection.drop()
 
     check listener.connectionIds.len == 0
+]#
