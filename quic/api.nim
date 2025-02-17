@@ -28,14 +28,8 @@ type QuicClient* = ref object of Quic
 type QuicServer* = ref object of Quic
 
 proc init*[T: QuicClient | QuicServer](t: typedesc[T], certificate: seq[byte] = @[], key: seq[byte] = @[]): Result[T, string] =
-  let tlsBackend = ?TLSBackend.init(certificate, key)
-  when T is QuicServer:
-    ?tlsBackend.configureServerContext()
-  else:
-    ?tlsBackend.configureClientContext()
-
   ok(T(
-    tlsBackend: tlsBackend
+    tlsBackend: ?TLSBackend.init(T is QuicServer, certificate, key)
   ))
 
 proc destroy*[T: QuicClient | QuicServer](t: T) =

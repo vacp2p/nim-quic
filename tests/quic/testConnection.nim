@@ -2,7 +2,8 @@ import chronos
 import chronos/unittest2/asynctests
 import results
 
-import pkg/quic/connection
+import quic/connection
+import quic/transport/tlsbackend
 import ../helpers/udp
 
 suite "connections":
@@ -11,12 +12,16 @@ suite "connections":
     let address = initTAddress("127.0.0.1:45346")
 
   asyncTest "handles error when writing to udp transport by closing connection":
-    discard
-    #[let udp = newDatagramTransport()
-    let connection = newOutgoingConnection(udp, address).valueOr:
-      doAssert false, "couldnt obtain outgoing connection: " & error
+    let udp = newDatagramTransport()
+    let tlsBackend = TLSBackend.init(false, @[], @[]).valueOr:
+      doAssert false, "couldnt initialize TLS backend: " & $error
+      return
 
+    let connection = newOutgoingConnection(tlsBackend, udp, address).valueOr:
+      doAssert false, "couldnt obtain outgoing connection: " & $error()
+      return
+    
     await udp.closeWait()
     connection.startHandshake()
 
-    await connection.waitClosed()]#
+    await connection.waitClosed()
