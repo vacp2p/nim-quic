@@ -15,7 +15,9 @@ import ./streams
 import ./timestamp
 import ./handshake
 
-proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): Ngtcp2Connection =
+proc newNgtcp2Client*(
+    tlsBackend: TLSBackend, local, remote: TransportAddress
+): Ngtcp2Connection =
   var callbacks: ngtcp2_callbacks
   callbacks.client_initial = ngtcp2_crypto_client_initial_cb
   callbacks.recv_crypto_data = ngtcp2_crypto_recv_crypto_data_cb
@@ -54,20 +56,21 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
     NGTCP2_TRANSPORT_PARAMS_V1,
     unsafeAddr transportParams,
     nil,
-    addr nConn[]
+    addr nConn[],
   )
   if ret != 0:
     raise newException(QuicError, "could not create new client versioned conn: " & $ret)
 
-
   let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx)
 
-  ngtcp2_crypto_picotls_ctx_init(cptls) 
+  ngtcp2_crypto_picotls_ctx_init(cptls)
 
   var tls = tlsBackend.picoTLS.newConnection(false)
   cptls.ptls = tls.conn
-  
-  var addExtensions = cast[ptr UncheckedArray[ptls_raw_extension_t]](alloc(ptls_raw_extension_t.sizeof*2))
+
+  var addExtensions = cast[ptr UncheckedArray[ptls_raw_extension_t]](alloc(
+    ptls_raw_extension_t.sizeof * 2
+  ))
   addExtensions[0] = ptls_raw_extension_t(type_field: high(uint16))
   addExtensions[1] = ptls_raw_extension_t(type_field: high(uint16))
   cptls.handshake_properties = ptls_handshake_properties_t(
@@ -78,8 +81,10 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
 
   var connref = create(ngtcp2_crypto_conn_ref)
   connref.user_data = conn
-  connref.get_conn = proc(connRef: ptr ngtcp2_crypto_conn_ref) : ptr ngtcp2_conn {.cdecl.} =
-      cast[ptr ngtcp2_conn](connRef.user_data)
+  connref.get_conn = proc(
+      connRef: ptr ngtcp2_crypto_conn_ref
+  ): ptr ngtcp2_conn {.cdecl.} =
+    cast[ptr ngtcp2_conn](connRef.user_data)
 
   var dataPtr = ptls_get_data_ptr(tls.conn)
   dataPtr[] = connref
@@ -87,7 +92,7 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
   ret = ngtcp2_crypto_picotls_configure_client_session(cptls, conn)
   if ret != 0:
     raise newException(QuicError, "could not configure client session: " & $ret)
-  
+
   nConn.conn = Opt.some(conn)
   nConn.tlsConn = tls
   nConn.cptls = cptls

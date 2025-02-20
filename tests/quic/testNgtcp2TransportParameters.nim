@@ -7,7 +7,6 @@ import quic/transport/ngtcp2/native/[connection, client, params, settings]
 import ../helpers/addresses
 
 suite "ngtcp2 transport parameters":
-
   var transport_params: ngtcp2_transport_params
 
   setup:
@@ -20,8 +19,10 @@ suite "ngtcp2 transport parameters":
       transport_params.initial_max_streams_uni == decoded.initial_max_streams_uni
       transport_params.initial_max_stream_data_uni == decoded.initial_max_stream_data_uni
       transport_params.initial_max_streams_bidi == decoded.initial_max_streams_bidi
-      transport_params.initial_max_stream_data_bidi_local == decoded.initial_max_stream_data_bidi_local
-      transport_params.initial_max_stream_data_bidi_remote == decoded.initial_max_stream_data_bidi_remote
+      transport_params.initial_max_stream_data_bidi_local ==
+        decoded.initial_max_stream_data_bidi_local
+      transport_params.initial_max_stream_data_bidi_remote ==
+        decoded.initial_max_stream_data_bidi_remote
       transport_params.initial_max_data == decoded.initial_max_data
 
   test "raises when decoding fails":
@@ -34,7 +35,8 @@ suite "ngtcp2 transport parameters":
   test "raises when setting remote parameters fails":
     let tlsBackend = TLSBackend.init(false, @[], @[])
     let connection = newNgtcp2Client(tlsBackend, zeroAddress, zeroAddress)
-    defer: connection.destroy()
+    defer:
+      connection.destroy()
     transport_params.active_connection_id_limit = 0
 
     expect QuicError:

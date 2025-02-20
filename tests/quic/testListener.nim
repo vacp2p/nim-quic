@@ -6,7 +6,6 @@ import quic/transport/tlsbackend
 import ../helpers/udp
 
 suite "listener":
-
   setup:
     let tlsBackend = TLSBackend.init(true, @[], @[])
     var listener = newListener(tlsBackend, initTAddress("127.0.0.1:0"))

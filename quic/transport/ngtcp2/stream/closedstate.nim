@@ -5,7 +5,6 @@ import chronicles
 logScope:
   topics = "closed state"
 
-
 type
   ClosedStream* = ref object of StreamState
   ClosedStreamError* = object of StreamError
@@ -13,7 +12,7 @@ type
 proc newClosedStream*(): ClosedStream =
   ClosedStream()
 
-{.push locks:"unknown".}
+{.push locks: "unknown".}
 
 method enter*(state: ClosedStream, stream: Stream) =
   procCall StreamState(state).enter(stream)

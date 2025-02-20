@@ -33,7 +33,6 @@ suite "streams":
     let stream = await client.openStream()
     await stream.close()
 
-
   asyncTest "writes zero-length message":
     let stream = await client.openStream()
     await stream.write(@[])
@@ -85,7 +84,7 @@ suite "streams":
     asyncSpawn stream.write(message)
 
     let incoming = await server.incomingStream()
-    for _ in 0..<100:
+    for _ in 0 ..< 100:
       discard await incoming.read()
 
     await simulation.cancelAndWait()

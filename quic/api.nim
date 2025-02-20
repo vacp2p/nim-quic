@@ -22,7 +22,6 @@ export waitClosed
 export errors
 export destroy
 
-
 type TLSConfig* = object
   certificate*: seq[byte]
   key*: seq[byte]
@@ -30,12 +29,11 @@ type TLSConfig* = object
   # 
 
 proc init*(t: typedesc[TLSConfig], certificate, key: seq[byte]): TLSConfig =
-  return TLSConfig(
-    certificate: certificate,
-    key: key
-  )
+  return TLSConfig(certificate: certificate, key: key)
 
-proc listen*(address: TransportAddress, tlsConfig: TLSConfig): Listener {.raises:[QuicConfigError, QuicError, TransportOsError].} =
+proc listen*(
+    address: TransportAddress, tlsConfig: TLSConfig
+): Listener {.raises: [QuicConfigError, QuicError, TransportOsError].} =
   if tlsConfig.certificate.len == 0:
     raise newException(QuicConfigError, "certificate is required in TLSConfig")
 
@@ -49,12 +47,15 @@ proc listen*(address: TransportAddress, tlsConfig: TLSConfig): Listener {.raises
 proc accept*(listener: Listener): Future[Connection] {.async.} =
   result = await listener.waitForIncoming()
 
-proc dial*(address: TransportAddress, tlsConfig: TLSConfig = TLSConfig()): Future[Connection] {.async:(raises:[QuicError, TransportOsError]).} =
+proc dial*(
+    address: TransportAddress, tlsConfig: TLSConfig = TLSConfig()
+): Future[Connection] {.async: (raises: [QuicError, TransportOsError]).} =
   let tlsBackend = TLSBackend.init(false, tlsConfig.certificate, tlsConfig.key)
   var connection: Connection
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
     let datagram = Datagram(data: udp.getMessage())
     connection.receive(datagram)
+
   let udp = newDatagramTransport(onReceive)
   connection = newOutgoingConnection(tlsBackend, udp, address)
   connection.startHandshake()

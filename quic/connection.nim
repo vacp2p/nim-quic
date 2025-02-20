@@ -21,7 +21,7 @@ type
     loop: Future[void]
     onClose: Opt[proc() {.gcsafe, raises: [].}]
     closed: AsyncEvent
-  
+
   IncomingConnection = ref object of Connection
 
   OutgoingConnection = ref object of Connection
@@ -62,7 +62,7 @@ proc waitClosed*(connection: Connection) {.async.} =
 
 proc startSending(connection: Connection, remote: TransportAddress) =
   trace "Starting sending loop"
-  proc send {.async.} =
+  proc send() {.async.} =
     try:
       trace "Getting datagram"
       let datagram = await connection.quic.outgoing.get()
@@ -73,8 +73,10 @@ proc startSending(connection: Connection, remote: TransportAddress) =
       trace "Failed to send datagram", errorMsg = e.msg
       trace "Failing connection loop future with error"
       if not connection.loop.finished:
-        connection.loop.fail(e) # This might need to be revisited, see https://github.com/status-im/nim-quic/pull/41 for more details
+        connection.loop.fail(e)
+          # This might need to be revisited, see https://github.com/status-im/nim-quic/pull/41 for more details
       await connection.drop()
+
   connection.loop = asyncLoop(send)
 
 proc stopSending(connection: Connection) {.async.} =
@@ -104,52 +106,60 @@ proc disconnect(connection: Connection) {.async.} =
   connection.closed.fire()
   trace "Fired closed event"
 
-proc newIncomingConnection*(tlsBackend: TLSBackend, udp: DatagramTransport,
-                           remote: TransportAddress): Connection =
+proc newIncomingConnection*(
+    tlsBackend: TLSBackend, udp: DatagramTransport, remote: TransportAddress
+): Connection =
   let datagram = Datagram(data: udp.getMessage())
   let quic = newQuicServerConnection(tlsBackend, udp.localAddress, remote, datagram)
   let closed = newAsyncEvent()
   let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
-  proc onDisconnect {.async.} =
+  proc onDisconnect() {.async.} =
     trace "Calling onDisconnect for newIncomingConnection"
     await connection.disconnect()
     trace "Called onDisconnect for newIncomingConnection"
+
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
   connection
 
-proc newOutgoingConnection*(tlsBackend: TLSBackend,
-                            udp: DatagramTransport,
-                           remote: TransportAddress): Connection =
+proc newOutgoingConnection*(
+    tlsBackend: TLSBackend, udp: DatagramTransport, remote: TransportAddress
+): Connection =
   let quic = newQuicClientConnection(tlsBackend, udp.localAddress, remote)
   let closed = newAsyncEvent()
-  let connection = OutgoingConnection(udp: udp, quic: quic, closed: closed, tlsBackend: Opt.some(tlsBackend))
-  proc onDisconnect {.async.} =
+  let connection = OutgoingConnection(
+    udp: udp, quic: quic, closed: closed, tlsBackend: Opt.some(tlsBackend)
+  )
+  proc onDisconnect() {.async.} =
     trace "Calling onDisconnect for newOutgoingConnection"
     await connection.disconnect()
     trace "Called onDisconnect for newOutgoingConnection"
+
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
   connection
 
-proc startHandshake*(connection: Connection)  {.gcsafe.} =
+proc startHandshake*(connection: Connection) {.gcsafe.} =
   connection.quic.send()
 
 proc receive*(connection: Connection, datagram: Datagram) =
   connection.quic.receive(datagram)
 
-proc remoteAddress*(connection: Connection): TransportAddress {.
-    raises: [Defect, TransportOsError].} =
+proc remoteAddress*(
+    connection: Connection
+): TransportAddress {.raises: [Defect, TransportOsError].} =
   connection.remote
 
-proc localAddress*(connection: Connection): TransportAddress {.
-    raises: [Defect, TransportOsError].} =
+proc localAddress*(
+    connection: Connection
+): TransportAddress {.raises: [Defect, TransportOsError].} =
   connection.udp.localAddress()
 
-proc openStream*(connection: Connection,
-                 unidirectional = false): Future[Stream] {.async.} =
+proc openStream*(
+    connection: Connection, unidirectional = false
+): Future[Stream] {.async.} =
   await connection.quic.handshake.wait()
   result = await connection.quic.openStream(unidirectional = unidirectional)
 

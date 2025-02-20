@@ -16,48 +16,62 @@ proc openStream*(connection: Ngtcp2Connection, unidirectional: bool): Stream =
     id = connection.openBidiStream()
   newStream(connection, id)
 
-proc onStreamOpen(conn: ptr ngtcp2_conn,
-                   stream_id: int64,
-                   user_data: pointer): cint {.cdecl.} =
+proc onStreamOpen(
+    conn: ptr ngtcp2_conn, stream_id: int64, user_data: pointer
+): cint {.cdecl.} =
   let connection = cast[Ngtcp2Connection](user_data)
   connection.onIncomingStream(newStream(connection, stream_id))
 
-proc onStreamClose(conn: ptr ngtcp2_conn,
-                   flags: uint32,
-                   stream_id: int64,
-                   app_error_code: uint64,
-                   user_data: pointer,
-                   stream_user_data: pointer): cint {.cdecl.} =
+proc onStreamClose(
+    conn: ptr ngtcp2_conn,
+    flags: uint32,
+    stream_id: int64,
+    app_error_code: uint64,
+    user_data: pointer,
+    stream_user_data: pointer,
+): cint {.cdecl.} =
   trace "onStreamClose"
   let openStream = cast[OpenStream](stream_user_data)
   if openStream != nil:
     openStream.onClose()
 
-proc onReceiveStreamData(connection: ptr ngtcp2_conn,
-                          flags: uint32,
-                          stream_id: int64,
-                          offset: uint64,
-                          data: ptr uint8,
-                          datalen: uint,
-                          user_data: pointer,
-                          stream_user_data: pointer): cint{.cdecl.} =
+proc onReceiveStreamData(
+    connection: ptr ngtcp2_conn,
+    flags: uint32,
+    stream_id: int64,
+    offset: uint64,
+    data: ptr uint8,
+    datalen: uint,
+    user_data: pointer,
+    stream_user_data: pointer,
+): cint {.cdecl.} =
   trace "onReceiveStreamData"
   let state = cast[OpenStream](stream_user_data)
   var bytes = newSeqUninitialized[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
   state.receive(bytes)
 
-proc onStreamReset(connection: ptr ngtcp2_conn, stream_id: int64, final_size: uint64, app_error_code: uint64, user_data: pointer, stream_user_data: pointer): cint {.cdecl.} =
+proc onStreamReset(
+    connection: ptr ngtcp2_conn,
+    stream_id: int64,
+    final_size: uint64,
+    app_error_code: uint64,
+    user_data: pointer,
+    stream_user_data: pointer,
+): cint {.cdecl.} =
   trace "onStreamReset"
   let openStream = cast[OpenStream](stream_user_data)
   if openStream != nil:
     openStream.onClose()
   return 0
 
-proc onStreamStopSending(conn: ptr ngtcp2_conn; stream_id: int64;
-                                      app_error_code: uint64;
-                                      user_data: pointer;
-                                      stream_user_data: pointer): cint {.cdecl.} =
+proc onStreamStopSending(
+    conn: ptr ngtcp2_conn,
+    stream_id: int64,
+    app_error_code: uint64,
+    user_data: pointer,
+    stream_user_data: pointer,
+): cint {.cdecl.} =
   trace "onStreamStopSending"
   return 0
 

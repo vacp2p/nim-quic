@@ -18,21 +18,23 @@ import ./openstreams
 logScope:
   topics = "quic openstate"
 
-type
-  OpenConnection* = ref object of ConnectionState
-    quicConnection: Opt[QuicConnection]
-    ngtcp2Connection: Ngtcp2Connection
-    streams: OpenStreams
+type OpenConnection* = ref object of ConnectionState
+  quicConnection: Opt[QuicConnection]
+  ngtcp2Connection: Ngtcp2Connection
+  streams: OpenStreams
 
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
   OpenConnection(ngtcp2Connection: ngtcp2Connection, streams: OpenStreams.new)
 
-proc openClientConnection*(tlsBackend: TLSBackend, local, remote: TransportAddress): OpenConnection =
+proc openClientConnection*(
+    tlsBackend: TLSBackend, local, remote: TransportAddress
+): OpenConnection =
   let ngtcp2Conn = newNgtcp2Client(tlsBackend, local, remote)
   newOpenConnection(ngtcp2Conn)
 
-proc openServerConnection*(tlsBackend: TLSBackend, local, remote: TransportAddress,
-                           datagram: Datagram): OpenConnection =
+proc openServerConnection*(
+    tlsBackend: TLSBackend, local, remote: TransportAddress, datagram: Datagram
+): OpenConnection =
   newOpenConnection(newNgtcp2Server(tlsBackend, local, remote, datagram.data))
 
 {.push locks: "unknown".}
@@ -45,13 +47,15 @@ method enter(state: OpenConnection, connection: QuicConnection) =
   state.quicConnection = Opt.some(connection)
   # Workaround weird bug
   var onNewId = proc(id: ConnectionId) =
-    if isNil(connection.onNewId): return
+    if isNil(connection.onNewId):
+      return
     connection.onNewId(id)
 
-  var onRemoveId = proc (id: ConnectionId) =
-    if isNil(connection.onRemoveId): return
+  var onRemoveId = proc(id: ConnectionId) =
+    if isNil(connection.onRemoveId):
+      return
     connection.onRemoveId(id)
-  
+
   state.ngtcp2Connection.onNewId = Opt.some(onNewId)
   state.ngtcp2Connection.onRemoveId = Opt.some(onRemoveId)
 
@@ -63,10 +67,10 @@ method enter(state: OpenConnection, connection: QuicConnection) =
     state.streams.add(stream)
     connection.incoming.putNoWait(stream)
 
-  state.ngtcp2Connection.onHandshakeDone = proc =
+  state.ngtcp2Connection.onHandshakeDone = proc() =
     connection.handshake.fire()
 
-  state.ngtcp2Connection.onTimeout = proc {.gcsafe, raises:[]} =
+  state.ngtcp2Connection.onTimeout = proc() {.gcsafe, raises: [].} =
     try:
       trace "WAITING FOR CLOSE"
       waitFor connection.close()
@@ -98,11 +102,12 @@ method receive(state: OpenConnection, datagram: Datagram) =
     state.ngtcp2Connection.receive(datagram)
   except Ngtcp2Error as e:
     trace "ngtcp2 error on receive", code = $e.msg
-    isDraining =  state.ngtcp2Connection.isDraining
+    isDraining = state.ngtcp2Connection.isDraining
     if not isDraining:
       raise newException(QuicError, "could not receive - code:" & $e.msg)
   finally:
-    let quicConnection = state.quicConnection.valueOr: return
+    let quicConnection = state.quicConnection.valueOr:
+      return
     if isDraining:
       let duration = state.ngtcp2Connection.closingDuration()
       let ids = state.ids
@@ -110,8 +115,9 @@ method receive(state: OpenConnection, datagram: Datagram) =
       quicConnection.switch(draining)
       asyncSpawn draining.close()
 
-method openStream(state: OpenConnection,
-                  unidirectional: bool): Future[Stream] {.async.} =
+method openStream(
+    state: OpenConnection, unidirectional: bool
+): Future[Stream] {.async.} =
   let quicConnection = state.quicConnection.valueOr:
     raise newException(QuicError, "connection is closed")
   await quicConnection.handshake.wait()
@@ -119,7 +125,8 @@ method openStream(state: OpenConnection,
   state.streams.add(result)
 
 method close(state: OpenConnection) {.async.} =
-  let quicConnection = state.quicConnection.valueOr: return
+  let quicConnection = state.quicConnection.valueOr:
+    return
   let finalDatagram = state.ngtcp2Connection.close()
   let duration = state.ngtcp2Connection.closingDuration()
   let ids = state.ids
@@ -129,7 +136,8 @@ method close(state: OpenConnection) {.async.} =
 
 method drop(state: OpenConnection) {.async.} =
   trace "Dropping OpenConnection state"
-  let quicConnection = state.quicConnection.valueOr: return
+  let quicConnection = state.quicConnection.valueOr:
+    return
   let disconnecting = newDisconnectingConnection(state.ids)
   quicConnection.switch(disconnecting)
   await disconnecting.drop()

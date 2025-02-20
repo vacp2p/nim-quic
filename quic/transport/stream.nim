@@ -6,8 +6,10 @@ type
     id: int64
     state: StreamState
     closed*: AsyncEvent
+
   StreamState* = ref object of RootObj
     entered: bool
+
   StreamError* = object of QuicError
 
 {.push raises: [QuicError].}

@@ -20,7 +20,6 @@ proc newPath*(local, remote: TransportAddress): Path =
     localLength,
     cast[ptr struct_sockaddr](addr remoteAddress),
     remoteLength,
-    nil
+    nil,
   )
   path
-

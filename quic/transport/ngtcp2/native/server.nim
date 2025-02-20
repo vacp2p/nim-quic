@@ -16,12 +16,14 @@ import ./timestamp
 import ./handshake
 import ./parsedatagram
 
-proc newNgtcp2Server*(tlsBackend: TLSBackend,
-                      local, remote: TransportAddress,
-                     source, destination: ngtcp2_cid): Ngtcp2Connection =
+proc newNgtcp2Server*(
+    tlsBackend: TLSBackend,
+    local, remote: TransportAddress,
+    source, destination: ngtcp2_cid,
+): Ngtcp2Connection =
   var callbacks: ngtcp2_callbacks
-  callbacks.recv_client_initial =  ngtcp2_crypto_recv_client_initial_cb
-  callbacks.recv_crypto_data =  ngtcp2_crypto_recv_crypto_data_cb
+  callbacks.recv_client_initial = ngtcp2_crypto_recv_client_initial_cb
+  callbacks.recv_crypto_data = ngtcp2_crypto_recv_crypto_data_cb
   callbacks.delete_crypto_aead_ctx = ngtcp2_crypto_delete_crypto_aead_ctx_cb
   callbacks.delete_crypto_cipher_ctx = ngtcp2_crypto_delete_crypto_cipher_ctx_cb
   callbacks.get_path_challenge_data = ngtcp2_crypto_get_path_challenge_data_cb
@@ -58,19 +60,21 @@ proc newNgtcp2Server*(tlsBackend: TLSBackend,
     NGTCP2_TRANSPORT_PARAMS_V1,
     addr transportParams,
     nil,
-    addr nConn[]
+    addr nConn[],
   )
   if ret != 0:
     raise newException(QuicError, "could not create new server versioned conn: " & $ret)
 
   let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx)
 
-  ngtcp2_crypto_picotls_ctx_init(cptls) 
+  ngtcp2_crypto_picotls_ctx_init(cptls)
 
   var tls = tlsBackend.picoTLS.newConnection(true)
   cptls.ptls = tls.conn
 
-  var addExtensions = cast[ptr UncheckedArray[ptls_raw_extension_t]](alloc(ptls_raw_extension_t.sizeof*2))
+  var addExtensions = cast[ptr UncheckedArray[ptls_raw_extension_t]](alloc(
+    ptls_raw_extension_t.sizeof * 2
+  ))
   addExtensions[0] = ptls_raw_extension_t(type_field: high(uint16))
   addExtensions[1] = ptls_raw_extension_t(type_field: high(uint16))
   cptls.handshake_properties = ptls_handshake_properties_t(
@@ -81,8 +85,10 @@ proc newNgtcp2Server*(tlsBackend: TLSBackend,
 
   var connref = create(ngtcp2_crypto_conn_ref)
   connref.user_data = conn
-  connref.get_conn =  proc(connRef: ptr ngtcp2_crypto_conn_ref) : ptr ngtcp2_conn {.cdecl.} =
-      cast[ptr ngtcp2_conn](connRef.user_data)
+  connref.get_conn = proc(
+      connRef: ptr ngtcp2_crypto_conn_ref
+  ): ptr ngtcp2_conn {.cdecl.} =
+    cast[ptr ngtcp2_conn](connRef.user_data)
 
   var dataPtr = ptls_get_data_ptr(tls.conn)
   dataPtr[] = connref
@@ -90,7 +96,7 @@ proc newNgtcp2Server*(tlsBackend: TLSBackend,
   ret = ngtcp2_crypto_picotls_configure_server_session(cptls)
   if ret != 0:
     raise newException(QuicError, "could not configure server session: " & $ret)
-  
+
   nConn.conn = Opt.some(conn)
   nConn.tlsConn = tls
   nConn.cptls = cptls
@@ -101,7 +107,8 @@ proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =
   let info = parseDatagram(datagram)
   (source: info.source.toCid, dest: info.destination.toCid)
 
-proc newNgtcp2Server*(tlsBackend: TLSBackend, local, remote: TransportAddress,
-    datagram: openArray[byte]): Ngtcp2Connection =
+proc newNgtcp2Server*(
+    tlsBackend: TLSBackend, local, remote: TransportAddress, datagram: openArray[byte]
+): Ngtcp2Connection =
   let (source, destination) = extractIds(datagram)
   newNgtcp2Server(tlsBackend, local, remote, source, destination)
