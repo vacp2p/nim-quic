@@ -32,8 +32,8 @@ suite "ngtcp2 transport parameters":
       discard decodeTransportParameters(encoded)
 
   test "raises when setting remote parameters fails":
-    let tlsBackend = TLSBackend.init(@[], @[]).get()
-    let connection = newNgtcp2Client(tlsBackend, zeroAddress, zeroAddress).get()
+    let tlsBackend = TLSBackend.init(false, @[], @[])
+    let connection = newNgtcp2Client(tlsBackend, zeroAddress, zeroAddress)
     defer: connection.destroy()
     transport_params.active_connection_id_limit = 0
 

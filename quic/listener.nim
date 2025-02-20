@@ -40,21 +40,20 @@ proc addConnection(listener: Listener, connection: Connection,
   listener.incoming.putNoWait(connection)
 
 proc getOrCreateConnection*(listener: Listener, udp: DatagramTransport,
-                            remote: TransportAddress): Result[Connection, string] =
+                            remote: TransportAddress): Connection =
   var connection: Connection
   let destination = parseDatagram(udp.getMessage()).destination
   if not listener.hasConnection(destination):
-    connection = ?newIncomingConnection(listener.tlsBackend, udp, remote)
+    connection = newIncomingConnection(listener.tlsBackend, udp, remote)
     listener.addConnection(connection, destination)
   else:
     connection = listener.getConnection(destination)
-  ok(connection)
+  connection
 
 proc newListener*(tlsBackend: TLSBackend, address: TransportAddress): Listener =
   let listener = Listener(incoming: newAsyncQueue[Connection]())
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-    let connection = listener.getOrCreateConnection(udp, remote).valueOr:
-      raise newException(QuicError, error)
+    let connection = listener.getOrCreateConnection(udp, remote)
     connection.receive(Datagram(data: udp.getMessage()))
   listener.tlsBackend = tlsBackend
   listener.udp = newDatagramTransport(onReceive, local = address)
@@ -65,3 +64,6 @@ proc waitForIncoming*(listener: Listener): Future[Connection] {.async.} =
 
 proc stop*(listener: Listener) {.async.} =
   await listener.udp.closeWait()
+
+proc destroy*(listener: Listener) =
+  listener.tlsBackend.destroy()

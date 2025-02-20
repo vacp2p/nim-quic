@@ -1,5 +1,6 @@
 import pkg/ngtcp2
 import ../../../basics
+import ../../../errors
 import ../../packets
 import ../../tlsbackend
 import ../../version
@@ -17,7 +18,7 @@ import ./parsedatagram
 
 proc newNgtcp2Server*(tlsBackend: TLSBackend,
                       local, remote: TransportAddress,
-                     source, destination: ngtcp2_cid): Result[Ngtcp2Connection, string] =
+                     source, destination: ngtcp2_cid): Ngtcp2Connection =
   var callbacks: ngtcp2_callbacks
   callbacks.recv_client_initial =  ngtcp2_crypto_recv_client_initial_cb
   callbacks.recv_crypto_data =  ngtcp2_crypto_recv_crypto_data_cb
@@ -60,7 +61,7 @@ proc newNgtcp2Server*(tlsBackend: TLSBackend,
     addr nConn[]
   )
   if ret != 0:
-    return err("could not create new server versioned conn: " & $ret)
+    raise newException(QuicError, "could not create new server versioned conn: " & $ret)
 
   let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx)
 
@@ -88,20 +89,19 @@ proc newNgtcp2Server*(tlsBackend: TLSBackend,
 
   ret = ngtcp2_crypto_picotls_configure_server_session(cptls)
   if ret != 0:
-    return err("could not configure server session: " & $ret)
+    raise newException(QuicError, "could not configure server session: " & $ret)
   
   nConn.conn = Opt.some(conn)
   nConn.tlsConn = tls
   nConn.cptls = cptls
   nConn.connref = connref
-  
-  ok(nConn)
+  nConn
 
 proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =
   let info = parseDatagram(datagram)
   (source: info.source.toCid, dest: info.destination.toCid)
 
 proc newNgtcp2Server*(tlsBackend: TLSBackend, local, remote: TransportAddress,
-    datagram: openArray[byte]): Result[Ngtcp2Connection, string] =
+    datagram: openArray[byte]): Ngtcp2Connection =
   let (source, destination) = extractIds(datagram)
   newNgtcp2Server(tlsBackend, local, remote, source, destination)

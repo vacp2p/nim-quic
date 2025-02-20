@@ -1,5 +1,5 @@
 import ngtcp2
-import results
+import ../../../errors
 import ../../version
 import ../../../basics
 import ../../connectionid
@@ -15,7 +15,7 @@ import ./streams
 import ./timestamp
 import ./handshake
 
-proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): Result[Ngtcp2Connection, string] =
+proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): Ngtcp2Connection =
   var callbacks: ngtcp2_callbacks
   callbacks.client_initial = ngtcp2_crypto_client_initial_cb
   callbacks.recv_crypto_data = ngtcp2_crypto_recv_crypto_data_cb
@@ -57,7 +57,7 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
     addr nConn[]
   )
   if ret != 0:
-    return err("could not create new client versioned conn: " & $ret)
+    raise newException(QuicError, "could not create new client versioned conn: " & $ret)
 
 
   let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx)
@@ -86,11 +86,10 @@ proc newNgtcp2Client*(tlsBackend: TLSBackend, local, remote: TransportAddress): 
 
   ret = ngtcp2_crypto_picotls_configure_client_session(cptls, conn)
   if ret != 0:
-    return err("could not configure client session: " & $ret)
+    raise newException(QuicError, "could not configure client session: " & $ret)
   
   nConn.conn = Opt.some(conn)
   nConn.tlsConn = tls
   nConn.cptls = cptls
   nConn.connref = connref
-  
-  ok(nConn)
+  nConn

@@ -3,6 +3,7 @@ import ../../../helpers/openarray
 import ../../stream
 import ../stream/openstate
 import ./connection
+import chronicles
 
 proc newStream(connection: Ngtcp2Connection, id: int64): Stream =
   newStream(id, newOpenStream(connection))
@@ -27,6 +28,7 @@ proc onStreamClose(conn: ptr ngtcp2_conn,
                    app_error_code: uint64,
                    user_data: pointer,
                    stream_user_data: pointer): cint {.cdecl.} =
+  trace "onStreamClose"
   let openStream = cast[OpenStream](stream_user_data)
   if openStream != nil:
     openStream.onClose()
@@ -39,12 +41,29 @@ proc onReceiveStreamData(connection: ptr ngtcp2_conn,
                           datalen: uint,
                           user_data: pointer,
                           stream_user_data: pointer): cint{.cdecl.} =
+  trace "onReceiveStreamData"
   let state = cast[OpenStream](stream_user_data)
   var bytes = newSeqUninitialized[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
   state.receive(bytes)
 
+proc onStreamReset(connection: ptr ngtcp2_conn, stream_id: int64, final_size: uint64, app_error_code: uint64, user_data: pointer, stream_user_data: pointer): cint {.cdecl.} =
+  trace "onStreamReset"
+  let openStream = cast[OpenStream](stream_user_data)
+  if openStream != nil:
+    openStream.onClose()
+  return 0
+
+proc onStreamStopSending(conn: ptr ngtcp2_conn; stream_id: int64;
+                                      app_error_code: uint64;
+                                      user_data: pointer;
+                                      stream_user_data: pointer): cint {.cdecl.} =
+  trace "onStreamStopSending"
+  return 0
+
 proc installStreamCallbacks*(callbacks: var ngtcp2_callbacks) =
   callbacks.stream_open = onStreamOpen
   callbacks.stream_close = onStreamClose
   callbacks.recv_stream_data = onReceiveStreamData
+  callbacks.stream_reset = onStreamReset
+  callbacks.stream_stop_sending = onStreamStopSending

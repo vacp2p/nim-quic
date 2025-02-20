@@ -1,5 +1,6 @@
 import std/sequtils
 import ngtcp2
+import chronicles
 import ../../../basics
 import ../../../udp/congestion
 import ../../../helpers/openarray
@@ -11,6 +12,10 @@ import ./picotls
 import ./errors as ngtcp2errors
 import ./timestamp
 import ./pointers
+
+
+logScope:
+  topics = "ngtcp2 conn"
 
 type
   Ngtcp2Connection* = ref object
@@ -24,6 +29,7 @@ type
     flowing*: AsyncEvent
     timeout*: Timeout
     onSend*: proc(datagram: Datagram) {.gcsafe, raises:[].}
+    onTimeout*: proc() {.raises:[].}
     onIncomingStream*: proc(stream: Stream)
     onHandshakeDone*: proc()
     onNewId*: Opt[proc(id: ConnectionId)]
@@ -51,12 +57,17 @@ proc destroy*(connection: Ngtcp2Connection) =
   
 proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe, raises:[].}
 
+proc executeOnTimeout(connection: Ngtcp2Connection) {.async.} 
+
 proc newConnection*(path: Path): Ngtcp2Connection =
   let connection = Ngtcp2Connection()
   connection.path = path
   connection.flowing = newAsyncEvent()
   connection.timeout = newTimeout(proc = connection.handleTimeout())
   connection.flowing.fire()
+
+  asyncSpawn connection.executeOnTimeout()
+
   connection
 
 proc ids*(connection: Ngtcp2Connection): seq[ConnectionId] =
@@ -70,7 +81,7 @@ proc ids*(connection: Ngtcp2Connection): seq[ConnectionId] =
 proc updateTimeout*(connection: Ngtcp2Connection) =
   let conn = connection.conn.valueOr:
     raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
-
+  trace "updateTimeout"
   let expiry = ngtcp2_conn_get_expiry(conn)
   if expiry != uint64.high:
     connection.timeout.set(Moment.init(expiry.int64, 1.nanoseconds))
@@ -94,7 +105,7 @@ proc trySend(connection: Ngtcp2Connection,
     addr connection.buffer[0],
     connection.buffer.len.uint,
     written,
-    0,
+    NGTCP2_WRITE_STREAM_FLAG_NONE,
     streamId,
     messagePtr,
     messageLen,
@@ -158,10 +169,7 @@ proc tryReceive(connection: Ngtcp2Connection, datagram: openArray[byte],
 
 proc receive*(connection: Ngtcp2Connection, datagram: openArray[byte],
               ecn = ecnNonCapable) =
-  try:
-    connection.tryReceive(datagram, ecn)
-  except Ngtcp2Error:
-    return
+  connection.tryReceive(datagram, ecn)
   connection.send()
   connection.flowing.fire()
 
@@ -172,12 +180,17 @@ proc handleTimeout(connection: Ngtcp2Connection) =
   let conn = connection.conn.valueOr: return
 
   errorAsDefect:
-    checkResult ngtcp2_conn_handle_expiry(conn, now())
+    let ret = ngtcp2_conn_handle_expiry(conn, now())
+    trace "handleExpiry", ret
+    checkResult ret
     connection.send()
 
 proc close*(connection: Ngtcp2Connection): Datagram =
   let conn = connection.conn.valueOr:
     raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
+  if (ngtcp2_conn_in_closing_period(conn) == 1 or ngtcp2_conn_in_draining_period(conn) == 1):
+    return
 
   var ccerr: ngtcp2_ccerr
   ngtcp2_ccerr_default(addr ccerr)
@@ -197,6 +210,14 @@ proc close*(connection: Ngtcp2Connection): Datagram =
   let data = connection.buffer[0..<length]
   let ecn = ECN(packetInfo.ecn)
   Datagram(data: data, ecn: ecn)
+
+  # TODO: should stop all event loops
+
+proc executeOnTimeout(connection: Ngtcp2Connection) {.async.} = 
+  trace "Waiting expiration"
+  await connection.timeout.expired()
+  trace "Timeout expired"
+  #TODO: ?? connection.onTimeout()
 
 proc closingDuration*(connection: Ngtcp2Connection): Duration =
   let conn = connection.conn.valueOr:

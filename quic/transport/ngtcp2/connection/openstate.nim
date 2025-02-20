@@ -1,5 +1,4 @@
 import chronicles
-import results
 
 import ../../../basics
 import ../../quicconnection
@@ -10,6 +9,7 @@ import ../native/connection
 import ../native/streams
 import ../native/client
 import ../native/server
+import ../native/errors
 import ./closingstate
 import ./drainingstate
 import ./disconnectingstate
@@ -27,15 +27,17 @@ type
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
   OpenConnection(ngtcp2Connection: ngtcp2Connection, streams: OpenStreams.new)
 
-proc openClientConnection*(tlsBackend: TLSBackend, local, remote: TransportAddress): Result[OpenConnection, string] =
-  let ngtcp2Conn = ?newNgtcp2Client(tlsBackend, local, remote)
-  ok(newOpenConnection(ngtcp2Conn))
+proc openClientConnection*(tlsBackend: TLSBackend, local, remote: TransportAddress): OpenConnection =
+  let ngtcp2Conn = newNgtcp2Client(tlsBackend, local, remote)
+  newOpenConnection(ngtcp2Conn)
 
 proc openServerConnection*(tlsBackend: TLSBackend, local, remote: TransportAddress,
-                           datagram: Datagram): Result[OpenConnection, string] =
-  ok(newOpenConnection(?newNgtcp2Server(tlsBackend, local, remote, datagram.data)))
+                           datagram: Datagram): OpenConnection =
+  newOpenConnection(newNgtcp2Server(tlsBackend, local, remote, datagram.data))
 
 {.push locks: "unknown".}
+
+method close(state: OpenConnection) {.async.}
 
 method enter(state: OpenConnection, connection: QuicConnection) =
   trace "Entering OpenConnection state"
@@ -64,6 +66,16 @@ method enter(state: OpenConnection, connection: QuicConnection) =
   state.ngtcp2Connection.onHandshakeDone = proc =
     connection.handshake.fire()
 
+  state.ngtcp2Connection.onTimeout = proc {.gcsafe, raises:[]} =
+    try:
+      trace "WAITING FOR CLOSE"
+      waitFor connection.close()
+      trace "CLOSED"
+    except QuicError:
+      trace "QUIC ERROR"
+    except CatchableError:
+      trace "CATCHABLE ERROR"
+
   trace "Entered OpenConnection state"
 
 method leave(state: OpenConnection) =
@@ -81,14 +93,22 @@ method send(state: OpenConnection) =
   state.ngtcp2Connection.send()
 
 method receive(state: OpenConnection, datagram: Datagram) =
-  state.ngtcp2Connection.receive(datagram)
-  let quicConnection = state.quicConnection.valueOr: return
-  if state.ngtcp2Connection.isDraining:
-    let duration = state.ngtcp2Connection.closingDuration()
-    let ids = state.ids
-    let draining = newDrainingConnection(ids, duration)
-    quicConnection.switch(draining)
-    asyncSpawn draining.close()
+  var isDraining = false
+  try:
+    state.ngtcp2Connection.receive(datagram)
+  except Ngtcp2Error as e:
+    trace "ngtcp2 error on receive", code = $e.msg
+    isDraining =  state.ngtcp2Connection.isDraining
+    if not isDraining:
+      raise newException(QuicError, "could not receive - code:" & $e.msg)
+  finally:
+    let quicConnection = state.quicConnection.valueOr: return
+    if isDraining:
+      let duration = state.ngtcp2Connection.closingDuration()
+      let ids = state.ids
+      let draining = newDrainingConnection(ids, duration)
+      quicConnection.switch(draining)
+      asyncSpawn draining.close()
 
 method openStream(state: OpenConnection,
                   unidirectional: bool): Future[Stream] {.async.} =

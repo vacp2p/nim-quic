@@ -1,5 +1,4 @@
 import chronicles
-import results
 
 import ./basics
 import ./transport/connectionid
@@ -22,8 +21,11 @@ type
     loop: Future[void]
     onClose: Opt[proc() {.gcsafe, raises: [].}]
     closed: AsyncEvent
+  
   IncomingConnection = ref object of Connection
+
   OutgoingConnection = ref object of Connection
+    tlsBackend: Opt[TLSBackend]
 
 proc ids*(connection: Connection): seq[ConnectionId] =
   connection.quic.ids
@@ -44,9 +46,19 @@ proc drop*(connection: Connection) {.async.} =
 
 proc close*(connection: Connection) {.async.} =
   await connection.quic.close()
+  if connection is OutgoingConnection:
+    let outConn = OutgoingConnection(connection)
+    if outConn.tlsBackend.isSome:
+      outConn.tlsBackend.get().destroy()
+      outConn.tlsBackend = Opt.none(TLSBackend)
 
 proc waitClosed*(connection: Connection) {.async.} =
   await connection.closed.wait()
+  if connection is OutgoingConnection:
+    let outConn = OutgoingConnection(connection)
+    if outConn.tlsBackend.isSome:
+      outConn.tlsBackend.get().destroy()
+      outConn.tlsBackend = Opt.none(TLSBackend)
 
 proc startSending(connection: Connection, remote: TransportAddress) =
   trace "Starting sending loop"
@@ -56,7 +68,7 @@ proc startSending(connection: Connection, remote: TransportAddress) =
       let datagram = await connection.quic.outgoing.get()
       trace "Sending datagram"
       await connection.udp.sendTo(remote, datagram.data)
-      trace "Sent datagraom"
+      trace "Sent datagram"
     except TransportError as e:
       trace "Failed to send datagram", errorMsg = e.msg
       trace "Failing connection loop future with error"
@@ -93,9 +105,9 @@ proc disconnect(connection: Connection) {.async.} =
   trace "Fired closed event"
 
 proc newIncomingConnection*(tlsBackend: TLSBackend, udp: DatagramTransport,
-                           remote: TransportAddress): Result[Connection, string] =
+                           remote: TransportAddress): Connection =
   let datagram = Datagram(data: udp.getMessage())
-  let quic = ?newQuicServerConnection(tlsBackend, udp.localAddress, remote, datagram)
+  let quic = newQuicServerConnection(tlsBackend, udp.localAddress, remote, datagram)
   let closed = newAsyncEvent()
   let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
   proc onDisconnect {.async.} =
@@ -105,14 +117,14 @@ proc newIncomingConnection*(tlsBackend: TLSBackend, udp: DatagramTransport,
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
-  ok(connection)
+  connection
 
 proc newOutgoingConnection*(tlsBackend: TLSBackend,
                             udp: DatagramTransport,
-                           remote: TransportAddress): Result[Connection, string] =
-  let quic = ?newQuicClientConnection(tlsBackend, udp.localAddress, remote)
+                           remote: TransportAddress): Connection =
+  let quic = newQuicClientConnection(tlsBackend, udp.localAddress, remote)
   let closed = newAsyncEvent()
-  let connection = OutgoingConnection(udp: udp, quic: quic, closed: closed)
+  let connection = OutgoingConnection(udp: udp, quic: quic, closed: closed, tlsBackend: Opt.some(tlsBackend))
   proc onDisconnect {.async.} =
     trace "Calling onDisconnect for newOutgoingConnection"
     await connection.disconnect()
@@ -120,9 +132,9 @@ proc newOutgoingConnection*(tlsBackend: TLSBackend,
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
-  ok(connection)
+  connection
 
-proc startHandshake*(connection: Connection) =
+proc startHandshake*(connection: Connection)  {.gcsafe.} =
   connection.quic.send()
 
 proc receive*(connection: Connection, datagram: Datagram) =

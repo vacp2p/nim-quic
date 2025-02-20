@@ -8,7 +8,7 @@ import ../helpers/udp
 suite "listener":
 
   setup:
-    let tlsBackend = TLSBackend.init(true, @[], @[]).get()
+    let tlsBackend = TLSBackend.init(true, @[], @[])
     var listener = newListener(tlsBackend, initTAddress("127.0.0.1:0"))
     let address = listener.localAddress
 
