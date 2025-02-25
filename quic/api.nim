@@ -21,15 +21,29 @@ export close
 export waitClosed
 export errors
 export destroy
+export CertificateVerifier
+export certificateVerifierCB
+export CustomCertificateVerifier
+export InsecureCertificateVerifier
+export init
 
 type TLSConfig* = object
   certificate*: seq[byte]
   key*: seq[byte]
-  # verifyCertificate = Opt[proc] # None to skip verif
-  # 
+  certificateVerifier*: Opt[CertificateVerifier]
 
-proc init*(t: typedesc[TLSConfig], certificate, key: seq[byte]): TLSConfig =
-  return TLSConfig(certificate: certificate, key: key)
+proc init*(
+    t: typedesc[TLSConfig],
+    certificate: seq[byte] = @[],
+    key: seq[byte] = @[],
+    certificateVerifier: Opt[CertificateVerifier] = Opt.none(CertificateVerifier),
+): TLSConfig {.gcsafe.} =
+  return TLSConfig(
+    certificate: certificate, key: key, certificateVerifier: certificateVerifier
+  )
+
+proc newBackend(self: TLSConfig, isServer: bool): TLSBackend {.gcsafe.}  =
+  TLSBackend.init(isServer, self.certificate, self.key, self.certificateVerifier)
 
 proc listen*(
     address: TransportAddress, tlsConfig: TLSConfig
@@ -40,7 +54,7 @@ proc listen*(
   if tlsConfig.key.len == 0:
     raise newException(QuicConfigError, "key is required in TLSConfig")
 
-  let tlsBackend = TLSBackend.init(true, tlsConfig.certificate, tlsConfig.key)
+  let tlsBackend = tlsConfig.newBackend(true)
 
   return newListener(tlsBackend, address)
 
@@ -50,7 +64,7 @@ proc accept*(listener: Listener): Future[Connection] {.async.} =
 proc dial*(
     address: TransportAddress, tlsConfig: TLSConfig = TLSConfig()
 ): Future[Connection] {.async: (raises: [QuicError, TransportOsError]).} =
-  let tlsBackend = TLSBackend.init(false, tlsConfig.certificate, tlsConfig.key)
+  let tlsBackend = tlsConfig.newBackend(false)
   var connection: Connection
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
     let datagram = Datagram(data: udp.getMessage())

@@ -1,10 +1,15 @@
 import ngtcp2
+import results
 import ../../../errors
+import tables
+import ./certificateverifier
+
 
 type
   PicoTLSContext* = ref object
     context*: ptr ptls_context_t
     signCert: ptr ptls_openssl_sign_certificate_t
+    certVerifier: Opt[CertificateVerifier]
 
   PicoTLSConnection* = ref object
     conn*: ptr ptls_t
@@ -30,7 +35,10 @@ proc loadPrivateKey(signCert: ptr ptls_openssl_sign_certificate_t, key: seq[byte
     raise newException(QuicError, "could not load private key: " & $ret)
 
 proc init*(
-    t: typedesc[PicoTLSContext], certificate: seq[byte], key: seq[byte]
+    t: typedesc[PicoTLSContext],
+    certificate: seq[byte],
+    key: seq[byte],
+    certVerifier: Opt[CertificateVerifier],
 ): PicoTLSContext =
   var ctx = create(ptls_context_t)
   ctx.random_bytes = ptls_openssl_random_bytes
@@ -38,7 +46,14 @@ proc init*(
   ctx.key_exchanges =
     cast[ptr ptr ptls_key_exchange_algorithm_t](addr ptls_openssl_key_exchanges)
   ctx.cipher_suites = cast[ptr ptr ptls_cipher_suite_t](addr ptls_openssl_cipher_suites)
-  ctx.verify_certificate = nil
+
+  if certVerifier.isSome:
+    try:
+      ctx.verify_certificate = certVerifier.get().getPtlsVerifyCertificateT()
+    except:
+      doAssert false, "checked with if"
+  else:
+    ctx.verify_certificate = nil
 
   var signCert: ptr ptls_openssl_sign_certificate_t = nil
   if len(key) != 0 and len(certificate) != 0:
@@ -47,12 +62,10 @@ proc init*(
     loadCertificate(ctx, certificate)
     ctx.sign_certificate = addr signCert.super
 
-    # TODO: implement custom certificate validation
-
-  return PicoTLSContext(context: ctx, signCert: signCert)
+  return PicoTLSContext(context: ctx, signCert: signCert, certVerifier: certVerifier)
 
 proc destroy*(p: PicoTLSContext) =
-  if (p.signCert != nil):
+  if not p.signCert.isNil:
     ptls_openssl_dispose_sign_certificate(p.signCert)
     for i in 0 ..< p.context.certificates.count:
       let curr = cast[ptr type(ptls_iovec_t)](cast[uint](p.context.certificates) +
@@ -60,8 +73,18 @@ proc destroy*(p: PicoTLSContext) =
       dealloc(curr)
     dealloc(p.context.certificates.list)
     dealloc(p.signCert)
+    p.context.certificates.list = nil
+    p.signCert = nil
+
+  if p.certVerifier.isSome:
+    try:
+      p.certVerifier.get().destroy()
+    except:
+      doAssert false, "checked with if"
+    p.certVerifier = Opt.none(CertificateVerifier)
 
   dealloc(p.context)
+  p.context = nil
 
 proc newConnection*(p: PicoTLSContext, isServer: bool): PicoTLSConnection =
   return PicoTLSConnection(
