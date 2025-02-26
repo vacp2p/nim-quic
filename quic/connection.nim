@@ -79,18 +79,18 @@ proc startSending(connection: Connection, remote: TransportAddress) =
 
   connection.loop = asyncLoop(send)
 
-proc stopSending(connection: Connection) {.async.} =
+proc stopSending(connection: Connection) {.async: (raises: []).} =
   trace "Stopping sending loop"
   await connection.loop.cancelAndWait()
   trace "Stopped sending loop"
 
-method closeUdp(connection: Connection) {.async, base, raises: [].} =
+method closeUdp(connection: Connection) {.async: (raises: []), base.} =
   discard
 
-method closeUdp(connection: OutgoingConnection) {.async.} =
+method closeUdp(connection: OutgoingConnection) {.async: (raises: []).} =
   await connection.udp.closeWait()
 
-proc disconnect(connection: Connection) {.async.} =
+proc disconnect(connection: Connection) {.async: (raises: []).} =
   trace "Disconnecting connection"
   trace "Stop sending in the connection"
   await connection.stopSending()
@@ -113,7 +113,7 @@ proc newIncomingConnection*(
   let quic = newQuicServerConnection(tlsBackend, udp.localAddress, remote, datagram)
   let closed = newAsyncEvent()
   let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
-  proc onDisconnect() {.async.} =
+  proc onDisconnect() {.async: (raises: []).} =
     trace "Calling onDisconnect for newIncomingConnection"
     await connection.disconnect()
     trace "Called onDisconnect for newIncomingConnection"
@@ -131,7 +131,7 @@ proc newOutgoingConnection*(
   let connection = OutgoingConnection(
     udp: udp, quic: quic, closed: closed, tlsBackend: Opt.some(tlsBackend)
   )
-  proc onDisconnect() {.async.} =
+  proc onDisconnect() {.async: (raises: []).} =
     trace "Calling onDisconnect for newOutgoingConnection"
     await connection.disconnect()
     trace "Called onDisconnect for newOutgoingConnection"

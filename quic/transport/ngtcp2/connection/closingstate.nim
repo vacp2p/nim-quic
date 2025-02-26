@@ -13,7 +13,7 @@ proc newClosingConnection*(
   state.init(ids, duration)
   state
 
-proc sendFinalDatagram(state: ClosingConnection) =
+proc sendFinalDatagram(state: ClosingConnection) {.raises: QuicError.} =
   let connection = state.connection.valueOr:
     return
   try:
