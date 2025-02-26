@@ -4,6 +4,8 @@ import ../../../errors
 import tables
 import ./certificateverifier
 
+type TLSBackendSetupError* = object of QuicError
+
 type
   PicoTLSContext* = ref object
     context*: ptr ptls_context_t
@@ -25,13 +27,13 @@ proc loadCertificate(ctx: ptr ptls_context_t, certificate: seq[byte]) =
 
   let ret = ptls_load_certificates_from_memory(ctx, buf)
   if ret != 0:
-    raise newException(QuicError, "could not load certificate: " & $ret)
+    raise newException(TLSBackendSetupError, "could not load certificate: " & $ret)
 
 proc loadPrivateKey(signCert: ptr ptls_openssl_sign_certificate_t, key: seq[byte]) =
   let ret =
     ptls_openssl_init_sign_certificate_with_mem_key(signCert, key[0].addr, key.len.cint)
   if ret != 0:
-    raise newException(QuicError, "could not load private key: " & $ret)
+    raise newException(TLSBackendSetupError, "could not load private key: " & $ret)
 
 proc init*(
     t: typedesc[PicoTLSContext],

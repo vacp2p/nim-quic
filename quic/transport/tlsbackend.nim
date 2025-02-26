@@ -10,6 +10,8 @@ export InsecureCertificateVerifier
 export init
 export destroy
 
+export TLSBackendSetupError
+
 type TLSBackend* = ref object
   picoTLS*: PicoTLSContext
 
@@ -17,24 +19,26 @@ proc newServerTLSBackend*(
     certificate: seq[byte],
     key: seq[byte],
     certificateVerifier: Opt[CertificateVerifier],
-): TLSBackend {.raises: [QuicError].} =
+): TLSBackend {.raises: [TLSBackendSetupError].} =
   let picotlsCtx = PicoTLSContext.init(
     certificate, key, certificateVerifier, certificateVerifier.isSome
   )
   let ret = ngtcp2_crypto_picotls_configure_server_context(picotlsCtx.context)
   if ret != 0:
-    raise newException(QuicError, "could not configure server context: " & $ret)
+    raise
+      newException(TLSBackendSetupError, "could not configure server context: " & $ret)
   return TLSBackend(picoTLS: picotlsCtx)
 
 proc newClientTLSBackend*(
     certificate: seq[byte],
     key: seq[byte],
     certificateVerifier: Opt[CertificateVerifier],
-): TLSBackend {.raises: [QuicError].} =
+): TLSBackend {.raises: [TLSBackendSetupError].} =
   let picotlsCtx = PicoTLSContext.init(certificate, key, certificateVerifier, false)
   let ret = ngtcp2_crypto_picotls_configure_client_context(picotlsCtx.context)
   if ret != 0:
-    raise newException(QuicError, "could not configure client context: " & $ret)
+    raise
+      newException(TLSBackendSetupError, "could not configure client context: " & $ret)
   return TLSBackend(picoTLS: picotlsCtx)
 
 proc destroy*(self: TLSBackend) =
