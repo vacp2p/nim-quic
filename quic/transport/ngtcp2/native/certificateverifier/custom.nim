@@ -5,7 +5,8 @@ import ../pointers
 import ../../../../helpers/openarray
 
 type
-  certificateVerifierCB* = proc(derCertificates: seq[seq[byte]]): bool {.gcsafe.}
+  certificateVerifierCB* =
+    proc(derCertificates: seq[seq[byte]]): bool {.gcsafe, noSideEffect.}
 
   customPTLSVerifyCertificateT = object of ptls_verify_certificate_t
     customCertVerifier: certificateVerifierCB
@@ -57,7 +58,7 @@ proc init*(
 method destroy*(t: CustomCertificateVerifier) {.gcsafe.} =
   if t.verifier.isNil:
     return
-  
+
   let algosPtr = cast[pointer](t.verifier.algos)
   dealloc(algosPtr)
   dealloc(t.verifier)

@@ -37,12 +37,14 @@ proc simulateLossyNetwork*(a, b: QuicConnection) {.async.} =
     await allFutures(loop1.cancelAndWait(), loop2.cancelAndWait())
 
 proc setupConnection*(): Future[tuple[client, server: QuicConnection]] {.async.} =
-  let clientTLSBackend = TLSBackend.init(false, @[], @[])
+  let clientTLSBackend = newClientTLSBackend(@[], @[], Opt.none(CertificateVerifier))
   let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
 
   client.send() # Start Handshake
   let datagram = await client.outgoing.get()
-  let serverTLSBackend = TLSBackend.init(true, testCertificate(), testPrivateKey())
+  let serverTLSBackend = newClientTLSBackend(
+    testCertificate(), testPrivateKey(), Opt.none(CertificateVerifier)
+  )
   let server =
     newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, datagram)
 

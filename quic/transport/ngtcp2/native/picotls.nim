@@ -4,7 +4,6 @@ import ../../../errors
 import tables
 import ./certificateverifier
 
-
 type
   PicoTLSContext* = ref object
     context*: ptr ptls_context_t
@@ -39,6 +38,7 @@ proc init*(
     certificate: seq[byte],
     key: seq[byte],
     certVerifier: Opt[CertificateVerifier],
+    requiresClientAuthentication: bool,
 ): PicoTLSContext =
   var ctx = create(ptls_context_t)
   ctx.random_bytes = ptls_openssl_random_bytes
@@ -48,6 +48,8 @@ proc init*(
   ctx.cipher_suites = cast[ptr ptr ptls_cipher_suite_t](addr ptls_openssl_cipher_suites)
 
   if certVerifier.isSome:
+    if requiresClientAuthentication:
+      ctx.require_client_authentication = 1
     try:
       ctx.verify_certificate = certVerifier.get().getPtlsVerifyCertificateT()
     except:

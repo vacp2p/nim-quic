@@ -63,6 +63,9 @@ proc newListener*(tlsBackend: TLSBackend, address: TransportAddress): Listener =
 proc waitForIncoming*(listener: Listener): Future[Connection] {.async.} =
   await listener.incoming.get()
 
+proc accept*(listener: Listener): Future[Connection] {.async.} =
+  result = await listener.waitForIncoming()
+
 proc stop*(listener: Listener) {.async.} =
   await listener.udp.closeWait()
 

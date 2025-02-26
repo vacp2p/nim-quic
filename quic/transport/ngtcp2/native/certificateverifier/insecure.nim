@@ -12,4 +12,6 @@ method destroy*(t: InsecureCertificateVerifier) {.gcsafe.} =
 method getPtlsVerifyCertificateT*(
     t: InsecureCertificateVerifier
 ): ptr ptls_verify_certificate_t =
-  return nil
+  # picotls will check against null to determine whether a certificate verifier
+  # was setup or not
+  return nil 
