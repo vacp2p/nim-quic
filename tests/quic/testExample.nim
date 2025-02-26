@@ -8,23 +8,30 @@ import ../helpers/certificate
 suite "examples from Readme":
   test "outgoing and incoming connections":
     proc outgoing() {.async.} =
-      let connection = await dial(initTAddress("127.0.0.1:12345"))
+      let cb = proc(derCertificates: seq[seq[byte]]): bool {.gcsafe.} =
+        # TODO: implement custom certificate validation
+        return derCertificates.len > 0
+
+      let customCertVerif: CertificateVerifier = CustomCertificateVerifier.init(cb)
+
+      let tlsConfig = TLSConfig.init(certificateVerifier = Opt.some(customCertVerif))
+      let client = QuicClient.init(tlsConfig)
+      let connection = await client.dial(initTAddress("127.0.0.1:12345"))
       echo "OPENING STREAM"
       let stream = await connection.openStream()
       let message = cast[seq[byte]]("some message")
       echo "WRITING TO STREAM"
       await stream.write(message)
-      await sleepAsync(10.seconds)
       let x = await stream.read()
       echo "CLOSING"
       await stream.close()
       await connection.close()
       echo "DONE OUTGOING"
 
- 
     proc incoming() {.async.} =
-      let listener =
-        listen(initTAddress("127.0.0.1:12345"), TLSConfig.init(testCertificate(), testPrivateKey()))
+      let tlsConfig = TLSConfig.init(testCertificate(), testPrivateKey())
+      let server = QuicServer.init(tlsConfig)
+      let listener = server.listen(initTAddress("127.0.0.1:12345"))
 
       echo "INCOMING: ======== ACCEPTING ===== "
       let connection = await listener.accept()

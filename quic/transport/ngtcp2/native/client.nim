@@ -3,7 +3,6 @@ import ../../../errors
 import ../../version
 import ../../../basics
 import ../../connectionid
-import ../../tlsbackend
 import ./ids
 import ./encryption
 import ./settings
@@ -16,7 +15,7 @@ import ./timestamp
 import ./handshake
 
 proc newNgtcp2Client*(
-    tlsBackend: TLSBackend, local, remote: TransportAddress
+    tlsContext: PicoTLSContext, local, remote: TransportAddress
 ): Ngtcp2Connection =
   var callbacks: ngtcp2_callbacks
   callbacks.client_initial = ngtcp2_crypto_client_initial_cb
@@ -65,7 +64,7 @@ proc newNgtcp2Client*(
 
   ngtcp2_crypto_picotls_ctx_init(cptls)
 
-  var tls = tlsBackend.picoTLS.newConnection(false)
+  var tls = tlsContext.newConnection(false)
   cptls.ptls = tls.conn
 
   var addExtensions = cast[ptr UncheckedArray[ptls_raw_extension_t]](alloc(

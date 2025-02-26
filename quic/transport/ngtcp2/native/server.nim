@@ -2,7 +2,6 @@ import pkg/ngtcp2
 import ../../../basics
 import ../../../errors
 import ../../packets
-import ../../tlsbackend
 import ../../version
 import ./encryption
 import ./ids
@@ -17,7 +16,7 @@ import ./handshake
 import ./parsedatagram
 
 proc newNgtcp2Server*(
-    tlsBackend: TLSBackend,
+    tlsContext: PicoTLSContext,
     local, remote: TransportAddress,
     source, destination: ngtcp2_cid,
 ): Ngtcp2Connection =
@@ -69,7 +68,7 @@ proc newNgtcp2Server*(
 
   ngtcp2_crypto_picotls_ctx_init(cptls)
 
-  var tls = tlsBackend.picoTLS.newConnection(true)
+  var tls = tlsContext.newConnection(true)
   cptls.ptls = tls.conn
 
   var addExtensions = cast[ptr UncheckedArray[ptls_raw_extension_t]](alloc(
@@ -108,7 +107,7 @@ proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =
   (source: info.source.toCid, dest: info.destination.toCid)
 
 proc newNgtcp2Server*(
-    tlsBackend: TLSBackend, local, remote: TransportAddress, datagram: openArray[byte]
+    tlsContext: PicoTLSContext, local, remote: TransportAddress, datagram: openArray[byte]
 ): Ngtcp2Connection =
   let (source, destination) = extractIds(datagram)
-  newNgtcp2Server(tlsBackend, local, remote, source, destination)
+  newNgtcp2Server(tlsContext, local, remote, source, destination)

@@ -7,6 +7,7 @@ import ./errors
 import ./transport/tlsbackend
 
 export Listener
+export accept
 export Connection
 export Stream
 export openStream
@@ -21,36 +22,69 @@ export close
 export waitClosed
 export errors
 export destroy
+export CertificateVerifier
+export certificateVerifierCB
+export CustomCertificateVerifier
+export InsecureCertificateVerifier
+export init
 
 type TLSConfig* = object
-  certificate*: seq[byte]
-  key*: seq[byte]
-  # verifyCertificate = Opt[proc] # None to skip verif
-  # 
+  certificate: seq[byte]
+  key: seq[byte]
+  certificateVerifier: Opt[CertificateVerifier]
 
-proc init*(t: typedesc[TLSConfig], certificate, key: seq[byte]): TLSConfig =
-  return TLSConfig(certificate: certificate, key: key)
+type Quic = ref object of RootObj
+  tlsConfig: TLSConfig
+
+type QuicClient* = object of Quic
+
+type QuicServer* = object of Quic
+
+proc init*(
+    t: typedesc[TLSConfig],
+    certificate: seq[byte] = @[],
+    key: seq[byte] = @[],
+    certificateVerifier: Opt[CertificateVerifier] = Opt.none(CertificateVerifier),
+): TLSConfig {.gcsafe, raises: [QuicConfigError].} =
+  # In a config, certificate and keys are optional, but if using them, both must
+  # be specified at the same time
+  if certificate.len != 0 or key.len != 0:
+    if certificate.len == 0:
+      raise newException(QuicConfigError, "certificate is required in TLSConfig")
+
+    if key.len == 0:
+      raise newException(QuicConfigError, "key is required in TLSConfig")
+
+  return TLSConfig(
+    certificate: certificate, key: key, certificateVerifier: certificateVerifier
+  )
+
+proc init*(
+    t: typedesc[QuicServer], tlsConfig: TLSConfig
+): QuicServer {.raises: [QuicConfigError].} =
+  if tlsConfig.certificate.len == 0:
+    raise newException(QuicConfigError, "tlsConfig does not contain a certificate")
+
+  return QuicServer(tlsConfig: tlsConfig)
+
+proc init*(t: typedesc[QuicClient], tlsConfig: TLSConfig): QuicClient {.raises: [].} =
+  return QuicClient(tlsConfig: tlsConfig)
 
 proc listen*(
-    address: TransportAddress, tlsConfig: TLSConfig
-): Listener {.raises: [QuicConfigError, QuicError, TransportOsError].} =
-  if tlsConfig.certificate.len == 0:
-    raise newException(QuicConfigError, "certificate is required in TLSConfig")
-
-  if tlsConfig.key.len == 0:
-    raise newException(QuicConfigError, "key is required in TLSConfig")
-
-  let tlsBackend = TLSBackend.init(true, tlsConfig.certificate, tlsConfig.key)
+    self: QuicServer, address: TransportAddress
+): Listener {.raises: [QuicError, TransportOsError].} =
+  let tlsBackend = newServerTLSBackend(
+    self.tlsConfig.certificate, self.tlsConfig.key, self.tlsConfig.certificateVerifier
+  )
 
   return newListener(tlsBackend, address)
 
-proc accept*(listener: Listener): Future[Connection] {.async.} =
-  result = await listener.waitForIncoming()
-
 proc dial*(
-    address: TransportAddress, tlsConfig: TLSConfig = TLSConfig()
+    self: QuicClient, address: TransportAddress
 ): Future[Connection] {.async: (raises: [QuicError, TransportOsError]).} =
-  let tlsBackend = TLSBackend.init(false, tlsConfig.certificate, tlsConfig.key)
+  let tlsBackend = newClientTLSBackend(
+    self.tlsConfig.certificate, self.tlsConfig.key, self.tlsConfig.certificateVerifier
+  )
   var connection: Connection
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
     let datagram = Datagram(data: udp.getMessage())

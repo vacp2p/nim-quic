@@ -29,13 +29,13 @@ proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
 proc openClientConnection*(
     tlsBackend: TLSBackend, local, remote: TransportAddress
 ): OpenConnection =
-  let ngtcp2Conn = newNgtcp2Client(tlsBackend, local, remote)
+  let ngtcp2Conn = newNgtcp2Client(tlsBackend.picoTLS, local, remote)
   newOpenConnection(ngtcp2Conn)
 
 proc openServerConnection*(
     tlsBackend: TLSBackend, local, remote: TransportAddress, datagram: Datagram
 ): OpenConnection =
-  newOpenConnection(newNgtcp2Server(tlsBackend, local, remote, datagram.data))
+  newOpenConnection(newNgtcp2Server(tlsBackend.picoTLS, local, remote, datagram.data))
 
 {.push locks: "unknown".}
 
