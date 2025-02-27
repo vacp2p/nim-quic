@@ -4,14 +4,20 @@ import ../native/connection
 import ../native/errors
 import ./drainingstate
 import ./closedstate
+import chronos
 
 type OpenStream* = ref object of StreamState
   stream: Opt[Stream]
   connection: Ngtcp2Connection
   incoming: AsyncQueue[seq[byte]]
+  cancelRead: Future[void]
 
 proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
-  OpenStream(connection: connection, incoming: newAsyncQueue[seq[byte]]())
+  OpenStream(
+    connection: connection,
+    incoming: newAsyncQueue[seq[byte]](),
+    cancelRead: newFuture[void](),
+  )
 
 proc setUserData(state: OpenStream, userdata: pointer) =
   let stream = state.stream.valueOr:
@@ -44,8 +50,12 @@ method leave(state: OpenStream) =
 method read(
     state: OpenStream
 ): Future[seq[byte]] {.async: (raises: [CancelledError, StreamError, QuicError]).} =
-  result = await state.incoming.get()
-  state.allowMoreIncomingBytes(result.len.uint64)
+  let incomingFut = state.incoming.get()
+  if (await race(incomingFut, state.cancelRead)) == incomingFut:
+    result = await incomingFut
+    state.allowMoreIncomingBytes(result.len.uint64)
+  else:
+    raise newException(StreamError, "stream is closed")
 
 method write(
     state: OpenStream, bytes: seq[byte]
@@ -70,6 +80,7 @@ method onClose*(state: OpenStream) =
   let stream = state.stream.valueOr:
     return
   if state.incoming.empty:
+    state.cancelRead.cancelSoon()
     stream.switch(newClosedStream())
   else:
     stream.switch(newDrainingStream(state.incoming))
