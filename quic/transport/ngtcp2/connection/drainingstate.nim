@@ -58,7 +58,9 @@ method openStream(
 ): Future[Stream] {.async: (raises: [CancelledError, ConnectionError, QuicError]).} =
   raise newException(ClosedConnectionError, "connection is closing")
 
-method close(state: DrainingConnection) {.async.} =
+method close(
+    state: DrainingConnection
+) {.async: (raises: [CancelledError, QuicError]).} =
   await state.done.wait()
   let connection = state.connection.valueOr:
     return

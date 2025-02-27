@@ -26,11 +26,11 @@ method read*(
 
 method write*(
     state: ClosedStream, bytes: seq[byte]
-) {.async: (raises: [StreamError]).} =
+) {.async: (raises: [CancelledError, StreamError]).} =
   trace "cant write, stream is closed"
   raise newException(ClosedStreamError, "stream is closed")
 
-method close*(state: ClosedStream) {.async: (raises: []).} =
+method close*(state: ClosedStream) {.async: (raises: [CancelledError, QuicError]).} =
   discard
 
 method onClose*(state: ClosedStream) =

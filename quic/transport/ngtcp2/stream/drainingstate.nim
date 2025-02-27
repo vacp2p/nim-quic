@@ -22,7 +22,9 @@ method enter(state: DrainingStream, stream: Stream) =
 method leave(state: DrainingStream) =
   state.stream = Opt.none(Stream)
 
-method read(state: DrainingStream): Future[seq[byte]] {.async: (raises: [QuicError]).} =
+method read(
+    state: DrainingStream
+): Future[seq[byte]] {.async: (raises: [CancelledError, StreamError, QuicError]).} =
   try:
     result = state.remaining.popFirstNoWait()
   except AsyncQueueEmptyError:
@@ -35,10 +37,10 @@ method read(state: DrainingStream): Future[seq[byte]] {.async: (raises: [QuicErr
 
 method write(
     state: DrainingStream, bytes: seq[byte]
-) {.async: (raises: [StreamError]).} =
+) {.async: (raises: [CancelledError, StreamError]).} =
   raise newException(DrainingStreamError, "stream is draining")
 
-method close(state: DrainingStream) {.async: (raises: [QuicError]).} =
+method close(state: DrainingStream) {.async: (raises: [CancelledError, QuicError]).} =
   let stream = state.stream.valueOr:
     return
   stream.switch(newClosedStream())

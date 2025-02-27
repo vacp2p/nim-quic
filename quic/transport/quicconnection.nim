@@ -32,24 +32,26 @@ method leave*(state: ConnectionState) =
   discard
 
 method ids*(state: ConnectionState): seq[ConnectionId] {.raises: [].} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method send*(state: ConnectionState) =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method receive*(state: ConnectionState, datagram: Datagram) =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method openStream*(
     state: ConnectionState, unidirectional: bool
 ): Future[Stream] {.async: (raises: [CancelledError, ConnectionError, QuicError]).} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method drop*(state: ConnectionState): Future[void] {.gcsafe.} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
-method close*(state: ConnectionState): Future[void] {.gcsafe.} =
-  doAssert false # override this method
+method close*(
+    state: ConnectionState
+): Future[void] {.gcsafe, async: (raises: [CancelledError, QuicError]).} =
+  doAssert false, "override this method"
 
 {.pop.}
 

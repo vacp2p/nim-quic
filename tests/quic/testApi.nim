@@ -6,10 +6,10 @@ import ../helpers/certificate
 
 suite "api":
   setup:
-    let serverTLSConfig = TLSConfig.init(testCertificate(), testPrivateKey())
-    var server = QuicServer.init(serverTLSConfig)
     let clientTLSConfig = TLSConfig.init()
     var client = QuicClient.init(clientTLSConfig)
+    let serverTLSConfig = TLSConfig.init(testCertificate(), testPrivateKey())
+    var server = QuicServer.init(serverTLSConfig)
     var listener = server.listen(initTAddress("127.0.0.1:0"))
     let address = listener.localAddress
 

@@ -29,7 +29,7 @@ method openStream(
 ): Future[Stream] {.async: (raises: [CancelledError, ConnectionError, QuicError]).} =
   raise newException(ClosedConnectionError, "connection is closed")
 
-method close(state: ClosedConnection) {.async: (raises: []).} =
+method close(state: ClosedConnection) {.async: (raises: [CancelledError, QuicError]).} =
   discard
 
 method drop(state: ClosedConnection) {.async.} =

@@ -54,7 +54,9 @@ method openStream(
 ): Future[Stream] {.async: (raises: [CancelledError, ConnectionError, QuicError]).} =
   raise newException(ClosedConnectionError, "connection is disconnecting")
 
-method close(state: DisconnectingConnection) {.async: (raises: [QuicError]).} =
+method close(
+    state: DisconnectingConnection
+) {.async: (raises: [CancelledError, QuicError]).} =
   await state.disconnect
   let connection = state.connection.valueOr:
     return

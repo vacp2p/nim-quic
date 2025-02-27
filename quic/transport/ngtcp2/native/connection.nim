@@ -138,7 +138,9 @@ proc send(
     streamId: int64,
     messagePtr: ptr byte,
     messageLen: uint,
-): Future[int] {.async.} =
+): Future[int] {.
+    async: (raises: [CancelledError, Ngtcp2Error, Ngtcp2ConnectionClosed])
+.} =
   let written = addr result
   var datagram = trySend(connection, streamId, messagePtr, messageLen, written)
   while datagram.data.len == 0:
@@ -148,7 +150,9 @@ proc send(
   connection.onSend(datagram)
   connection.updateTimeout()
 
-proc send*(connection: Ngtcp2Connection, streamId: int64, bytes: seq[byte]) {.async.} =
+proc send*(
+    connection: Ngtcp2Connection, streamId: int64, bytes: seq[byte]
+) {.async: (raises: [Ngtcp2Error, CancelledError, Ngtcp2ConnectionClosed]).} =
   var messagePtr = bytes.toUnsafePtr
   var messageLen = bytes.len.uint
   var done = false
