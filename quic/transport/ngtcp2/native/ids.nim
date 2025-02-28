@@ -18,7 +18,7 @@ proc getNewConnectionId(
     conn: ptr ngtcp2_conn,
     id: ptr ngtcp2_cid,
     token: ptr uint8,
-    cidlen: uint,
+    cidlen: csize_t,
     userData: pointer,
 ): cint {.cdecl.} =
   let newId = randomConnectionId(cidlen.int)
@@ -50,3 +50,4 @@ proc removeConnectionId(
 proc installConnectionIdCallback*(callbacks: var ngtcp2_callbacks) =
   callbacks.get_new_connection_id = getNewConnectionId
   callbacks.remove_connection_id = removeConnectionId
+

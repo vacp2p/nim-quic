@@ -35,4 +35,4 @@ proc set*(timeout: Timeout, duration: Duration) =
 
 proc expired*(timeout: Timeout) {.async.} =
   await timeout.expired.wait()
-  trace "EXPIRED"
+  trace "expired"

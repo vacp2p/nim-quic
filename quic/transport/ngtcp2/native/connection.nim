@@ -111,7 +111,7 @@ proc trySend(
     addr packetInfo,
     addr connection.buffer[0],
     connection.buffer.len.uint,
-    written,
+    cast[ptr ngtcp2_ssize](written),
     NGTCP2_WRITE_STREAM_FLAG_NONE,
     streamId,
     messagePtr,
@@ -139,6 +139,7 @@ proc send(
     messagePtr: ptr byte,
     messageLen: uint,
 ): Future[int] {.async.} =
+  
   let written = addr result
   var datagram = trySend(connection, streamId, messagePtr, messageLen, written)
   while datagram.data.len == 0:
@@ -228,7 +229,7 @@ proc executeOnTimeout(connection: Ngtcp2Connection) {.async.} =
   trace "Waiting expiration"
   await connection.timeout.expired()
   trace "Timeout expired"
-  #TODO: ?? connection.onTimeout()
+  #TODO should we call connection.onTimeout()
 
 proc closingDuration*(connection: Ngtcp2Connection): Duration =
   let conn = connection.conn.valueOr:

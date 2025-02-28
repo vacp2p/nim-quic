@@ -4,10 +4,11 @@ import quic
 import quic/listener
 import quic/transport/tlsbackend
 import ../helpers/udp
+import ../helpers/certificate
 
 suite "listener":
   setup:
-    let tlsBackend = newServerTLSBackend(@[], @[], Opt.none(CertificateVerifier))
+    let tlsBackend = newServerTLSBackend(testCertificate(), testPrivateKey(), Opt.none(CertificateVerifier))
     var listener = newListener(tlsBackend, initTAddress("127.0.0.1:0"))
     let address = listener.localAddress
 

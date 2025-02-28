@@ -41,7 +41,7 @@ proc onReceiveStreamData(
     stream_id: int64,
     offset: uint64,
     data: ptr uint8,
-    datalen: uint,
+    datalen: csize_t,
     user_data: pointer,
     stream_user_data: pointer,
 ): cint {.cdecl.} =

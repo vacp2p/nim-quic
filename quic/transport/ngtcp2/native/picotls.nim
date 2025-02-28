@@ -21,7 +21,7 @@ proc loadCertificate(ctx: ptr ptls_context_t, certificate: seq[byte]) =
   buf.owns_base = 0
   buf.len = uint(len(certificate))
   buf.base = newString(buf.len).cstring
-  copyMem(buf.base[0].addr, certificate[0].addr, buf.len)
+  copyMem(buf.base[0].unsafeAddr, certificate[0].unsafeAddr, buf.len)
 
   let ret = ptls_load_certificates_from_memory(ctx, buf)
   if ret != 0:
@@ -29,7 +29,7 @@ proc loadCertificate(ctx: ptr ptls_context_t, certificate: seq[byte]) =
 
 proc loadPrivateKey(signCert: ptr ptls_openssl_sign_certificate_t, key: seq[byte]) =
   let ret =
-    ptls_openssl_init_sign_certificate_with_mem_key(signCert, key[0].addr, key.len.cint)
+    ptls_openssl_init_sign_certificate_with_mem_key(signCert, key[0].unsafeAddr, key.len.cint)
   if ret != 0:
     raise newException(QuicError, "could not load private key: " & $ret)
 
@@ -66,16 +66,21 @@ proc init*(
 
   return PicoTLSContext(context: ctx, signCert: signCert, certVerifier: certVerifier)
 
+proc cfree(p: pointer) {.importc: "free", header: "<stdlib.h>".}
+
 proc destroy*(p: PicoTLSContext) =
+  if p.context == nil:
+    return
+  
   if not p.signCert.isNil:
     ptls_openssl_dispose_sign_certificate(p.signCert)
-    for i in 0 ..< p.context.certificates.count:
-      let curr = cast[ptr type(ptls_iovec_t)](cast[uint](p.context.certificates) +
-        uint(i) * uint(sizeof(ptls_iovec_t)))
-      dealloc(curr)
-    dealloc(p.context.certificates.list)
+    let arr = cast[ptr UncheckedArray[ptls_iovec_t]](p.context.certificates.list)
+    for i in 0 ..< p.context.certificates.count:#
+      cfree(arr[i].base)
+    cfree(p.context.certificates.list)
     dealloc(p.signCert)
     p.context.certificates.list = nil
+    p.context.certificates.count = 0
     p.signCert = nil
 
   if p.certVerifier.isSome:
@@ -98,6 +103,8 @@ proc newConnection*(p: PicoTLSContext, isServer: bool): PicoTLSConnection =
   )
 
 proc destroy*(p: PicoTLSConnection) =
+  if p.conn == nil:
+    return
+  
   ptls_free(p.conn)
-  dealloc(p.conn)
   p.conn = nil

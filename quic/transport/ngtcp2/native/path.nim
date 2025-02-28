@@ -3,23 +3,28 @@ import ngtcp2
 import ../../../basics
 
 type Path* = ref object
-  storage: ngtcp2_path_storage
+  path: ngtcp2_path
+  localAddress: Sockaddr_storage
+  localAddrLen: SockLen
+  remoteAddress: Sockaddr_storage
+  remoteAddrLen: SockLen
 
 proc toPathPtr*(path: Path): ptr ngtcp2_path =
-  addr path.storage.path
+  addr path.path
 
 proc newPath*(local, remote: TransportAddress): Path =
-  var localAddress, remoteAddress: Sockaddr_storage
-  var localLength, remoteLength: SockLen
-  local.toSAddr(localAddress, localLength)
-  remote.toSAddr(remoteAddress, remoteLength)
-  var path = Path()
-  ngtcp2_path_storage_init(
-    addr path.storage,
-    cast[ptr struct_sockaddr](addr localAddress),
-    localLength,
-    cast[ptr struct_sockaddr](addr remoteAddress),
-    remoteLength,
-    nil,
+  var p = Path()
+  local.toSAddr(p.localAddress, p.localAddrLen)
+  remote.toSAddr(p.remoteAddress, p.remoteAddrLen)
+  p.path = ngtcp2_path(
+    local: ngtcp2_addr(
+      addr_field: cast[ptr ngtcp2_sockaddr](p.localAddress.addr),
+      addr_len: p.localAddrLen,
+    ),
+    remote: ngtcp2_addr(
+      addr_field: cast[ptr ngtcp2_sockaddr](p.remoteAddress.addr),
+      addr_len: p.remoteAddrLen,
+    ),
+    user_data: nil
   )
-  path
+  p

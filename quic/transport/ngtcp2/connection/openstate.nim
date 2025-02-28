@@ -102,8 +102,9 @@ method receive(state: OpenConnection, datagram: Datagram) =
   except Ngtcp2Error as e:
     trace "ngtcp2 error on receive", code = $e.msg
     isDraining = state.ngtcp2Connection.isDraining
-    if not isDraining:
-      raise newException(QuicError, "could not receive - code:" & $e.msg)
+    # TODO:
+    # if not isDraining:
+    #   raise newException(QuicError, "could not receive - code:" & $e.msg)
   finally:
     let quicConnection = state.quicConnection.valueOr:
       return
