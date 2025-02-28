@@ -1,9 +1,9 @@
 import ngtcp2
-import ../../../errors
 import ../../version
 import ../../../basics
 import ../../connectionid
 import ./ids
+import ./errors
 import ./encryption
 import ./settings
 import ./connection
@@ -57,8 +57,7 @@ proc newNgtcp2Client*(
     nil,
     addr nConn[],
   )
-  if ret != 0:
-    raise newException(QuicError, "could not create new client versioned conn: " & $ret)
+  checkResult ret
 
   let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx)
 
@@ -89,8 +88,7 @@ proc newNgtcp2Client*(
   dataPtr[] = connref
 
   ret = ngtcp2_crypto_picotls_configure_client_session(cptls, conn)
-  if ret != 0:
-    raise newException(QuicError, "could not configure client session: " & $ret)
+  checkResult ret
 
   nConn.conn = Opt.some(conn)
   nConn.tlsConn = tls

@@ -60,15 +60,14 @@ method read(
 method write(
     state: OpenStream, bytes: seq[byte]
 ): Future[void] {.async: (raises: [CancelledError, StreamError]).} =
-  # let stream = state.stream.valueOr:
-  #   raise newException(QuicError, "stream is closed")
-  # See https://github.com/status-im/nim-quic/pull/41 for more details
+  let stream = state.stream.valueOr:
+     raise newException(StreamError, "stream is closed")
   try:
-    await state.connection.send(state.stream.get.id, bytes)
+    await state.connection.send(stream.id, bytes)
   except Ngtcp2Error as exc:
-    raise newException(StreamError, exc.msg)
+    raise newException(StreamError, exc.msg, exc)
   except Ngtcp2ConnectionClosed as exc:
-    raise newException(StreamError, exc.msg)
+    raise newException(StreamError, exc.msg, exc)
 
 method close(state: OpenStream) {.async: (raises: [CancelledError, QuicError]).} =
   let stream = state.stream.valueOr:
