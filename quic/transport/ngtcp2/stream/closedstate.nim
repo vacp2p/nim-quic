@@ -18,15 +18,19 @@ method enter*(state: ClosedStream, stream: Stream) =
   procCall StreamState(state).enter(stream)
   stream.closed.fire()
 
-method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
+method read*(
+    state: ClosedStream
+): Future[seq[byte]] {.async: (raises: [CancelledError, StreamError, QuicError]).} =
   trace "cant read, stream is closed"
   raise newException(ClosedStreamError, "stream is closed")
 
-method write*(state: ClosedStream, bytes: seq[byte]) {.async.} =
+method write*(
+    state: ClosedStream, bytes: seq[byte]
+) {.async: (raises: [CancelledError, StreamError]).} =
   trace "cant write, stream is closed"
   raise newException(ClosedStreamError, "stream is closed")
 
-method close*(state: ClosedStream) {.async.} =
+method close*(state: ClosedStream) {.async: (raises: [CancelledError, QuicError]).} =
   discard
 
 method onClose*(state: ClosedStream) =

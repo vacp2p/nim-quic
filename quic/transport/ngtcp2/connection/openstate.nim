@@ -39,7 +39,7 @@ proc openServerConnection*(
 
 {.push locks: "unknown".}
 
-method close(state: OpenConnection) {.async.}
+method close(state: OpenConnection) {.async: (raises: [CancelledError, QuicError]).}
 
 method enter(state: OpenConnection, connection: QuicConnection) =
   trace "Entering OpenConnection state"
@@ -117,14 +117,14 @@ method receive(state: OpenConnection, datagram: Datagram) =
 
 method openStream(
     state: OpenConnection, unidirectional: bool
-): Future[Stream] {.async.} =
+): Future[Stream] {.async: (raises: [CancelledError, ConnectionError, QuicError]).} =
   let quicConnection = state.quicConnection.valueOr:
     raise newException(QuicError, "connection is closed")
   await quicConnection.handshake.wait()
   result = state.ngtcp2Connection.openStream(unidirectional = unidirectional)
   state.streams.add(result)
 
-method close(state: OpenConnection) {.async.} =
+method close(state: OpenConnection) {.async: (raises: [CancelledError, QuicError]).} =
   let quicConnection = state.quicConnection.valueOr:
     return
   let finalDatagram = state.ngtcp2Connection.close()

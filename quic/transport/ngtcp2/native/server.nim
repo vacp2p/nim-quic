@@ -1,9 +1,9 @@
 import pkg/ngtcp2
 import ../../../basics
-import ../../../errors
 import ../../packets
 import ../../version
 import ./encryption
+import ./errors
 import ./ids
 import ./settings
 import ./connection
@@ -46,7 +46,7 @@ proc newNgtcp2Server*(
   let nConn = newConnection(path)
 
   var conn: ptr ngtcp2_conn
-  var ret = ngtcp2_conn_server_new_versioned(
+  checkResult ngtcp2_conn_server_new_versioned(
     addr conn,
     unsafeAddr source,
     unsafeAddr id,
@@ -61,8 +61,6 @@ proc newNgtcp2Server*(
     nil,
     addr nConn[],
   )
-  if ret != 0:
-    raise newException(QuicError, "could not create new server versioned conn: " & $ret)
 
   let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx)
 
@@ -92,9 +90,8 @@ proc newNgtcp2Server*(
   var dataPtr = ptls_get_data_ptr(tls.conn)
   dataPtr[] = connref
 
-  ret = ngtcp2_crypto_picotls_configure_server_session(cptls)
-  if ret != 0:
-    raise newException(QuicError, "could not configure server session: " & $ret)
+  checkResult ngtcp2_crypto_picotls_configure_server_session(cptls)
+  
 
   nConn.conn = Opt.some(conn)
   nConn.tlsConn = tls

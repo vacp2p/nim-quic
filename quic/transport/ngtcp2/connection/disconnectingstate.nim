@@ -11,17 +11,20 @@ logScope:
 
 type DisconnectingConnection* = ref object of ConnectionState
   connection: Opt[QuicConnection]
-  disconnect: Future[void]
+  disconnect: Future[void].Raising([])
   ids: seq[ConnectionId]
 
 proc newDisconnectingConnection*(ids: seq[ConnectionId]): DisconnectingConnection =
   DisconnectingConnection(ids: ids)
 
-proc callDisconnect(connection: QuicConnection) {.async.} =
+proc callDisconnect(connection: QuicConnection): Future[void] {.async: (raises: []).} =
   let disconnect = connection.disconnect.valueOr:
     return
   trace "Calling disconnect proc on QuicConnection"
-  await disconnect()
+  try:
+    await disconnect()
+  except CatchableError as exc:
+    trace "could not call disconnect", err = exc.msg
   trace "Called disconnect proc on QuicConnection"
 
 method ids*(state: DisconnectingConnection): seq[ConnectionId] =
@@ -48,10 +51,12 @@ method receive(state: DisconnectingConnection, datagram: Datagram) =
 
 method openStream(
     state: DisconnectingConnection, unidirectional: bool
-): Future[Stream] {.async.} =
+): Future[Stream] {.async: (raises: [CancelledError, ConnectionError, QuicError]).} =
   raise newException(ClosedConnectionError, "connection is disconnecting")
 
-method close(state: DisconnectingConnection) {.async.} =
+method close(
+    state: DisconnectingConnection
+) {.async: (raises: [CancelledError, QuicError]).} =
   await state.disconnect
   let connection = state.connection.valueOr:
     return

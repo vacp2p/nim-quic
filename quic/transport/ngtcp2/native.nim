@@ -20,6 +20,7 @@ export destroy
 
 export PicoTLSContext
 export PicoTLSConnection
+export TLSBackendSetupError
 export init
 export destroy
 export newConnection

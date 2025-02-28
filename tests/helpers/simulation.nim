@@ -42,7 +42,7 @@ proc setupConnection*(): Future[tuple[client, server: QuicConnection]] {.async.}
 
   client.send() # Start Handshake
   let datagram = await client.outgoing.get()
-  let serverTLSBackend = newClientTLSBackend(
+  let serverTLSBackend = newServerTLSBackend(
     testCertificate(), testPrivateKey(), Opt.none(CertificateVerifier)
   )
   let server =

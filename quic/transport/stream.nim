@@ -21,20 +21,26 @@ method enter*(state: StreamState, stream: Stream) {.base.} =
 method leave*(state: StreamState) {.base.} =
   discard
 
-method read*(state: StreamState): Future[seq[byte]] {.base, async.} =
-  doAssert false # override this method
+method read*(
+    state: StreamState
+): Future[seq[byte]] {.base, async: (raises: [CancelledError, StreamError, QuicError]).} =
+  doAssert false, "override this method"
 
-method write*(state: StreamState, bytes: seq[byte]) {.base, async.} =
-  doAssert false # override this method
+method write*(
+    state: StreamState, bytes: seq[byte]
+) {.base, async: (raises: [CancelledError, StreamError]).} =
+  doAssert false, "override this method"
 
-method close*(state: StreamState) {.base, async.} =
-  doAssert false # override this method
+method close*(
+    state: StreamState
+) {.base, async: (raises: [CancelledError, QuicError]).} =
+  doAssert false, "override this method"
 
 method onClose*(state: StreamState) {.base.} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method isClosed*(state: StreamState): bool {.base.} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 {.pop.}
 
@@ -51,13 +57,17 @@ proc switch*(stream: Stream, newState: StreamState) =
 proc id*(stream: Stream): int64 =
   stream.id
 
-proc read*(stream: Stream): Future[seq[byte]] {.async.} =
+proc read*(
+    stream: Stream
+): Future[seq[byte]] {.async: (raises: [CancelledError, StreamError, QuicError]).} =
   result = await stream.state.read()
 
-proc write*(stream: Stream, bytes: seq[byte]) {.async.} =
+proc write*(
+    stream: Stream, bytes: seq[byte]
+) {.async: (raises: [CancelledError, StreamError]).} =
   await stream.state.write(bytes)
 
-proc close*(stream: Stream) {.async.} =
+proc close*(stream: Stream) {.async: (raises: [CancelledError, QuicError]).} =
   await stream.state.close()
 
 proc onClose*(stream: Stream) =
