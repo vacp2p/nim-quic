@@ -2,7 +2,6 @@ import pkg/unittest2
 import pkg/quic/transport/connectionid
 
 suite "connection ids":
-
   test "generates random ids":
     check randomConnectionId() != randomConnectionId()
 

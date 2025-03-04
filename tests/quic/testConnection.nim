@@ -4,7 +4,6 @@ import pkg/quic/connection
 import ../helpers/udp
 
 suite "connections":
-
   setup:
     let address = initTAddress("127.0.0.1:45346")
 

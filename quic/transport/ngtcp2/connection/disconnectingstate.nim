@@ -9,18 +9,17 @@ import ./closedstate
 logScope:
   topics = "quic disconnectingstate"
 
-type
-  DisconnectingConnection* = ref object of ConnectionState
-    connection: Opt[QuicConnection]
-    disconnect: Future[void]
-    ids: seq[ConnectionId]
+type DisconnectingConnection* = ref object of ConnectionState
+  connection: Opt[QuicConnection]
+  disconnect: Future[void]
+  ids: seq[ConnectionId]
 
-proc newDisconnectingConnection*(ids: seq[ConnectionId]):
-                                            DisconnectingConnection =
+proc newDisconnectingConnection*(ids: seq[ConnectionId]): DisconnectingConnection =
   DisconnectingConnection(ids: ids)
 
 proc callDisconnect(connection: QuicConnection) {.async.} =
-  let disconnect = connection.disconnect.valueOr: return
+  let disconnect = connection.disconnect.valueOr:
+    return
   trace "Calling disconnect proc on QuicConnection"
   await disconnect()
   trace "Called disconnect proc on QuicConnection"
@@ -49,13 +48,15 @@ method send(state: DisconnectingConnection) =
 method receive(state: DisconnectingConnection, datagram: Datagram) =
   discard
 
-method openStream(state: DisconnectingConnection,
-                  unidirectional: bool): Future[Stream] {.async.} =
+method openStream(
+    state: DisconnectingConnection, unidirectional: bool
+): Future[Stream] {.async.} =
   raise newException(ClosedConnectionError, "connection is disconnecting")
 
 method close(state: DisconnectingConnection) {.async.} =
   await state.disconnect
-  let connection = state.connection.valueOr: return
+  let connection = state.connection.valueOr:
+    return
   connection.switch(newClosedConnection())
 
 method drop(state: DisconnectingConnection) {.async.} =
@@ -63,7 +64,8 @@ method drop(state: DisconnectingConnection) {.async.} =
   trace "Awaiting quic disconnecton"
   await state.disconnect
   trace "Quic disconnecton finished"
-  let connection = state.connection.valueOr: return
+  let connection = state.connection.valueOr:
+    return
   connection.switch(newClosedConnection())
   trace "dropped DisconnectingConnection state"
 

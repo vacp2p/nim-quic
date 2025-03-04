@@ -12,30 +12,33 @@ proc toCid*(id: ConnectionId): ngtcp2_cid =
   toCid(bytes.toUnsafePtr, bytes.len.uint)
 
 proc toConnectionId*(id: ptr ngtcp2_cid): ConnectionId =
-  ConnectionId(id.data[0..<id.datalen])
+  ConnectionId(id.data[0 ..< id.datalen])
 
-proc getNewConnectionId(conn: ptr ngtcp2_conn,
-                        id: ptr ngtcp2_cid,
-                        token: ptr uint8,
-                        cidlen: uint,
-                        userData: pointer): cint {.cdecl.} =
-
+proc getNewConnectionId(
+    conn: ptr ngtcp2_conn,
+    id: ptr ngtcp2_cid,
+    token: ptr uint8,
+    cidlen: uint,
+    userData: pointer,
+): cint {.cdecl.} =
   let newId = randomConnectionId(cidlen.int)
   id[] = newId.toCid
   zeroMem(token, NGTCP2_STATELESS_RESET_TOKENLEN)
 
   let
     connection = cast[Ngtcp2Connection](userData)
-    onNewId = connection.onNewId.valueOr: return
+    onNewId = connection.onNewId.valueOr:
+      return
   onNewId(newId)
   return 0
 
-proc removeConnectionId(conn: ptr ngtcp2_conn,
-                        id: ptr ngtcp2_cid,
-                        userData: pointer): cint {.cdecl.} =
+proc removeConnectionId(
+    conn: ptr ngtcp2_conn, id: ptr ngtcp2_cid, userData: pointer
+): cint {.cdecl.} =
   let
     connection = cast[Ngtcp2Connection](userData)
-    onRemoveId = connection.onRemoveId.valueOr: return
+    onRemoveId = connection.onRemoveId.valueOr:
+      return
   onRemoveId(id.toConnectionId)
 
 proc installConnectionIdCallback*(callbacks: var ngtcp2_callbacks) =

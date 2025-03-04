@@ -7,16 +7,17 @@ import pkg/quic/helpers/openarray
 logScope:
   topics = "quic udp"
 
-proc exampleQuicDatagram*: seq[byte] =
+proc exampleQuicDatagram*(): seq[byte] =
   var packet = initialPacket(CurrentQuicVersion)
   packet.destination = randomConnectionId()
   packet.source = randomConnectionId()
   result = newSeq[byte](4096)
   result.write(packet)
 
-proc newDatagramTransport*: DatagramTransport =
+proc newDatagramTransport*(): DatagramTransport =
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
     discard
+
   newDatagramTransport(onReceive)
 
 proc sendTo*(datagram: seq[byte], remote: TransportAddress) {.async.} =

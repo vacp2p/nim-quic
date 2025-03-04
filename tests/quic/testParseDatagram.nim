@@ -4,7 +4,6 @@ import pkg/ngtcp2
 import pkg/quic/transport/[packets, parsedatagram, version]
 
 suite "parse ngtcp2 packet info":
-
   var packet: Packet
   var datagram: array[4096, byte]
 

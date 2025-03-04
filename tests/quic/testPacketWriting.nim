@@ -6,7 +6,6 @@ import pkg/quic/helpers/bits
 import pkg/quic/transport/packets/varints
 
 suite "packet writing":
-
   var datagram: seq[byte]
 
   setup:
@@ -37,7 +36,7 @@ suite "packet writing":
   test "writes version":
     var packet = initialPacket(version = 0xAABBCCDD'u32)
     datagram.write(packet)
-    check datagram[1..4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
+    check datagram[1 .. 4] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
   test "writes source and destination":
     const source = @[1'u8, 2'u8]
@@ -47,27 +46,27 @@ suite "packet writing":
     packet.destination = ConnectionId(destination)
     datagram.write(packet)
     check datagram[5] == destination.len.uint8
-    check datagram[6..8] == destination
+    check datagram[6 .. 8] == destination
     check datagram[9] == source.len.uint8
-    check datagram[10..11] == source
+    check datagram[10 .. 11] == source
 
   test "writes supported version for a version negotiation packet":
     const versions = @[0xAABBCCDD'u32, 0x11223344'u32]
     datagram.write(versionNegotiationPacket(versions = versions))
-    check datagram[7..10] == versions[0].toBytesBE
-    check datagram[11..14] == versions[1].toBytesBE
+    check datagram[7 .. 10] == versions[0].toBytesBE
+    check datagram[11 .. 14] == versions[1].toBytesBE
 
   test "writes retry token":
     var packet = retryPacket()
     packet.retry.token = @[1'u8, 2'u8, 3'u8]
     datagram.write(packet)
-    check datagram[7..<packet.len-16] == packet.retry.token
+    check datagram[7 ..< packet.len - 16] == packet.retry.token
 
   test "writes retry integrity tag":
     var packet = retryPacket()
-    packet.retry.integrity[0..<16] = repeat(0xB'u8, 16)
+    packet.retry.integrity[0 ..< 16] = repeat(0xB'u8, 16)
     datagram.write(packet)
-    check datagram[packet.len-16..<packet.len] == packet.retry.integrity
+    check datagram[packet.len - 16 ..< packet.len] == packet.retry.integrity
 
   test "writes handshake packet length":
     const packetnumber = 0xAABBCCDD'u32
@@ -76,7 +75,7 @@ suite "packet writing":
     packet.handshake.packetnumber = packetnumber.int64
     packet.handshake.payload = payload
     datagram.write(packet)
-    check datagram[7..8] == (sizeof(packetnumber) + payload.len).toVarInt
+    check datagram[7 .. 8] == (sizeof(packetnumber) + payload.len).toVarInt
 
   test "writes handshake packet number":
     const packetnumber = 0xAABBCCDD'u32
@@ -84,14 +83,14 @@ suite "packet writing":
     packet.handshake.packetnumber = packetnumber.int64
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
-    check datagram[8..11] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
+    check datagram[8 .. 11] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
   test "writes handshake payload":
     const payload = repeat(0xAB'u8, 1024)
     var packet = handshakePacket()
     packet.handshake.payload = payload
     datagram.write(packet)
-    check datagram[10..1033] == payload
+    check datagram[10 .. 1033] == payload
 
   test "writes 0-RTT packet length":
     const packetnumber = 0xAABBCCDD'u32
@@ -100,7 +99,7 @@ suite "packet writing":
     packet.rtt.packetnumber = packetnumber.int64
     packet.rtt.payload = payload
     datagram.write(packet)
-    check datagram[7..8] == (sizeof(packetnumber) + payload.len).toVarInt
+    check datagram[7 .. 8] == (sizeof(packetnumber) + payload.len).toVarInt
 
   test "writes 0-RTT packet number":
     const packetnumber = 0xAABBCCDD'u32
@@ -108,22 +107,22 @@ suite "packet writing":
     packet.rtt.packetnumber = packetnumber.int64
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
-    check datagram[8..11] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
+    check datagram[8 .. 11] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
   test "writes 0-RTT payload":
     const payload = repeat(0xAB'u8, 1024)
     var packet = zeroRttPacket()
     packet.rtt.payload = payload
     datagram.write(packet)
-    check datagram[10..1033] == payload
+    check datagram[10 .. 1033] == payload
 
   test "writes initial token":
     const token = repeat(0xAA'u8, 1024)
     var packet = initialPacket()
     packet.initial.token = token
     datagram.write(packet)
-    check datagram[7..8] == token.len.toVarInt
-    check datagram[9..1032] == token
+    check datagram[7 .. 8] == token.len.toVarInt
+    check datagram[9 .. 1032] == token
 
   test "writes initial packet length":
     const packetnumber = 0xAABBCCDD'u32
@@ -132,7 +131,7 @@ suite "packet writing":
     packet.initial.packetnumber = packetnumber.int64
     packet.initial.payload = payload
     datagram.write(packet)
-    check datagram[8..9] == (sizeof(packetnumber) + payload.len).toVarInt
+    check datagram[8 .. 9] == (sizeof(packetnumber) + payload.len).toVarInt
 
   test "writes initial packet number":
     const packetnumber = 0xAABBCCDD'u32
@@ -140,14 +139,14 @@ suite "packet writing":
     packet.initial.packetnumber = packetnumber.int64
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
-    check datagram[9..12] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
+    check datagram[9 .. 12] == @[0xAA'u8, 0xBB'u8, 0xCC'u8, 0xDD'u8]
 
   test "writes initial payload":
     const payload = repeat(0xAB'u8, 1024)
     var packet = initialPacket()
     packet.initial.payload = payload
     datagram.write(packet)
-    check datagram[11..1034] == payload
+    check datagram[11 .. 1034] == payload
 
   test "writes spin bit":
     var packet = shortPacket()
@@ -179,7 +178,7 @@ suite "packet writing":
     var packet = shortPacket()
     packet.destination = ConnectionId(destination)
     datagram.write(packet)
-    check datagram[1..3] == destination
+    check datagram[1 .. 3] == destination
 
   test "writes packet number for short packet":
     const packetnumber = 0xAABB'u16
@@ -187,14 +186,14 @@ suite "packet writing":
     packet.short.packetnumber = packetnumber.int64
     datagram.write(packet)
     check int(datagram[0] and 0b11'u8) + 1 == sizeof(packetnumber)
-    check datagram[1..2] == @[0xAA'u8, 0xBB'u8]
+    check datagram[1 .. 2] == @[0xAA'u8, 0xBB'u8]
 
   test "writes payload for short packet":
     const payload = repeat(0xAB'u8, 1024)
     var packet = shortPacket()
     packet.short.payload = payload
     datagram.write(packet)
-    check datagram[2..1025] == payload
+    check datagram[2 .. 1025] == payload
 
   test "returns the number of bytes that were written":
     let payload = repeat(0xAA'u8, 1024)

@@ -6,11 +6,13 @@ type
     id: int64
     state: StreamState
     closed*: AsyncEvent
+
   StreamState* = ref object of RootObj
     entered: bool
+
   StreamError* = object of QuicError
 
-{.push locks:"unknown", raises: [QuicError].}
+{.push locks: "unknown", raises: [QuicError].}
 
 method enter*(state: StreamState, stream: Stream) {.base.} =
   doAssert not state.entered # states are not reentrant

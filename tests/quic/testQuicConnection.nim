@@ -9,23 +9,25 @@ import ../helpers/simulation
 import ../helpers/addresses
 
 suite "quic connection":
-
   asyncTest "sends outgoing datagrams":
     let client = newQuicClientConnection(zeroAddress, zeroAddress)
-    defer: await client.drop()
+    defer:
+      await client.drop()
     client.send()
     let datagram = await client.outgoing.get()
     check datagram.len > 0
 
   asyncTest "processes received datagrams":
     let client = newQuicClientConnection(zeroAddress, zeroAddress)
-    defer: await client.drop()
+    defer:
+      await client.drop()
 
     client.send()
     let datagram = await client.outgoing.get()
 
     let server = newQuicServerConnection(zeroAddress, zeroAddress, datagram)
-    defer: await server.drop()
+    defer:
+      await server.drop()
 
     server.receive(datagram)
 
@@ -37,14 +39,16 @@ suite "quic connection":
 
   asyncTest "performs handshake":
     let (client, server) = await performHandshake()
-    defer: await client.drop()
-    defer: await server.drop()
+    defer:
+      await client.drop()
+    defer:
+      await server.drop()
 
     check client.handshake.isSet()
     check server.handshake.isSet()
 
   asyncTest "performs handshake multiple times":
-    for i in 1..100:
+    for i in 1 .. 100:
       let (client, server) = await performHandshake()
       await client.drop()
       await server.drop()
@@ -62,7 +66,7 @@ suite "quic connection":
 
     let server = newQuicServerConnection(zeroAddress, zeroAddress, datagram)
     var newId: ConnectionId
-    server.onNewId = proc (id: ConnectionId) =
+    server.onNewId = proc(id: ConnectionId) =
       newId = id
     server.receive(datagram)
 

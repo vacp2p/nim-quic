@@ -15,8 +15,10 @@ type
     disconnect*: Opt[proc(): Future[void] {.gcsafe, raises: [].}]
     onNewId*: IdCallback
     onRemoveId*: IdCallback
+
   ConnectionState* = ref object of RootObj
     entered: bool
+
   IdCallback* = proc(id: ConnectionId) {.gcsafe, raises: [].}
   ConnectionError* = object of QuicError
 
@@ -38,8 +40,7 @@ method send*(state: ConnectionState) =
 method receive*(state: ConnectionState, datagram: Datagram) =
   doAssert false # override this method
 
-method openStream*(state: ConnectionState,
-                   unidirectional: bool): Future[Stream] =
+method openStream*(state: ConnectionState, unidirectional: bool): Future[Stream] =
   doAssert false # override this method
 
 method drop*(state: ConnectionState): Future[void] {.gcsafe.} =
@@ -76,8 +77,7 @@ proc send*(connection: QuicConnection) =
 proc receive*(connection: QuicConnection, datagram: Datagram) =
   connection.state.receive(datagram)
 
-proc openStream*(connection: QuicConnection,
-                 unidirectional = false): Future[Stream] =
+proc openStream*(connection: QuicConnection, unidirectional = false): Future[Stream] =
   connection.state.openStream(unidirectional = unidirectional)
 
 proc incomingStream*(connection: QuicConnection): Future[Stream] =

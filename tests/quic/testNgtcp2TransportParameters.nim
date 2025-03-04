@@ -9,7 +9,6 @@ import pkg/quic/transport/ngtcp2/native/settings
 import ../helpers/addresses
 
 suite "ngtcp2 transport parameters":
-
   var transport_params: ngtcp2_transport_params
 
   setup:
@@ -29,7 +28,8 @@ suite "ngtcp2 transport parameters":
 
   test "raises when setting remote parameters fails":
     let connection = newNgtcp2Client(zeroAddress, zeroAddress)
-    defer: connection.destroy()
+    defer:
+      connection.destroy()
     transport_params.active_connection_id_limit = 0
 
     expect QuicError:

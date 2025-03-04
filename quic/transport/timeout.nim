@@ -2,18 +2,20 @@ import ../basics
 
 type Timeout* = ref object
   timer: Opt[TimerCallback]
-  onExpiry: proc () {.gcsafe, raises:[].}
+  onExpiry: proc() {.gcsafe, raises: [].}
   expired: AsyncEvent
 
 proc setTimer(timeout: Timeout, moment: Moment) =
   proc onTimeout(_: pointer) =
     timeout.expired.fire()
     timeout.onExpiry()
+
   timeout.timer = Opt.some(setTimer(moment, onTimeout))
 
-const skip = proc () = discard
+const skip = proc() =
+  discard
 
-proc newTimeout*(onExpiry: proc () {.gcsafe, raises:[].} = skip): Timeout =
+proc newTimeout*(onExpiry: proc() {.gcsafe, raises: [].} = skip): Timeout =
   Timeout(onExpiry: onExpiry, expired: newAsyncEvent())
 
 proc stop*(timeout: Timeout) =

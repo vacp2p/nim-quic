@@ -17,17 +17,19 @@ import ./timestamp
 import ./handshake
 import ./parsedatagram
 
-proc onReceiveClientInitial(connection: ptr ngtcp2_conn,
-                            dcid: ptr ngtcp2_cid,
-                            userData: pointer): cint {.cdecl.} =
+proc onReceiveClientInitial(
+    connection: ptr ngtcp2_conn, dcid: ptr ngtcp2_cid, userData: pointer
+): cint {.cdecl.} =
   connection.install0RttKey()
 
-proc onReceiveCryptoData(connection: ptr ngtcp2_conn,
-                         level: ngtcp2_encryption_level,
-                         offset: uint64,
-                         data: ptr uint8,
-                         datalen: uint,
-                         userData: pointer): cint {.cdecl.} =
+proc onReceiveCryptoData(
+    connection: ptr ngtcp2_conn,
+    level: ngtcp2_encryption_level,
+    offset: uint64,
+    data: ptr uint8,
+    datalen: uint,
+    userData: pointer,
+): cint {.cdecl.} =
   if level == NGTCP2_ENCRYPTION_LEVEL_INITIAL:
     connection.submitCryptoData(NGTCP2_ENCRYPTION_LEVEL_INITIAL)
     connection.installHandshakeKeys()
@@ -41,26 +43,27 @@ proc onReceiveCryptoData(connection: ptr ngtcp2_conn,
 proc onRand(dest: ptr uint8, destLen: uint, rand_ctx: ptr ngtcp2_rand_ctx) {.cdecl.} =
   doAssert destLen.int == randomBytes(dest, destLen.int)
 
-proc onDeleteCryptoAeadCtx(conn: ptr ngtcp2_conn,
-                         aead_ctx: ptr ngtcp2_crypto_aead_ctx,
-                         userData: pointer) {.cdecl.} =
+proc onDeleteCryptoAeadCtx(
+    conn: ptr ngtcp2_conn, aead_ctx: ptr ngtcp2_crypto_aead_ctx, userData: pointer
+) {.cdecl.} =
   discard
 
-proc onDeleteCryptoCipherCtx(conn: ptr ngtcp2_conn,
-                         cipher_ctx: ptr ngtcp2_crypto_cipher_ctx,
-                         userData: pointer) {.cdecl.} =
+proc onDeleteCryptoCipherCtx(
+    conn: ptr ngtcp2_conn, cipher_ctx: ptr ngtcp2_crypto_cipher_ctx, userData: pointer
+) {.cdecl.} =
   discard
 
-proc onGetPathChallengeData(conn: ptr ngtcp2_conn,
-                          data: ptr uint8,
-                          userData: pointer): cint {.cdecl.} =
+proc onGetPathChallengeData(
+    conn: ptr ngtcp2_conn, data: ptr uint8, userData: pointer
+): cint {.cdecl.} =
   let bytesWritten = randomBytes(data, NGTCP2_PATH_CHALLENGE_DATALEN)
   if bytesWritten != NGTCP2_PATH_CHALLENGE_DATALEN:
     return NGTCP2_ERR_CALLBACK_FAILURE
   return 0
 
-proc newNgtcp2Server*(local, remote: TransportAddress,
-                     source, destination: ngtcp2_cid): Ngtcp2Connection =
+proc newNgtcp2Server*(
+    local, remote: TransportAddress, source, destination: ngtcp2_cid
+): Ngtcp2Connection =
   var callbacks: ngtcp2_callbacks
   callbacks.recv_client_initial = onReceiveClientInitial
   callbacks.recv_crypto_data = onReceiveCryptoData
@@ -86,21 +89,22 @@ proc newNgtcp2Server*(local, remote: TransportAddress,
   result = newConnection(path)
   var conn: ptr ngtcp2_conn
 
-  doAssert 0 == ngtcp2_conn_server_new_versioned(
-    addr conn,
-    unsafeAddr source,
-    unsafeAddr id,
-    path.toPathPtr,
-    CurrentQuicVersion,
-    NGTCP2_CALLBACKS_V1,
-    addr callbacks,
-    NGTCP2_SETTINGS_V2,
-    addr settings,
-    NGTCP2_TRANSPORT_PARAMS_V1,
-    addr transportParams,
-    nil,
-    addr result[]
-  )
+  doAssert 0 ==
+    ngtcp2_conn_server_new_versioned(
+      addr conn,
+      unsafeAddr source,
+      unsafeAddr id,
+      path.toPathPtr,
+      CurrentQuicVersion,
+      NGTCP2_CALLBACKS_V1,
+      addr callbacks,
+      NGTCP2_SETTINGS_V2,
+      addr settings,
+      NGTCP2_TRANSPORT_PARAMS_V1,
+      addr transportParams,
+      nil,
+      addr result[],
+    )
 
   result.conn = Opt.some(conn)
 
@@ -108,7 +112,8 @@ proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =
   let info = parseDatagram(datagram)
   (source: info.source.toCid, dest: info.destination.toCid)
 
-proc newNgtcp2Server*(local, remote: TransportAddress,
-    datagram: openArray[byte]): Ngtcp2Connection =
+proc newNgtcp2Server*(
+    local, remote: TransportAddress, datagram: openArray[byte]
+): Ngtcp2Connection =
   let (source, destination) = extractIds(datagram)
   newNgtcp2Server(local, remote, source, destination)

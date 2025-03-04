@@ -30,6 +30,7 @@ proc dial*(address: TransportAddress): Future[Connection] {.async.} =
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
     let datagram = Datagram(data: udp.getMessage())
     connection.receive(datagram)
+
   let udp = newDatagramTransport(onReceive)
   connection = newOutgoingConnection(udp, address)
   connection.startHandshake()

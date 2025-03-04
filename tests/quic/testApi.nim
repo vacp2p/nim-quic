@@ -71,17 +71,21 @@ suite "api":
     let message = @[1'u8, 2'u8, 3'u8]
 
     let outgoing = await dial(address)
-    defer: await outgoing.drop()
+    defer:
+      await outgoing.drop()
 
     let incoming = await listener.accept()
-    defer: await incoming.drop()
+    defer:
+      await incoming.drop()
 
     let outgoingStream = await outgoing.openStream()
-    defer: await outgoingStream.close()
+    defer:
+      await outgoingStream.close()
 
     await outgoingStream.write(message)
 
     let incomingStream = await incoming.incomingStream()
-    defer: await incomingStream.close()
+    defer:
+      await incomingStream.close()
 
     check (await incomingStream.read()) == message

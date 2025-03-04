@@ -5,7 +5,6 @@ import pkg/quic/listener
 import ../helpers/udp
 
 suite "listener":
-
   setup:
     var listener = newListener(initTAddress("127.0.0.1:0"))
     let address = listener.localAddress

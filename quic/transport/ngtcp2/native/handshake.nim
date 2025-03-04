@@ -1,8 +1,7 @@
 import pkg/ngtcp2
 import ./connection
 
-proc onHandshakeDone(connection: ptr ngtcp2_conn,
-                          userData: pointer): cint {.cdecl.} =
+proc onHandshakeDone(connection: ptr ngtcp2_conn, userData: pointer): cint {.cdecl.} =
   cast[Ngtcp2Connection](userData).onHandshakeDone()
 
 proc installServerHandshakeCallback*(callbacks: var ngtcp2_callbacks) =
