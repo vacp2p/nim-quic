@@ -71,14 +71,14 @@ method enter(state: OpenConnection, connection: QuicConnection) =
 
   state.ngtcp2Connection.onTimeout = proc() {.gcsafe, raises: [].} =
     try:
-      trace "WAITING FOR CLOSE"
       waitFor connection.close()
-      trace "CLOSED"
     except QuicError:
-      trace "QUIC ERROR"
+      # TODO: handle
+      discard
     except CatchableError:
-      trace "CATCHABLE ERROR"
-
+      # TODO: handle
+      discard
+    
   trace "Entered OpenConnection state"
 
 method leave(state: OpenConnection) =

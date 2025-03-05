@@ -38,5 +38,8 @@ proc newClientTLSBackend*(
   return TLSBackend(picoTLS: picotlsCtx)
 
 proc destroy*(self: TLSBackend) =
+  if self.picoTLS.isNil:
+    return
+  
   self.picoTLS.destroy()
   self.picoTLS = nil
