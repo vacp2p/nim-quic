@@ -13,6 +13,7 @@ import ./rand
 import ./streams
 import ./timestamp
 import ./handshake
+import std/[sets, sequtils]
 
 proc newNgtcp2Client*(
     tlsContext: PicoTLSContext, local, remote: TransportAddress
@@ -72,8 +73,26 @@ proc newNgtcp2Client*(
   ))
   addExtensions[0] = ptls_raw_extension_t(type_field: high(uint16))
   addExtensions[1] = ptls_raw_extension_t(type_field: high(uint16))
+
+  var alpn = cast[ptr UncheckedArray[ptls_iovec_t]](alloc(
+    ptls_iovec_t.sizeof * len(tlsContext.alpn)
+  ))
+  let clientALPN = tlsContext.alpn.toSeq()
+  for i in 0 ..< clientALPN.len:
+    var proto = clientALPN[i].cstring
+    alpn[i].len = csize_t(clientALPN[i].len)
+    alpn[i].base = cast[ptr uint8](newString(clientALPN[i].len).cstring)
+    copyMem(alpn[i].base.unsafeAddr, proto.unsafeAddr, clientALPN[i].len)
+
   cptls.handshake_properties = ptls_handshake_properties_t(
-    additional_extensions: cast[ptr ptls_raw_extension_t](addExtensions)
+    anon0: ptls_handshake_properties_t_anon0_t(
+      client: ptls_handshake_properties_t_anon0_t_client_t(
+        negotiated_protocols: ptls_handshake_properties_t_anon0_t_client_t_negotiated_protocols_t(
+          list: alpn[0].addr, count: csize_t(clientALPN.len)
+        )
+      )
+    ),
+    additional_extensions: addExtensions[0].addr,
   )
 
   ngtcp2_conn_set_tls_native_handle(conn, cptls)

@@ -1,5 +1,6 @@
 import results
 import ngtcp2
+import std/sets
 import ./ngtcp2/native
 import ../errors
 
@@ -16,10 +17,11 @@ type TLSBackend* = ref object
 proc newServerTLSBackend*(
     certificate: seq[byte],
     key: seq[byte],
+    alpn: HashSet[string] = initHashSet[string](),
     certificateVerifier: Opt[CertificateVerifier],
 ): TLSBackend {.raises: [QuicError].} =
   let picotlsCtx = PicoTLSContext.init(
-    certificate, key, certificateVerifier, certificateVerifier.isSome
+    certificate, key, alpn, certificateVerifier, certificateVerifier.isSome
   )
   let ret = ngtcp2_crypto_picotls_configure_server_context(picotlsCtx.context)
   if ret != 0:
@@ -29,9 +31,11 @@ proc newServerTLSBackend*(
 proc newClientTLSBackend*(
     certificate: seq[byte],
     key: seq[byte],
+    alpn: HashSet[string] = initHashSet[string](),
     certificateVerifier: Opt[CertificateVerifier],
 ): TLSBackend {.raises: [QuicError].} =
-  let picotlsCtx = PicoTLSContext.init(certificate, key, certificateVerifier, false)
+  let picotlsCtx =
+    PicoTLSContext.init(certificate, key, alpn, certificateVerifier, false)
   let ret = ngtcp2_crypto_picotls_configure_client_context(picotlsCtx.context)
   if ret != 0:
     raise newException(QuicError, "could not configure client context: " & $ret)
@@ -40,6 +44,6 @@ proc newClientTLSBackend*(
 proc destroy*(self: TLSBackend) =
   if self.picoTLS.isNil:
     return
-  
+
   self.picoTLS.destroy()
   self.picoTLS = nil

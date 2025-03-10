@@ -1,6 +1,7 @@
 import chronos
 import chronos/unittest2/asynctests
 import results
+import std/sets
 
 import quic/connection
 import quic/transport/tlsbackend
@@ -12,7 +13,9 @@ suite "connections":
 
   asyncTest "handles error when writing to udp transport by closing connection":
     let udp = newDatagramTransport()
-    let tlsBackend = newClientTLSBackend(@[], @[], Opt.none(CertificateVerifier))
+    let tlsBackend = newClientTLSBackend(
+      @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
+    )
     let connection = newOutgoingConnection(tlsBackend, udp, address)
     await udp.closeWait()
     connection.startHandshake()

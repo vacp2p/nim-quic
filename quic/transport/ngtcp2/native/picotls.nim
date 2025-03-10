@@ -1,17 +1,22 @@
 import ngtcp2
-import results
 import ../../../errors
-import tables
+import results
+import std/[sets, tables]
 import ./certificateverifier
 
 type
+  PicoTLSConnection* = ref object
+    conn*: ptr ptls_t
+
+  ClientHello = object of ptls_on_client_hello_t
+    parentCtx*: PicoTLSContext
+
   PicoTLSContext* = ref object
     context*: ptr ptls_context_t
     signCert: ptr ptls_openssl_sign_certificate_t
+    alpn*: HashSet[string]
     certVerifier: Opt[CertificateVerifier]
-
-  PicoTLSConnection* = ref object
-    conn*: ptr ptls_t
+    clientHello: ptr ClientHello
 
 proc loadCertificate(ctx: ptr ptls_context_t, certificate: seq[byte]) =
   var buf = create(ptls_cred_buffer_t)
@@ -28,15 +33,50 @@ proc loadCertificate(ctx: ptr ptls_context_t, certificate: seq[byte]) =
     raise newException(QuicError, "could not load certificate: " & $ret)
 
 proc loadPrivateKey(signCert: ptr ptls_openssl_sign_certificate_t, key: seq[byte]) =
-  let ret =
-    ptls_openssl_init_sign_certificate_with_mem_key(signCert, key[0].unsafeAddr, key.len.cint)
+  let ret = ptls_openssl_init_sign_certificate_with_mem_key(
+    signCert, key[0].unsafeAddr, key.len.cint
+  )
   if ret != 0:
     raise newException(QuicError, "could not load private key: " & $ret)
+
+proc onClientHello(
+    self: ptr ptls_on_client_hello_t,
+    ptls: ptr ptls_t,
+    params: ptr ptls_on_client_hello_parameters_t,
+): cint {.cdecl.} =
+  if params.negotiated_protocols.count == 0:
+    return 0
+
+  var alpn = initHashSet[string]()
+  for i in 0 ..< int(params.negotiated_protocols.count):
+    var proto = newString(params.negotiated_protocols.list.len)
+    copyMem(
+      proto[0].addr,
+      params.negotiated_protocols.list.base,
+      params.negotiated_protocols.list.len,
+    )
+    alpn.incl(proto)
+
+  let clientHello = cast[ptr ClientHello](self)
+
+  if alpn.len == 0 and clientHello.parentCtx.alpn.len == 0:
+    return 0 # No protocol negotiation required
+
+  var alpnMatch = (clientHello.parentCtx.alpn * alpn)
+  if len(alpnMatch) == 0:
+    return PTLS_ALERT_NO_APPLICATION_PROTOCOL
+  else:
+    let proto = alpnMatch.pop()
+    if ptls_set_negotiated_protocol(ptls, proto.cstring, csize_t(proto.len)) != 0:
+      return -1
+
+  return 0
 
 proc init*(
     t: typedesc[PicoTLSContext],
     certificate: seq[byte],
     key: seq[byte],
+    alpn: HashSet[string],
     certVerifier: Opt[CertificateVerifier],
     requiresClientAuthentication: bool,
 ): PicoTLSContext =
@@ -64,18 +104,31 @@ proc init*(
     loadCertificate(ctx, certificate)
     ctx.sign_certificate = addr signCert.super
 
-  return PicoTLSContext(context: ctx, signCert: signCert, certVerifier: certVerifier)
+  var pctx = PicoTLSContext(
+    context: ctx,
+    signCert: signCert,
+    alpn: alpn,
+    certVerifier: certVerifier,
+    clientHello: create(ClientHello),
+  )
+
+  pctx.clientHello = create(ClientHello)
+  pctx.clientHello.parentCtx = pctx
+  ctx.on_client_hello = pctx.clientHello
+  ctx.on_client_hello.cb = onClientHello
+
+  return pctx
 
 proc cfree(p: pointer) {.importc: "free", header: "<stdlib.h>".}
 
 proc destroy*(p: PicoTLSContext) =
   if p.context == nil:
     return
-  
+
   if not p.signCert.isNil:
     ptls_openssl_dispose_sign_certificate(p.signCert)
     let arr = cast[ptr UncheckedArray[ptls_iovec_t]](p.context.certificates.list)
-    for i in 0 ..< p.context.certificates.count:#
+    for i in 0 ..< p.context.certificates.count: #
       cfree(arr[i].base)
     cfree(p.context.certificates.list)
     dealloc(p.signCert)
@@ -89,6 +142,9 @@ proc destroy*(p: PicoTLSContext) =
     except:
       doAssert false, "checked with if"
     p.certVerifier = Opt.none(CertificateVerifier)
+
+  dealloc(p.clientHello)
+  p.clientHello = nil
 
   dealloc(p.context)
   p.context = nil
@@ -105,6 +161,6 @@ proc newConnection*(p: PicoTLSContext, isServer: bool): PicoTLSConnection =
 proc destroy*(p: PicoTLSConnection) =
   if p.conn == nil:
     return
-  
+
   ptls_free(p.conn)
   p.conn = nil

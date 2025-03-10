@@ -44,6 +44,10 @@ proc destroy*(connection: Ngtcp2Connection) =
   ngtcp2_crypto_picotls_deconfigure_session(connection.cptls)
   connection.tlsConn.destroy()
   dealloc(connection.cptls.handshake_properties.additional_extensions)
+  if connection.cptls.handshake_properties.anon0.client.negotiated_protocols.count != 0:
+    dealloc(
+      connection.cptls.handshake_properties.anon0.client.negotiated_protocols.list
+    )
   dealloc(connection.connref)
   dealloc(connection.cptls)
   connection.cptls = nil
@@ -139,7 +143,6 @@ proc send(
     messagePtr: ptr byte,
     messageLen: uint,
 ): Future[int] {.async.} =
-  
   let written = addr result
   var datagram = trySend(connection, streamId, messagePtr, messageLen, written)
   while datagram.data.len == 0:

@@ -1,5 +1,6 @@
 import chronos
 import results
+import std/sets
 import ./listener
 import ./connection
 import ./udp/datagram
@@ -31,6 +32,7 @@ export init
 type TLSConfig* = object
   certificate: seq[byte]
   key: seq[byte]
+  alpn: HashSet[string]
   certificateVerifier: Opt[CertificateVerifier]
 
 type Quic = ref object of RootObj
@@ -44,6 +46,7 @@ proc init*(
     t: typedesc[TLSConfig],
     certificate: seq[byte] = @[],
     key: seq[byte] = @[],
+    alpn: HashSet[string] = initHashSet[string](),
     certificateVerifier: Opt[CertificateVerifier] = Opt.none(CertificateVerifier),
 ): TLSConfig {.gcsafe, raises: [QuicConfigError].} =
   # In a config, certificate and keys are optional, but if using them, both must
@@ -74,7 +77,8 @@ proc listen*(
     self: QuicServer, address: TransportAddress
 ): Listener {.raises: [QuicError, TransportOsError].} =
   let tlsBackend = newServerTLSBackend(
-    self.tlsConfig.certificate, self.tlsConfig.key, self.tlsConfig.certificateVerifier
+    self.tlsConfig.certificate, self.tlsConfig.key, self.tlsConfig.alpn,
+    self.tlsConfig.certificateVerifier,
   )
 
   return newListener(tlsBackend, address)
@@ -83,7 +87,8 @@ proc dial*(
     self: QuicClient, address: TransportAddress
 ): Future[Connection] {.async: (raises: [QuicError, TransportOsError]).} =
   let tlsBackend = newClientTLSBackend(
-    self.tlsConfig.certificate, self.tlsConfig.key, self.tlsConfig.certificateVerifier
+    self.tlsConfig.certificate, self.tlsConfig.key, self.tlsConfig.alpn,
+    self.tlsConfig.certificateVerifier,
   )
   var connection: Connection
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =

@@ -1,6 +1,7 @@
 import unittest2
 import ngtcp2
 import results
+import std/sets
 import quic/errors
 import quic/transport/tlsbackend
 import quic/transport/ngtcp2/native/[connection, client, params, settings]
@@ -33,7 +34,9 @@ suite "ngtcp2 transport parameters":
       discard decodeTransportParameters(encoded)
 
   test "raises when setting remote parameters fails":
-    let tlsBackend = newClientTLSBackend(@[], @[], Opt.none(CertificateVerifier))
+    let tlsBackend = newClientTLSBackend(
+      @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
+    )
     let connection = newNgtcp2Client(tlsBackend.picoTLS, zeroAddress, zeroAddress)
     defer:
       connection.destroy()

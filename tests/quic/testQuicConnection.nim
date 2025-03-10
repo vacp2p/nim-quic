@@ -1,6 +1,7 @@
 import chronos
 import chronos/unittest2/asynctests
 import quic/errors
+import std/sets
 import quic/transport/[quicconnection, quicclientserver, tlsbackend]
 import quic/udp/datagram
 import quic/transport/connectionid
@@ -10,7 +11,9 @@ import ../helpers/certificate
 
 suite "quic connection":
   asyncTest "sends outgoing datagrams":
-    let clientTLSBackend = newClientTLSBackend(@[], @[], Opt.none(CertificateVerifier))
+    let clientTLSBackend = newClientTLSBackend(
+      @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
+    )
     let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
     defer:
       await client.drop()
@@ -19,7 +22,9 @@ suite "quic connection":
     check datagram.len > 0
 
   asyncTest "processes received datagrams":
-    let clientTLSBackend = newClientTLSBackend(@[], @[], Opt.none(CertificateVerifier))
+    let clientTLSBackend = newClientTLSBackend(
+      @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
+    )
     let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
     defer:
       await client.drop()
@@ -27,7 +32,9 @@ suite "quic connection":
     client.send()
     let datagram = await client.outgoing.get()
 
-    let serverTLSBackend = newServerTLSBackend(@[], @[], Opt.none(CertificateVerifier))
+    let serverTLSBackend = newServerTLSBackend(
+      @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
+    )
     let server =
       newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, datagram)
     defer:
@@ -39,8 +46,9 @@ suite "quic connection":
     let invalid = Datagram(data: @[0'u8])
 
     expect QuicError:
-      let serverTLSBackend =
-        newServerTLSBackend(@[], @[], Opt.none(CertificateVerifier))
+      let serverTLSBackend = newServerTLSBackend(
+        @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
+      )
       discard
         newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, invalid)
 
@@ -67,13 +75,18 @@ suite "quic connection":
     check server.ids != client.ids
 
   asyncTest "notifies about id changes":
-    let clientTLSBackend = newClientTLSBackend(@[], @[], Opt.none(CertificateVerifier))
+    let clientTLSBackend = newClientTLSBackend(
+      @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
+    )
     let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
     client.send()
     let datagram = await client.outgoing.get()
 
     let serverTLSBackend = newServerTLSBackend(
-      testCertificate(), testPrivateKey(), Opt.none(CertificateVerifier)
+      testCertificate(),
+      testPrivateKey(),
+      initHashSet[string](),
+      Opt.none(CertificateVerifier),
     )
     let server =
       newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, datagram)
@@ -92,7 +105,9 @@ suite "quic connection":
     await server.drop
 
   asyncTest "raises ConnectionError when closed":
-    let clientTLSBackend = newClientTLSBackend(@[], @[], Opt.none(CertificateVerifier))
+    let clientTLSBackend = newClientTLSBackend(
+      @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
+    )
     let connection = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
     await connection.drop()
 
@@ -106,7 +121,9 @@ suite "quic connection":
       discard await connection.openStream()
 
   asyncTest "has empty list of ids when closed":
-    let clientTLSBackend = newClientTLSBackend(@[], @[], Opt.none(CertificateVerifier))
+    let clientTLSBackend = newClientTLSBackend(
+      @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
+    )
     let connection = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
     await connection.drop()
 

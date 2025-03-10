@@ -107,7 +107,9 @@ proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =
   (source: info.source.toCid, dest: info.destination.toCid)
 
 proc newNgtcp2Server*(
-    tlsContext: PicoTLSContext, local, remote: TransportAddress, datagram: openArray[byte]
+    tlsContext: PicoTLSContext,
+    local, remote: TransportAddress,
+    datagram: openArray[byte],
 ): Ngtcp2Connection =
   let (source, destination) = extractIds(datagram)
   newNgtcp2Server(tlsContext, local, remote, source, destination)
