@@ -46,7 +46,6 @@ proc onClientHello(
 ): cint {.cdecl.} =
   if params.negotiated_protocols.count == 0:
     return 0
-
   var alpn = initHashSet[string]()
   for i in 0 ..< int(params.negotiated_protocols.count):
     var proto = newString(params.negotiated_protocols.list.len)
@@ -65,10 +64,10 @@ proc onClientHello(
   var alpnMatch = (clientHello.parentCtx.alpn * alpn)
   if len(alpnMatch) == 0:
     return PTLS_ALERT_NO_APPLICATION_PROTOCOL
-  else:
-    let proto = alpnMatch.pop()
-    if ptls_set_negotiated_protocol(ptls, proto.cstring, csize_t(proto.len)) != 0:
-      return -1
+
+  let proto = alpnMatch.pop()
+  if ptls_set_negotiated_protocol(ptls, proto.cstring, csize_t(proto.len)) != 0:
+    return -1
 
   return 0
 

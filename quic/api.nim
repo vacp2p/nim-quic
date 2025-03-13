@@ -28,6 +28,7 @@ export certificateVerifierCB
 export CustomCertificateVerifier
 export InsecureCertificateVerifier
 export init
+export sets
 
 type TLSConfig* = object
   certificate: seq[byte]
@@ -59,7 +60,10 @@ proc init*(
       raise newException(QuicConfigError, "key is required in TLSConfig")
 
   return TLSConfig(
-    certificate: certificate, key: key, certificateVerifier: certificateVerifier
+    certificate: certificate,
+    key: key,
+    certificateVerifier: certificateVerifier,
+    alpn: alpn,
   )
 
 proc init*(
