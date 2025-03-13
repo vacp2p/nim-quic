@@ -28,7 +28,6 @@ export certificateVerifierCB
 export CustomCertificateVerifier
 export InsecureCertificateVerifier
 export init
-export sets
 
 type TLSConfig* = object
   certificate: seq[byte]
@@ -47,7 +46,7 @@ proc init*(
     t: typedesc[TLSConfig],
     certificate: seq[byte] = @[],
     key: seq[byte] = @[],
-    alpn: HashSet[string] = initHashSet[string](),
+    alpn: seq[string] = @[],
     certificateVerifier: Opt[CertificateVerifier] = Opt.none(CertificateVerifier),
 ): TLSConfig {.gcsafe, raises: [QuicConfigError].} =
   # In a config, certificate and keys are optional, but if using them, both must
@@ -63,7 +62,7 @@ proc init*(
     certificate: certificate,
     key: key,
     certificateVerifier: certificateVerifier,
-    alpn: alpn,
+    alpn: toHashSet(alpn),
   )
 
 proc init*(
