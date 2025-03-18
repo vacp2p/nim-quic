@@ -1,4 +1,5 @@
 import pkg/ngtcp2
+import bearssl/rand
 import ../../../basics
 import ../../../errors
 import ../../packets
@@ -19,7 +20,11 @@ proc newNgtcp2Server*(
     tlsContext: PicoTLSContext,
     local, remote: TransportAddress,
     source, destination: ngtcp2_cid,
+    rng: ref HmacDrbgContext,
 ): Ngtcp2Connection =
+  let path = newPath(local, remote)
+  let nConn = newConnection(path, rng)
+
   var callbacks: ngtcp2_callbacks
   callbacks.recv_client_initial = ngtcp2_crypto_recv_client_initial_cb
   callbacks.recv_crypto_data = ngtcp2_crypto_recv_crypto_data_cb
@@ -34,16 +39,13 @@ proc newNgtcp2Server*(
   installServerHandshakeCallback(callbacks)
   installStreamCallbacks(callbacks)
 
-  var settings = defaultSettings()
+  var settings = defaultSettings(rng)
   var transportParams = defaultTransportParameters()
   transportParams.original_dcid = destination
   transportParams.original_dcid_present = 1
   settings.initial_ts = now()
 
-  let id = randomConnectionId().toCid
-  let path = newPath(local, remote)
-
-  let nConn = newConnection(path)
+  let id = randomConnectionId(rng = rng).toCid
 
   var conn: ptr ngtcp2_conn
   var ret = ngtcp2_conn_server_new_versioned(
@@ -110,6 +112,7 @@ proc newNgtcp2Server*(
     tlsContext: PicoTLSContext,
     local, remote: TransportAddress,
     datagram: openArray[byte],
+    rng: ref HmacDrbgContext,
 ): Ngtcp2Connection =
   let (source, destination) = extractIds(datagram)
-  newNgtcp2Server(tlsContext, local, remote, source, destination)
+  newNgtcp2Server(tlsContext, local, remote, source, destination, rng)

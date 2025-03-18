@@ -3,6 +3,7 @@ import ngtcp2
 import results
 import std/sets
 import quic/errors
+import quic/helpers/rand
 import quic/transport/tlsbackend
 import quic/transport/ngtcp2/native/[connection, client, params, settings]
 import ../helpers/addresses
@@ -37,7 +38,8 @@ suite "ngtcp2 transport parameters":
     let tlsBackend = newClientTLSBackend(
       @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
     )
-    let connection = newNgtcp2Client(tlsBackend.picoTLS, zeroAddress, zeroAddress)
+    let connection =
+      newNgtcp2Client(tlsBackend.picoTLS, zeroAddress, zeroAddress, newRng())
     defer:
       connection.destroy()
     transport_params.active_connection_id_limit = 0

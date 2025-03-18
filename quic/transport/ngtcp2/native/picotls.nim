@@ -127,7 +127,7 @@ proc destroy*(p: PicoTLSContext) =
   if not p.signCert.isNil:
     ptls_openssl_dispose_sign_certificate(p.signCert)
     let arr = cast[ptr UncheckedArray[ptls_iovec_t]](p.context.certificates.list)
-    for i in 0 ..< p.context.certificates.count: #
+    for i in 0 ..< p.context.certificates.count:
       cfree(arr[i].base)
     cfree(p.context.certificates.list)
     dealloc(p.signCert)

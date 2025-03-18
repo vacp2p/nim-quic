@@ -1,16 +1,20 @@
 import std/unittest
 
-import pkg/ngtcp2
-import pkg/quic/transport/[packets, parsedatagram, version]
+import ngtcp2
+import bearssl/rand
+import quic/helpers/rand
+import quic/transport/[packets, parsedatagram, version]
 
 suite "parse ngtcp2 packet info":
   var packet: Packet
   var datagram: array[4096, byte]
+  var rng: ref HmacDrbgContext
 
   setup:
     packet = initialPacket(CurrentQuicVersion)
-    packet.source = randomConnectionId()
-    packet.destination = randomConnectionId()
+    rng = newRng()
+    packet.source = randomConnectionId(rng)
+    packet.destination = randomConnectionId(rng)
     datagram = typeof(datagram).default
     datagram.write(packet)
 

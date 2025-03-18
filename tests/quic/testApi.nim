@@ -1,7 +1,6 @@
 import chronos
 import chronos/unittest2/asynctests
 import quic
-import quic/transport/tlsbackend
 import ../helpers/certificate
 
 suite "api":

@@ -1,6 +1,7 @@
 import results
 import ngtcp2
 import std/sets
+import bearssl/rand
 import ./ngtcp2/native
 import ../errors
 

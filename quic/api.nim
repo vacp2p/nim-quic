@@ -1,11 +1,14 @@
 import chronos
 import results
 import std/sets
+import bearssl/rand
+
 import ./listener
 import ./connection
 import ./udp/datagram
 import ./errors
 import ./transport/tlsbackend
+import ./helpers/rand
 
 export Listener
 export accept
@@ -36,6 +39,7 @@ type TLSConfig* = object
   certificateVerifier: Opt[CertificateVerifier]
 
 type Quic = ref object of RootObj
+  rng: ref HmacDrbgContext
   tlsConfig: TLSConfig
 
 type QuicClient* = object of Quic
@@ -66,15 +70,17 @@ proc init*(
   )
 
 proc init*(
-    t: typedesc[QuicServer], tlsConfig: TLSConfig
+    t: typedesc[QuicServer], tlsConfig: TLSConfig, rng: ref HmacDrbgContext = newRng()
 ): QuicServer {.raises: [QuicConfigError].} =
   if tlsConfig.certificate.len == 0:
     raise newException(QuicConfigError, "tlsConfig does not contain a certificate")
 
-  return QuicServer(tlsConfig: tlsConfig)
+  return QuicServer(tlsConfig: tlsConfig, rng: rng)
 
-proc init*(t: typedesc[QuicClient], tlsConfig: TLSConfig): QuicClient {.raises: [].} =
-  return QuicClient(tlsConfig: tlsConfig)
+proc init*(
+    t: typedesc[QuicClient], tlsConfig: TLSConfig, rng: ref HmacDrbgContext = newRng()
+): QuicClient {.raises: [].} =
+  return QuicClient(tlsConfig: tlsConfig, rng: rng)
 
 proc listen*(
     self: QuicServer, address: TransportAddress
@@ -84,7 +90,7 @@ proc listen*(
     self.tlsConfig.certificateVerifier,
   )
 
-  return newListener(tlsBackend, address)
+  return newListener(tlsBackend, address, self.rng)
 
 proc dial*(
     self: QuicClient, address: TransportAddress
@@ -99,6 +105,6 @@ proc dial*(
     connection.receive(datagram)
 
   let udp = newDatagramTransport(onReceive)
-  connection = newOutgoingConnection(tlsBackend, udp, address)
+  connection = newOutgoingConnection(tlsBackend, udp, address, self.rng)
   connection.startHandshake()
   return connection

@@ -1,6 +1,6 @@
 import std/strutils
 import std/hashes
-import pkg/nimcrypto
+import bearssl/rand
 
 type ConnectionId* = distinct seq[byte]
 
@@ -13,7 +13,11 @@ proc `hash`*(x: ConnectionId): Hash {.borrow.}
 proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
 
-proc randomConnectionId*(len = DefaultConnectionIdLength): ConnectionId =
+proc randomConnectionId*(
+    rng: ref HmacDrbgContext, len = DefaultConnectionIdLength
+): ConnectionId =
   var bytes = newSeq[byte](len)
-  doAssert len == randomBytes(addr bytes[0], len)
+  if rng.isNil:
+    raiseAssert "no rng setup"
+  hmacDrbgGenerate(rng[], bytes)
   ConnectionId(bytes)

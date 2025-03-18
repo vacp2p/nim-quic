@@ -1,4 +1,5 @@
 import ngtcp2
+import bearssl/rand
 import ../../../errors
 import ../../version
 import ../../../basics
@@ -16,8 +17,13 @@ import ./handshake
 import std/[sets, sequtils]
 
 proc newNgtcp2Client*(
-    tlsContext: PicoTLSContext, local, remote: TransportAddress
+    tlsContext: PicoTLSContext,
+    local, remote: TransportAddress,
+    rng: ref HmacDrbgContext,
 ): Ngtcp2Connection =
+  let path = newPath(local, remote)
+  let nConn = newConnection(path, rng)
+
   var callbacks: ngtcp2_callbacks
   callbacks.client_initial = ngtcp2_crypto_client_initial_cb
   callbacks.recv_crypto_data = ngtcp2_crypto_recv_crypto_data_cb
@@ -33,14 +39,11 @@ proc newNgtcp2Client*(
   installClientHandshakeCallback(callbacks)
   installStreamCallbacks(callbacks)
 
-  var settings = defaultSettings()
+  var settings = defaultSettings(rng)
   var transportParams = defaultTransportParameters()
   settings.initial_ts = now()
-  let source = randomConnectionId().toCid
-  let destination = randomConnectionId().toCid
-  let path = newPath(local, remote)
-
-  let nConn = newConnection(path)
+  let source = randomConnectionId(rng).toCid
+  let destination = randomConnectionId(rng).toCid
 
   var conn: ptr ngtcp2_conn
   var ret = ngtcp2_conn_client_new_versioned(

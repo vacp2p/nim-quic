@@ -1,12 +1,18 @@
-import pkg/unittest2
-import pkg/quic/transport/connectionid
+import unittest2
+import bearssl/rand
+import quic/transport/connectionid
+import quic/helpers/rand
 
 suite "connection ids":
+  var rng: ref HmacDrbgContext
+  setup:
+    rng = newRng()
+
   test "generates random ids":
-    check randomConnectionId() != randomConnectionId()
+    check randomConnectionId(rng) != randomConnectionId(rng)
 
   test "random ids are of the correct length":
-    check randomConnectionId().len == DefaultConnectionIdLength
+    check randomConnectionId(rng).len == DefaultConnectionIdLength
 
   test "random ids can have custom length":
-    check randomConnectionId(5).len == 5
+    check randomConnectionId(rng, 5).len == 5

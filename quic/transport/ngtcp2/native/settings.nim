@@ -1,7 +1,9 @@
 import ngtcp2
+import bearssl/rand
 
-proc defaultSettings*(): ngtcp2_settings =
+proc defaultSettings*(rng: ref HmacDrbgContext): ngtcp2_settings =
   ngtcp2_settings_default_versioned(NGTCP2_SETTINGS_V2, addr result)
+  result.rand_ctx = ngtcp2_rand_ctx(native_handle: cast[pointer](rng))
 
 proc defaultTransportParameters*(): ngtcp2_transport_params =
   ngtcp2_transport_params_default_versioned(NGTCP2_TRANSPORT_PARAMS_V1, addr result)

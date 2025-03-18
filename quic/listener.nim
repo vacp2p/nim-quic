@@ -1,4 +1,5 @@
 import std/tables
+import bearssl/rand
 import ./basics
 import ./connection
 import ./transport/connectionid
@@ -39,21 +40,26 @@ proc addConnection(listener: Listener, connection: Connection, firstId: Connecti
   listener.incoming.putNoWait(connection)
 
 proc getOrCreateConnection*(
-    listener: Listener, udp: DatagramTransport, remote: TransportAddress
+    listener: Listener,
+    udp: DatagramTransport,
+    remote: TransportAddress,
+    rng: ref HmacDrbgContext,
 ): Connection =
   var connection: Connection
   let destination = parseDatagram(udp.getMessage()).destination
   if not listener.hasConnection(destination):
-    connection = newIncomingConnection(listener.tlsBackend, udp, remote)
+    connection = newIncomingConnection(listener.tlsBackend, udp, remote, rng)
     listener.addConnection(connection, destination)
   else:
     connection = listener.getConnection(destination)
   connection
 
-proc newListener*(tlsBackend: TLSBackend, address: TransportAddress): Listener =
+proc newListener*(
+    tlsBackend: TLSBackend, address: TransportAddress, rng: ref HmacDrbgContext
+): Listener =
   let listener = Listener(incoming: newAsyncQueue[Connection]())
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-    let connection = listener.getOrCreateConnection(udp, remote)
+    let connection = listener.getOrCreateConnection(udp, remote, rng)
     connection.receive(Datagram(data: udp.getMessage()))
 
   listener.tlsBackend = tlsBackend

@@ -1,4 +1,5 @@
 import chronicles
+import bearssl/rand
 
 import ./basics
 import ./transport/connectionid
@@ -107,10 +108,14 @@ proc disconnect(connection: Connection) {.async.} =
   trace "Fired closed event"
 
 proc newIncomingConnection*(
-    tlsBackend: TLSBackend, udp: DatagramTransport, remote: TransportAddress
+    tlsBackend: TLSBackend,
+    udp: DatagramTransport,
+    remote: TransportAddress,
+    rng: ref HmacDrbgContext,
 ): Connection =
   let datagram = Datagram(data: udp.getMessage())
-  let quic = newQuicServerConnection(tlsBackend, udp.localAddress, remote, datagram)
+  let quic =
+    newQuicServerConnection(tlsBackend, udp.localAddress, remote, datagram, rng)
   let closed = newAsyncEvent()
   let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
   proc onDisconnect() {.async.} =
@@ -124,9 +129,12 @@ proc newIncomingConnection*(
   connection
 
 proc newOutgoingConnection*(
-    tlsBackend: TLSBackend, udp: DatagramTransport, remote: TransportAddress
+    tlsBackend: TLSBackend,
+    udp: DatagramTransport,
+    remote: TransportAddress,
+    rng: ref HmacDrbgContext,
 ): Connection =
-  let quic = newQuicClientConnection(tlsBackend, udp.localAddress, remote)
+  let quic = newQuicClientConnection(tlsBackend, udp.localAddress, remote, rng)
   let closed = newAsyncEvent()
   let connection = OutgoingConnection(
     udp: udp, quic: quic, closed: closed, tlsBackend: Opt.some(tlsBackend)

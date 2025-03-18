@@ -1,5 +1,6 @@
 import std/sequtils
 import ngtcp2
+import bearssl/rand
 import chronicles
 import ../../../basics
 import ../../../udp/congestion
@@ -24,6 +25,7 @@ type
     connref*: ptr ngtcp2_crypto_conn_ref
 
     path*: Path
+    rng*: ref HmacDrbgContext
     buffer*: array[4096, byte]
     flowing*: AsyncEvent
     timeout*: Timeout
@@ -64,8 +66,9 @@ proc handleTimeout(connection: Ngtcp2Connection) {.gcsafe, raises: [].}
 
 proc executeOnTimeout(connection: Ngtcp2Connection) {.async.}
 
-proc newConnection*(path: Path): Ngtcp2Connection =
+proc newConnection*(path: Path, rng: ref HmacDrbgContext): Ngtcp2Connection =
   let connection = Ngtcp2Connection()
+  connection.rng = rng
   connection.path = path
   connection.flowing = newAsyncEvent()
   connection.timeout = newTimeout(

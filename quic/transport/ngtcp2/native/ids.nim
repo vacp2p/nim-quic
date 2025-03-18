@@ -21,20 +21,19 @@ proc getNewConnectionId(
     cidlen: csize_t,
     userData: pointer,
 ): cint {.cdecl.} =
-  let newId = randomConnectionId(cidlen.int)
-  id[] = newId.toCid
-  zeroMem(token, NGTCP2_STATELESS_RESET_TOKENLEN)
-
   # TODO: should ngtcp2_crypto_generate_stateless_reset_token so
   # we can signal the other peer that the connection is no longer valid?
   # ngtcp2_crypto_generate_stateless_reset_token(
   #   token, some_static_secret_data, config.static_secret.size(), cid) !=
   # 0) 
 
-  let
-    connection = cast[Ngtcp2Connection](userData)
-    onNewId = connection.onNewId.valueOr:
-      return
+  let connection = cast[Ngtcp2Connection](userData)
+  let newId = randomConnectionId(connection.rng, cidlen.int)
+  id[] = newId.toCid
+  zeroMem(token, NGTCP2_STATELESS_RESET_TOKENLEN)
+
+  let onNewId = connection.onNewId.valueOr:
+    return
   onNewId(newId)
   return 0
 
@@ -50,4 +49,3 @@ proc removeConnectionId(
 proc installConnectionIdCallback*(callbacks: var ngtcp2_callbacks) =
   callbacks.get_new_connection_id = getNewConnectionId
   callbacks.remove_connection_id = removeConnectionId
-

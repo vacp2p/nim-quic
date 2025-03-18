@@ -5,6 +5,7 @@ import std/sets
 
 import quic/connection
 import quic/transport/tlsbackend
+import quic/helpers/rand
 import ../helpers/udp
 
 suite "connections":
@@ -16,7 +17,7 @@ suite "connections":
     let tlsBackend = newClientTLSBackend(
       @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
     )
-    let connection = newOutgoingConnection(tlsBackend, udp, address)
+    let connection = newOutgoingConnection(tlsBackend, udp, address, newRng())
     await udp.closeWait()
     connection.startHandshake()
 

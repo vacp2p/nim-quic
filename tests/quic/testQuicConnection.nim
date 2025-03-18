@@ -1,7 +1,9 @@
+import bearssl/rand
 import chronos
 import chronos/unittest2/asynctests
 import quic/errors
 import std/sets
+import quic/helpers/rand
 import quic/transport/[quicconnection, quicclientserver, tlsbackend]
 import quic/udp/datagram
 import quic/transport/connectionid
@@ -14,7 +16,8 @@ suite "quic connection":
     let clientTLSBackend = newClientTLSBackend(
       @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
     )
-    let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
+    let client =
+      newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress, newRng())
     defer:
       await client.drop()
     client.send()
@@ -22,10 +25,12 @@ suite "quic connection":
     check datagram.len > 0
 
   asyncTest "processes received datagrams":
+    let rng = newRng()
     let clientTLSBackend = newClientTLSBackend(
       @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
     )
-    let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
+    let client =
+      newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress, rng)
     defer:
       await client.drop()
 
@@ -36,7 +41,7 @@ suite "quic connection":
       @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
     )
     let server =
-      newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, datagram)
+      newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, datagram, rng)
     defer:
       await server.drop()
 
@@ -49,8 +54,9 @@ suite "quic connection":
       let serverTLSBackend = newServerTLSBackend(
         @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
       )
-      discard
-        newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, invalid)
+      discard newQuicServerConnection(
+        serverTLSBackend, zeroAddress, zeroAddress, invalid, newRng()
+      )
 
   asyncTest "performs handshake":
     let (client, server) = await performHandshake()
@@ -75,10 +81,12 @@ suite "quic connection":
     check server.ids != client.ids
 
   asyncTest "notifies about id changes":
+    let rng = newRng()
     let clientTLSBackend = newClientTLSBackend(
       @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
     )
-    let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
+    let client =
+      newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress, rng)
     client.send()
     let datagram = await client.outgoing.get()
 
@@ -89,7 +97,7 @@ suite "quic connection":
       Opt.none(CertificateVerifier),
     )
     let server =
-      newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, datagram)
+      newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, datagram, rng)
     var newId: ConnectionId
     server.onNewId = proc(id: ConnectionId) =
       newId = id
@@ -108,7 +116,8 @@ suite "quic connection":
     let clientTLSBackend = newClientTLSBackend(
       @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
     )
-    let connection = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
+    let connection =
+      newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress, newRng())
     await connection.drop()
 
     expect ConnectionError:
@@ -124,7 +133,8 @@ suite "quic connection":
     let clientTLSBackend = newClientTLSBackend(
       @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
     )
-    let connection = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress)
+    let connection =
+      newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress, newRng())
     await connection.drop()
 
     check connection.ids.len == 0
