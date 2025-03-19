@@ -2,7 +2,9 @@ import ngtcp2
 import ../../../errors
 
 type
-  Ngtcp2Error* = object of QuicError
+  Ngtcp2Error* = ref object of QuicError
+    code*: cint
+
   Ngtcp2Defect* = object of QuicDefect
 
 proc checkResult*(result: cint) =
@@ -11,4 +13,7 @@ proc checkResult*(result: cint) =
     if ngtcp2_err_is_fatal(result) != 0:
       raise newException(Ngtcp2Defect, msg)
     else:
-      raise newException(Ngtcp2Error, msg)
+      let e = new(Ngtcp2Error)
+      e.code = result
+      e.msg = msg
+      raise e

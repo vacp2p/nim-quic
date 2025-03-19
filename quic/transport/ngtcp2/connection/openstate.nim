@@ -1,5 +1,6 @@
 import chronicles
 import bearssl/rand
+import ngtcp2
 
 import ../../../basics
 import ../../quicconnection
@@ -77,13 +78,9 @@ method enter(state: OpenConnection, connection: QuicConnection) =
 
   state.ngtcp2Connection.onTimeout = proc() {.gcsafe, raises: [].} =
     try:
-      waitFor connection.close()
-    except QuicError:
-      # TODO: handle
-      discard
-    except CatchableError:
-      # TODO: handle
-      discard
+      connection.timeout.fire()
+    except Ngtcp2ConnectionClosed:
+      trace "connection closed"
 
   trace "Entered OpenConnection state"
 
@@ -102,16 +99,16 @@ method send(state: OpenConnection) =
   state.ngtcp2Connection.send()
 
 method receive(state: OpenConnection, datagram: Datagram) =
-  var isDraining = false
+  var errCode = 0
+  var errMsg = ""
   try:
     state.ngtcp2Connection.receive(datagram)
-  except Ngtcp2Error as e:
-    trace "ngtcp2 error on receive", code = $e.msg
-    isDraining = state.ngtcp2Connection.isDraining
-    # TODO:
-    # if not isDraining:
-    #   raise newException(QuicError, "could not receive - code:" & $e.msg)
+  except Ngtcp2Error as exc:
+    errCode = exc.code
+    errMsg = exc.msg
+    trace "ngtcp2 error on receive", code = errCode, msg = errMsg
   finally:
+    var isDraining = state.ngtcp2Connection.isDraining
     let quicConnection = state.quicConnection.valueOr:
       return
     if isDraining:
@@ -120,6 +117,9 @@ method receive(state: OpenConnection, datagram: Datagram) =
       let draining = newDrainingConnection(ids, duration)
       quicConnection.switch(draining)
       asyncSpawn draining.close()
+    elif errCode != 0 and errCode != NGTCP2_ERR_DROP_CONN:
+      quicConnection.error.emit(errMsg)
+      asyncSpawn state.close()
 
 method openStream(
     state: OpenConnection, unidirectional: bool

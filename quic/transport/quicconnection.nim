@@ -12,6 +12,8 @@ type
     outgoing*: AsyncQueue[Datagram]
     incoming*: AsyncQueue[Stream]
     handshake*: AsyncEvent
+    timeout*: AsyncEvent
+    error*: AsyncEventQueue[string]
     disconnect*: Opt[proc(): Future[void] {.gcsafe, raises: [].}]
     onNewId*: IdCallback
     onRemoveId*: IdCallback
@@ -57,6 +59,8 @@ proc newQuicConnection*(state: ConnectionState): QuicConnection =
     outgoing: newAsyncQueue[Datagram](),
     incoming: newAsyncQueue[Stream](),
     handshake: newAsyncEvent(),
+    timeout: newAsyncEvent(),
+    error: newAsyncEventQueue[string](1),
   )
   state.enter(connection)
   connection

@@ -31,6 +31,7 @@ export certificateVerifierCB
 export CustomCertificateVerifier
 export InsecureCertificateVerifier
 export init
+export TimeOutError
 
 type TLSConfig* = object
   certificate: seq[byte]
@@ -94,7 +95,12 @@ proc listen*(
 
 proc dial*(
     self: QuicClient, address: TransportAddress
-): Future[Connection] {.async: (raises: [QuicError, TransportOsError]).} =
+): Future[Connection] {.
+    async: (
+      raises:
+        [CancelledError, CatchableError, TimeOutError, QuicError, TransportOsError]
+    )
+.} =
   let tlsBackend = newClientTLSBackend(
     self.tlsConfig.certificate, self.tlsConfig.key, self.tlsConfig.alpn,
     self.tlsConfig.certificateVerifier,
@@ -106,5 +112,11 @@ proc dial*(
 
   let udp = newDatagramTransport(onReceive)
   connection = newOutgoingConnection(tlsBackend, udp, address, self.rng)
-  connection.startHandshake()
+  try:
+    connection.startHandshake()
+    await connection.waitForHandshake()
+  except TimeOutError as exc:
+    tlsBackend.destroy()
+    raise exc
+
   return connection

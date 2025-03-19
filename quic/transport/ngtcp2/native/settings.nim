@@ -1,5 +1,6 @@
 import ngtcp2
 import bearssl/rand
+import chronos
 
 proc defaultSettings*(rng: ref HmacDrbgContext): ngtcp2_settings =
   ngtcp2_settings_default_versioned(NGTCP2_SETTINGS_V2, addr result)
@@ -13,3 +14,4 @@ proc defaultTransportParameters*(): ngtcp2_transport_params =
   result.initial_max_stream_data_bidi_local = 256 * 1024
   result.initial_max_stream_data_bidi_remote = 256 * 1024
   result.initial_max_data = 256 * 1024
+  result.max_idle_timeout = uint64(30.seconds.nanoseconds)

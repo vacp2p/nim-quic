@@ -30,7 +30,7 @@ type
     flowing*: AsyncEvent
     timeout*: Timeout
     onSend*: proc(datagram: Datagram) {.gcsafe, raises: [].}
-    onTimeout*: proc() {.raises: [].}
+    onTimeout*: proc() {.gcsafe, raises: [].}
     onIncomingStream*: proc(stream: Stream)
     onHandshakeDone*: proc()
     onNewId*: Opt[proc(id: ConnectionId)]
@@ -235,7 +235,9 @@ proc executeOnTimeout(connection: Ngtcp2Connection) {.async.} =
   trace "Waiting expiration"
   await connection.timeout.expired()
   trace "Timeout expired"
-  #TODO should we call connection.onTimeout()
+  if connection.conn.isNone:
+    return
+  connection.onTimeout()
 
 proc closingDuration*(connection: Ngtcp2Connection): Duration =
   let conn = connection.conn.valueOr:
