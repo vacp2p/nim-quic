@@ -52,6 +52,7 @@ method read(state: OpenStream): Future[seq[byte]] {.async.} =
     result = await incomingFut
     state.allowMoreIncomingBytes(result.len.uint64)
   else:
+    incomingFut.cancelSoon()
     raise newException(StreamError, "stream is closed")
 
 method write(state: OpenStream, bytes: seq[byte]): Future[void] =

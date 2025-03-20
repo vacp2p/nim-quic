@@ -166,15 +166,19 @@ proc waitForHandshake*(
   let handshakeFut = connection.quic.handshake.wait()
   let race = await race(handshakeFut, timeoutFut, errFut)
   if race == timeoutFut:
-    await allFutures(timeoutFut, connection.close())
+    await connection.close()
     errFut.cancelSoon()
+    handshakeFut.cancelSoon()
     raise newException(TimeOutError, "handshake timed out")
   elif race == errFut:
     let err = await errFut
-    if err[0] != "":
-      await connection.close()
-      timeoutFut.cancelSoon()
-      raise newException(QuicError, "connection error: " & err[0])
+    await connection.close()
+    timeoutFut.cancelSoon()
+    handshakeFut.cancelSoon()
+    raise newException(QuicError, "connection error: " & err[0])
+  else:
+    errFut.cancelSoon()
+    timeoutFut.cancelSoon()
 
 proc receive*(connection: Connection, datagram: Datagram) =
   connection.quic.receive(datagram)
