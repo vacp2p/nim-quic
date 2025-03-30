@@ -102,6 +102,7 @@ proc newNgtcp2Server*(
   nConn.tlsConn = tls
   nConn.cptls = cptls
   nConn.connref = connref
+  nConn.tlsContext = tlsContext
   nConn
 
 proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =

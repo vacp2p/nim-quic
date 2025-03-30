@@ -21,6 +21,7 @@ type
   Ngtcp2Connection* = ref object
     conn*: Opt[ptr ngtcp2_conn]
     tlsConn*: PicoTLSConnection
+    tlsContext*: PicoTLSContext
     cptls*: ptr ngtcp2_crypto_picotls_ctx
     connref*: ptr ngtcp2_crypto_conn_ref
 

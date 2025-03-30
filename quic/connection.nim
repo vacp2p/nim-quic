@@ -198,7 +198,10 @@ proc localAddress*(
 proc openStream*(
     connection: Connection, unidirectional = false
 ): Future[Stream] {.async.} =
-  result = await connection.quic.openStream(unidirectional = unidirectional)
+  await connection.quic.openStream(unidirectional = unidirectional)
 
 proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
-  result = await connection.quic.incomingStream()
+  await connection.quic.incomingStream()
+
+proc certificates*(connection: Connection): Opt[seq[seq[byte]]] =
+  connection.quic.certificates()

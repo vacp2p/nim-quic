@@ -32,6 +32,7 @@ export CustomCertificateVerifier
 export InsecureCertificateVerifier
 export init
 export TimeOutError
+export certificates
 
 type TLSConfig* = object
   certificate: seq[byte]

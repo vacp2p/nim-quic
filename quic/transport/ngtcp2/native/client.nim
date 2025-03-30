@@ -116,6 +116,7 @@ proc newNgtcp2Client*(
     raise newException(QuicError, "could not configure client session: " & $ret)
 
   nConn.conn = Opt.some(conn)
+  nConn.tlsContext = tlsContext
   nConn.tlsConn = tls
   nConn.cptls = cptls
   nConn.connref = connref

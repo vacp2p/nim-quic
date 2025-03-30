@@ -73,4 +73,7 @@ method drop(state: DrainingConnection) {.async.} =
   connection.switch(disconnecting)
   await disconnecting.drop()
 
+method certificates(state: DrainingConnection): Opt[seq[seq[byte]]] =
+  discard
+
 {.pop.}

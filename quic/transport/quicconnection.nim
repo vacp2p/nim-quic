@@ -51,6 +51,9 @@ method drop*(state: ConnectionState): Future[void] {.gcsafe.} =
 method close*(state: ConnectionState): Future[void] {.gcsafe.} =
   doAssert false # override this method
 
+method certificates*(state: ConnectionState): Opt[seq[seq[byte]]] =
+  doAssert false # override this method
+
 {.pop.}
 
 proc newQuicConnection*(state: ConnectionState): QuicConnection =
@@ -94,3 +97,6 @@ proc drop*(connection: QuicConnection): Future[void] {.async.} =
   trace "Dropping quic connection"
   await connection.state.drop()
   trace "Drop quic connection done"
+
+proc certificates*(connection: QuicConnection): Opt[seq[seq[byte]]] =
+  connection.state.certificates()

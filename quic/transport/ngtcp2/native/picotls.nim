@@ -15,6 +15,7 @@ type
     context*: ptr ptls_context_t
     signCert: ptr ptls_openssl_sign_certificate_t
     alpn*: HashSet[string]
+    extCertificateVerifier*: ExtendedCertificateVerifier
     certVerifier: Opt[CertificateVerifier]
     clientHello: ptr ClientHello
 
@@ -84,15 +85,12 @@ proc init*(
     cast[ptr ptr ptls_key_exchange_algorithm_t](addr ptls_openssl_key_exchanges)
   ctx.cipher_suites = cast[ptr ptr ptls_cipher_suite_t](addr ptls_openssl_cipher_suites)
 
+  let ext = ExtendedCertificateVerifier.init(certVerifier)
+  ctx.verify_certificate = ext.getPtlsVerifyCertificateT()
+
   if certVerifier.isSome:
     if requiresClientAuthentication:
       ctx.require_client_authentication = 1
-    try:
-      ctx.verify_certificate = certVerifier.get().getPtlsVerifyCertificateT()
-    except:
-      doAssert false, "checked with if"
-  else:
-    ctx.verify_certificate = nil
 
   var signCert: ptr ptls_openssl_sign_certificate_t = nil
   if len(key) != 0 and len(certificate) != 0:
@@ -105,6 +103,7 @@ proc init*(
     context: ctx,
     signCert: signCert,
     alpn: alpn,
+    extCertificateVerifier: ext,
     certVerifier: certVerifier,
     clientHello: create(ClientHello),
   )
@@ -132,6 +131,8 @@ proc destroy*(p: PicoTLSContext) =
     p.context.certificates.list = nil
     p.context.certificates.count = 0
     p.signCert = nil
+
+  p.extCertificateVerifier.destroy()
 
   if p.certVerifier.isSome:
     try:

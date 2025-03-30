@@ -36,3 +36,6 @@ method drop(state: ClosedConnection) {.async.} =
   trace "Dropping ClosedConnection state"
   discard
   trace "Dropped ClosedConnection state"
+
+method certificates(state: ClosedConnection): Opt[seq[seq[byte]]] =
+  discard

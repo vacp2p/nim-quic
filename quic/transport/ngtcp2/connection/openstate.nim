@@ -16,6 +16,7 @@ import ./closingstate
 import ./drainingstate
 import ./disconnectingstate
 import ./openstreams
+import ../native/certificateverifier
 
 logScope:
   topics = "quic openstate"
@@ -157,5 +158,8 @@ method drop(state: OpenConnection) {.async.} =
   quicConnection.switch(disconnecting)
   await disconnecting.drop()
   trace "Dropped OpenConnection state"
+
+method certificates(state: OpenConnection): Opt[seq[seq[byte]]] =
+  state.ngtcp2Connection.tlsContext.extCertificateVerifier.certificates()
 
 {.pop.}
