@@ -50,12 +50,10 @@ proc init*(
 ): ExtendedCertificateVerifier {.gcsafe.} =
   var response = ExtendedCertificateVerifier()
   response.verifier = create(extVerifyCertificateT)
-  var algos = cast[ptr UncheckedArray[uint16]](alloc(uint16.sizeof * 5))
-  algos[0] = PTLS_SIGNATURE_RSA_PSS_RSAE_SHA256
-  algos[1] = PTLS_SIGNATURE_ECDSA_SECP256R1_SHA256
-  algos[2] = PTLS_SIGNATURE_RSA_PKCS1_SHA256
-  algos[3] = PTLS_SIGNATURE_RSA_PKCS1_SHA1
-  algos[4] = high(uint16)
+  var algos = cast[ptr UncheckedArray[uint16]](alloc(uint16.sizeof * 3))
+  algos[0] = PTLS_SIGNATURE_ECDSA_SECP256R1_SHA256
+  algos[1] = PTLS_SIGNATURE_ED25519
+  algos[2] = high(uint16)
   response.verifier.cb = validateCertificate
   response.verifier.algos = cast[ptr uint16](algos)
   response.verifier.certificateVerifier = verifier
