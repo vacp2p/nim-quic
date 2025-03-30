@@ -4,6 +4,7 @@ import ../native/connection
 import ../native/errors
 import ./drainingstate
 import ./closedstate
+import chronicles
 
 type OpenStream* = ref object of StreamState
   stream: Opt[Stream]
@@ -30,9 +31,12 @@ proc clearUserData(state: OpenStream) =
     discard # stream already closed
 
 proc allowMoreIncomingBytes(state: OpenStream, amount: uint64) =
-  let stream = state.stream.get()
-  state.connection.extendStreamOffset(stream.id, amount)
-  state.connection.send()
+  if state.stream.isSome:
+    let stream = state.stream.get()
+    state.connection.extendStreamOffset(stream.id, amount)
+    state.connection.send()
+  else:
+    trace "no stream available"
 
 {.push locks: "unknown".}
 
