@@ -25,6 +25,11 @@ proc validateCertificate(
     certs: ptr ptls_iovec_t,
     num_certs: csize_t,
 ): cint {.cdecl.} =
+  echo "CALLING CERTIFICATE VALIDATOR"
+  echo "SERVERNAME: ", server_name
+  echo "NUMCERTS: ", num_certs
+
+
   let certVerifier = cast[ptr extVerifyCertificateT](self)
 
   var derCertificates = newSeq[seq[byte]](num_certs)
