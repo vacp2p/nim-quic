@@ -71,5 +71,5 @@ proc getPtlsVerifyCertificateT*(
 ): ptr ptls_verify_certificate_t =
   return t.verifier
 
-proc certificates*(self: ExtendedCertificateVerifier): seq[seq[byte]] =
+proc certificates*(self: ExtendedCertificateVerifier): seq[seq[byte]] {.raises: [].} =
   self.verifier.certificates
