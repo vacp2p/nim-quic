@@ -67,5 +67,5 @@ method drop(state: DisconnectingConnection) {.async.} =
   connection.switch(newClosedConnection())
   trace "dropped DisconnectingConnection state"
 
-method certificates(state: DisconnectingConnection): Opt[seq[seq[byte]]] =
+method certificates(state: DisconnectingConnection): seq[seq[byte]] =
   discard

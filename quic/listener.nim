@@ -70,7 +70,9 @@ proc waitForIncoming*(listener: Listener): Future[Connection] {.async.} =
   await listener.incoming.get()
 
 proc accept*(listener: Listener): Future[Connection] {.async.} =
-  result = await listener.waitForIncoming()
+  let conn = await listener.waitForIncoming()
+  await conn.waitForHandshake()
+  return conn
 
 proc stop*(listener: Listener) {.async.} =
   await listener.udp.closeWait()

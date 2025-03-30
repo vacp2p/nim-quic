@@ -159,7 +159,7 @@ method drop(state: OpenConnection) {.async.} =
   await disconnecting.drop()
   trace "Dropped OpenConnection state"
 
-method certificates(state: OpenConnection): Opt[seq[seq[byte]]] =
+method certificates(state: OpenConnection): seq[seq[byte]] =
   state.ngtcp2Connection.tlsContext.extCertificateVerifier.certificates()
 
 {.pop.}

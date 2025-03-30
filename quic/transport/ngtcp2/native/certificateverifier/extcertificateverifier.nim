@@ -9,7 +9,7 @@ import ../../../../errors
 type
   extVerifyCertificateT = object of ptls_verify_certificate_t
     certificateVerifier*: Opt[CertificateVerifier]
-    certificates*: Opt[seq[seq[byte]]]
+    certificates*: seq[seq[byte]]
 
   ExtendedCertificateVerifier* = object
     verifier: ptr extVerifyCertificateT
@@ -32,7 +32,7 @@ proc validateCertificate(
     let cert = certs + i
     derCertificates[i] = toSeq(toOpenArray(cert.base, cert.len))
 
-  certVerifier.certificates = Opt.some(derCertificates)
+  certVerifier.certificates = derCertificates
 
   if certVerifier.certificateVerifier.isSome:
     let v = certVerifier.certificateVerifier.get()
@@ -71,5 +71,5 @@ proc getPtlsVerifyCertificateT*(
 ): ptr ptls_verify_certificate_t =
   return t.verifier
 
-proc certificates*(self: ExtendedCertificateVerifier): Opt[seq[seq[byte]]] =
+proc certificates*(self: ExtendedCertificateVerifier): seq[seq[byte]] =
   self.verifier.certificates

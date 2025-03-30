@@ -203,5 +203,5 @@ proc openStream*(
 proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
   await connection.quic.incomingStream()
 
-proc certificates*(connection: Connection): Opt[seq[seq[byte]]] =
+proc certificates*(connection: Connection): seq[seq[byte]] =
   connection.quic.certificates()
