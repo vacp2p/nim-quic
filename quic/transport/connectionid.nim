@@ -2,13 +2,9 @@ import std/strutils
 import std/hashes
 import bearssl/rand
 
-type ConnectionId* = distinct seq[byte]
+type ConnectionId* = seq[byte]
 
 const DefaultConnectionIdLength* = 16
-
-proc `==`*(x: ConnectionId, y: ConnectionId): bool {.borrow.}
-proc `len`*(x: ConnectionId): int {.borrow.}
-proc `hash`*(x: ConnectionId): Hash {.borrow.}
 
 proc `$`*(id: ConnectionId): string =
   "0x" & cast[string](id).toHex
