@@ -1,93 +1,52 @@
-import pkg/ngtcp2
-import pkg/nimcrypto
+import ngtcp2
+import bearssl/rand
+import ../../../errors
 import ../../version
 import ../../../basics
-import ../../../helpers/openarray
 import ../../connectionid
 import ./ids
 import ./encryption
-import ./keys
 import ./settings
-import ./cryptodata
 import ./connection
 import ./path
+import ./picotls
+import ./rand
 import ./streams
 import ./timestamp
 import ./handshake
+import std/[sets, sequtils]
 
+proc newNgtcp2Client*(
+    tlsContext: PicoTLSContext,
+    local, remote: TransportAddress,
+    rng: ref HmacDrbgContext,
+): Ngtcp2Connection =
+  let path = newPath(local, remote)
+  let nConn = newConnection(path, rng)
 
-proc onClientInitial(connection: ptr ngtcp2_conn,
-                     user_data: pointer): cint {.cdecl.} =
-  connection.install0RttKey()
-  connection.submitCryptoData(NGTCP2_ENCRYPTION_LEVEL_INITIAL)
-
-proc onReceiveCryptoData(connection: ptr ngtcp2_conn,
-                        level: ngtcp2_encryption_level,
-                        offset: uint64,
-                        data: ptr uint8,
-                        datalen: uint,
-                        userData: pointer): cint {.cdecl.} =
-  if level == NGTCP2_ENCRYPTION_LEVEL_INITIAL:
-    connection.installHandshakeKeys()
-  if level == NGTCP2_ENCRYPTION_LEVEL_HANDSHAKE:
-    connection.handleCryptoData(toOpenArray(data, datalen))
-    connection.install1RttKeys()
-    connection.submitCryptoData(NGTCP2_ENCRYPTION_LEVEL_HANDSHAKE)
-    ngtcp2_conn_tls_handshake_completed(connection)
-
-proc onReceiveRetry(connection: ptr ngtcp2_conn,
-                    hd: ptr ngtcp2_pkt_hd,
-                    userData: pointer): cint {.cdecl.} =
-
-  return 0
-
-proc onRand(dest: ptr uint8, destLen: uint, rand_ctx: ptr ngtcp2_rand_ctx) {.cdecl.} =
-  doAssert destLen.int == randomBytes(dest, destLen.int)
-
-proc onDeleteCryptoAeadCtx(conn: ptr ngtcp2_conn,
-                         aead_ctx: ptr ngtcp2_crypto_aead_ctx,
-                         userData: pointer) {.cdecl.} =
-  discard
-
-proc onDeleteCryptoCipherCtx(conn: ptr ngtcp2_conn,
-                         cipher_ctx: ptr ngtcp2_crypto_cipher_ctx,
-                         userData: pointer) {.cdecl.} =
-  discard
-
-proc onGetPathChallengeData(conn: ptr ngtcp2_conn,
-                          data: ptr uint8,
-                          userData: pointer): cint {.cdecl.} =
-  let bytesWritten = randomBytes(data, NGTCP2_PATH_CHALLENGE_DATALEN)
-  if bytesWritten != NGTCP2_PATH_CHALLENGE_DATALEN:
-    return NGTCP2_ERR_CALLBACK_FAILURE
-  return 0
-
-proc newNgtcp2Client*(local, remote: TransportAddress): Ngtcp2Connection =
   var callbacks: ngtcp2_callbacks
-  callbacks.client_initial = onClientInitial
-  callbacks.recv_crypto_data = onReceiveCryptoData
-  callbacks.recv_retry = onReceiveRetry
+  callbacks.client_initial = ngtcp2_crypto_client_initial_cb
+  callbacks.recv_crypto_data = ngtcp2_crypto_recv_crypto_data_cb
+  callbacks.recv_retry = ngtcp2_crypto_recv_retry_cb
+  callbacks.delete_crypto_aead_ctx = ngtcp2_crypto_delete_crypto_aead_ctx_cb
+  callbacks.delete_crypto_cipher_ctx = ngtcp2_crypto_delete_crypto_cipher_ctx_cb
+  callbacks.get_path_challenge_data = ngtcp2_crypto_get_path_challenge_data_cb
+  callbacks.version_negotiation = ngtcp2_crypto_version_negotiation_cb
   callbacks.rand = onRand
-  callbacks.delete_crypto_aead_ctx = onDeleteCryptoAeadCtx
-  callbacks.delete_crypto_cipher_ctx = onDeleteCryptoCipherCtx
-  callbacks.get_path_challenge_data = onGetPathChallengeData
 
   installConnectionIdCallback(callbacks)
   installEncryptionCallbacks(callbacks)
   installClientHandshakeCallback(callbacks)
   installStreamCallbacks(callbacks)
 
-  var settings = defaultSettings()
+  var settings = defaultSettings(rng)
   var transportParams = defaultTransportParameters()
   settings.initial_ts = now()
-  let source = randomConnectionId().toCid
-  let destination = randomConnectionId().toCid
-  let path = newPath(local, remote)
+  let source = randomConnectionId(rng).toCid
+  let destination = randomConnectionId(rng).toCid
 
-  result = newConnection(path)
   var conn: ptr ngtcp2_conn
-
-  doAssert 0 == ngtcp2_conn_client_new_versioned(
+  var ret = ngtcp2_conn_client_new_versioned(
     addr conn,
     unsafeAddr destination,
     unsafeAddr source,
@@ -100,7 +59,65 @@ proc newNgtcp2Client*(local, remote: TransportAddress): Ngtcp2Connection =
     NGTCP2_TRANSPORT_PARAMS_V1,
     unsafeAddr transportParams,
     nil,
-    addr result[]
+    addr nConn[],
+  )
+  if ret != 0:
+    raise newException(QuicError, "could not create new client versioned conn: " & $ret)
+
+  let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx)
+
+  ngtcp2_crypto_picotls_ctx_init(cptls)
+
+  var tls = tlsContext.newConnection(false)
+  cptls.ptls = tls.conn
+
+  var addExtensions = cast[ptr UncheckedArray[ptls_raw_extension_t]](alloc(
+    ptls_raw_extension_t.sizeof * 2
+  ))
+  addExtensions[0] = ptls_raw_extension_t(type_field: high(uint16))
+  addExtensions[1] = ptls_raw_extension_t(type_field: high(uint16))
+
+  var alpn = cast[ptr UncheckedArray[ptls_iovec_t]](alloc(
+    ptls_iovec_t.sizeof * len(tlsContext.alpn)
+  ))
+  let clientALPN = tlsContext.alpn.toSeq()
+  for i in 0 ..< clientALPN.len:
+    var proto = clientALPN[i]
+    alpn[i].len = csize_t(clientALPN[i].len)
+    var base = alloc(clientALPN[i].len)
+    copyMem(base, proto[0].unsafeAddr, clientALPN[i].len)
+    alpn[i].base = cast[ptr uint8](base)
+
+  cptls.handshake_properties = ptls_handshake_properties_t(
+    anon0: ptls_handshake_properties_t_anon0_t(
+      client: ptls_handshake_properties_t_anon0_t_client_t(
+        negotiated_protocols: ptls_handshake_properties_t_anon0_t_client_t_negotiated_protocols_t(
+          list: alpn[0].addr, count: csize_t(clientALPN.len)
+        )
+      )
+    ),
+    additional_extensions: addExtensions[0].addr,
   )
 
-  result.conn = Opt.some(conn)
+  ngtcp2_conn_set_tls_native_handle(conn, cptls)
+
+  var connref = create(ngtcp2_crypto_conn_ref)
+  connref.user_data = conn
+  connref.get_conn = proc(
+      connRef: ptr ngtcp2_crypto_conn_ref
+  ): ptr ngtcp2_conn {.cdecl.} =
+    cast[ptr ngtcp2_conn](connRef.user_data)
+
+  var dataPtr = ptls_get_data_ptr(tls.conn)
+  dataPtr[] = connref
+
+  ret = ngtcp2_crypto_picotls_configure_client_session(cptls, conn)
+  if ret != 0:
+    raise newException(QuicError, "could not configure client session: " & $ret)
+
+  nConn.conn = Opt.some(conn)
+  nConn.tlsContext = tlsContext
+  nConn.tlsConn = tls
+  nConn.cptls = cptls
+  nConn.connref = connref
+  nConn

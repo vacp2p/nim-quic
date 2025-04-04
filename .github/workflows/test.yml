@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    timeout-minutes: 30
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -23,18 +23,26 @@ jobs:
             cpu: i386
             shell: bash
           - os: macos
-            runner: macos-latest
+            runner: macos-13
             cpu: amd64
+            shell: bash
+          - os: macos
+            runner: macos-14
+            cpu: arm64
             shell: bash
           - os: windows
             runner: windows-latest
             cpu: amd64
             shell: msys2 {0}
         nim:
-          - branch: version-1-6
-          - branch: version-2-0
+          - ref: version-1-6
+          - ref: version-2-0
 
-    name: '${{ matrix.platform.os }}-${{ matrix.platform.cpu }} (Nim ${{ matrix.nim.branch }})'
+    defaults:
+      run:
+        shell: ${{ matrix.platform.shell }}
+
+    name: '${{ matrix.platform.os }}-${{ matrix.platform.cpu }} (Nim ${{ matrix.nim.ref }})'
     runs-on: ${{ matrix.platform.runner }}
     steps:
       - name: Checkout
@@ -46,7 +54,12 @@ jobs:
           os: ${{ matrix.platform.os }}
           cpu: ${{ matrix.platform.cpu }}
           shell: ${{ matrix.platform.shell }}
-          nim_branch: ${{ matrix.nim.branch }}
+          nim_ref: ${{ matrix.nim.ref }}
+
+      - name: Install deps (windows)
+        if : ${{ matrix.platform.os == 'windows'}}
+        run: |
+          pacman -S --noconfirm base-devel gcc mingw-w64-x86_64-openssl
 
       - name: Install dependencies
         run: nimble install -y

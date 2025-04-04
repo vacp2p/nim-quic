@@ -1,7 +1,7 @@
 import std/bitops
 
 type
-  Bit* = range[0'u8..1'u8]
+  Bit* = range[0'u8 .. 1'u8]
   Bits* = distinct byte
   BitIndex = BitsRange[byte]
 
@@ -19,9 +19,11 @@ proc `[]=`*(bits: var Bits, index: BitIndex, value: Bit) =
   ## Sets the bit at the specified index.
   ## Uses MSB 0 bit numbering, so an `index`
   ## of 0 indicates the most significant bit.
-  case value:
-  of 0: clearBit[byte](bits.byte, index.lsb)
-  of 1: setBit[byte](bits.byte, index.lsb)
+  case value
+  of 0:
+    clearBit[byte](bits.byte, index.lsb)
+  of 1:
+    setBit[byte](bits.byte, index.lsb)
 
 proc bits*(value: byte): Bits =
   Bits(value)

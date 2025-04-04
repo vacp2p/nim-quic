@@ -3,7 +3,6 @@ import pkg/quic/transport/packets
 import pkg/quic/transport/version
 
 suite "packet creation":
-
   test "short packets":
     check shortPacket() == Packet(form: formShort)
 
@@ -38,7 +37,6 @@ suite "packet creation":
     check packet.negotiation.supportedVersions == @[CurrentQuicVersion]
 
 suite "multiple packets":
-
   var datagram: seq[byte]
 
   setup:
@@ -68,4 +66,4 @@ suite "multiple packets":
     var packet1 = initialPacket()
     var packet2 = handshakePacket()
     let length = datagram.write(@[packet1, packet2])
-    check datagram[0..<length].readPackets() == @[packet1, packet2]
+    check datagram[0 ..< length].readPackets() == @[packet1, packet2]

@@ -1,22 +1,23 @@
-import pkg/chronos
-import pkg/chronicles
-import pkg/quic/transport/packets
-import pkg/quic/transport/version
-import pkg/quic/helpers/openarray
+import chronos
+import chronicles
+import quic/transport/[packets, version]
+import quic/helpers/[openarray, rand]
 
 logScope:
   topics = "quic udp"
 
-proc exampleQuicDatagram*: seq[byte] =
+proc exampleQuicDatagram*(): seq[byte] =
   var packet = initialPacket(CurrentQuicVersion)
-  packet.destination = randomConnectionId()
-  packet.source = randomConnectionId()
+  let rng = newRng()
+  packet.destination = randomConnectionId(rng)
+  packet.source = randomConnectionId(rng)
   result = newSeq[byte](4096)
   result.write(packet)
 
-proc newDatagramTransport*: DatagramTransport =
+proc newDatagramTransport*(): DatagramTransport =
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
     discard
+
   newDatagramTransport(onReceive)
 
 proc sendTo*(datagram: seq[byte], remote: TransportAddress) {.async.} =

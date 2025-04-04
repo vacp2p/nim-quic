@@ -1,61 +1,90 @@
 import chronicles
+import bearssl/rand
+import ngtcp2
 
 import ../../../basics
 import ../../quicconnection
 import ../../connectionid
 import ../../stream
+import ../../tlsbackend
 import ../native/connection
 import ../native/streams
 import ../native/client
 import ../native/server
+import ../native/errors
 import ./closingstate
 import ./drainingstate
 import ./disconnectingstate
 import ./openstreams
+import ../native/certificateverifier
 
 logScope:
   topics = "quic openstate"
 
-type
-  OpenConnection* = ref object of ConnectionState
-    quicConnection: Opt[QuicConnection]
-    ngtcp2Connection: Ngtcp2Connection
-    streams: OpenStreams
+type OpenConnection* = ref object of ConnectionState
+  quicConnection: Opt[QuicConnection]
+  handshakeCompleted: bool
+  ngtcp2Connection: Ngtcp2Connection
+  streams: OpenStreams
 
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
   OpenConnection(ngtcp2Connection: ngtcp2Connection, streams: OpenStreams.new)
 
-proc openClientConnection*(local, remote: TransportAddress): OpenConnection =
-  newOpenConnection(newNgtcp2Client(local, remote))
+proc openClientConnection*(
+    tlsBackend: TLSBackend, local, remote: TransportAddress, rng: ref HmacDrbgContext
+): OpenConnection =
+  let ngtcp2Conn = newNgtcp2Client(tlsBackend.picoTLS, local, remote, rng)
+  newOpenConnection(ngtcp2Conn)
 
-proc openServerConnection*(local, remote: TransportAddress,
-                           datagram: Datagram): OpenConnection =
-  newOpenConnection(newNgtcp2Server(local, remote, datagram.data))
+proc openServerConnection*(
+    tlsBackend: TLSBackend,
+    local, remote: TransportAddress,
+    datagram: Datagram,
+    rng: ref HmacDrbgContext,
+): OpenConnection =
+  newOpenConnection(
+    newNgtcp2Server(tlsBackend.picoTLS, local, remote, datagram.data, rng)
+  )
 
 {.push locks: "unknown".}
+
+method close(state: OpenConnection) {.async.}
 
 method enter(state: OpenConnection, connection: QuicConnection) =
   trace "Entering OpenConnection state"
   procCall enter(ConnectionState(state), connection)
   state.quicConnection = Opt.some(connection)
   # Workaround weird bug
-  proc onNewId(id: ConnectionId) =
-    if isNil(connection.onNewId): return
+  var onNewId = proc(id: ConnectionId) =
+    if isNil(connection.onNewId):
+      return
     connection.onNewId(id)
-  state.ngtcp2Connection.onNewId = Opt.some(onNewId)
 
-  proc onRemoveId(id: ConnectionId) =
-    if isNil(connection.onRemoveId): return
+  var onRemoveId = proc(id: ConnectionId) =
+    if isNil(connection.onRemoveId):
+      return
     connection.onRemoveId(id)
+
+  state.ngtcp2Connection.onNewId = Opt.some(onNewId)
   state.ngtcp2Connection.onRemoveId = Opt.some(onRemoveId)
+
   state.ngtcp2Connection.onSend = proc(datagram: Datagram) =
     errorAsDefect:
       connection.outgoing.putNoWait(datagram)
+
   state.ngtcp2Connection.onIncomingStream = proc(stream: Stream) =
     state.streams.add(stream)
     connection.incoming.putNoWait(stream)
-  state.ngtcp2Connection.onHandshakeDone = proc =
+  state.ngtcp2Connection.onHandshakeDone = proc() =
+    state.handshakeCompleted = true
     connection.handshake.fire()
+
+  state.ngtcp2Connection.onTimeout = proc() {.gcsafe, raises: [].} =
+    try:
+      connection.timeout.fire()
+    except Ngtcp2ConnectionClosed:
+      trace "connection closed"
+
   trace "Entered OpenConnection state"
 
 method leave(state: OpenConnection) =
@@ -73,17 +102,38 @@ method send(state: OpenConnection) =
   state.ngtcp2Connection.send()
 
 method receive(state: OpenConnection, datagram: Datagram) =
-  state.ngtcp2Connection.receive(datagram)
-  let quicConnection = state.quicConnection.valueOr: return
-  if state.ngtcp2Connection.isDraining:
-    let duration = state.ngtcp2Connection.closingDuration()
-    let ids = state.ids
-    let draining = newDrainingConnection(ids, duration)
-    quicConnection.switch(draining)
-    asyncSpawn draining.close()
+  var errCode = 0
+  var errMsg = ""
+  try:
+    state.ngtcp2Connection.receive(datagram)
+  except Ngtcp2Error as exc:
+    errCode = exc.code
+    errMsg = exc.msg
+    trace "ngtcp2 error on receive", code = errCode, msg = errMsg
+  finally:
+    var isDraining = state.ngtcp2Connection.isDraining
+    let quicConnection = state.quicConnection.valueOr:
+      return
+    if isDraining:
+      let ids = state.ids
+      let duration = state.ngtcp2Connection.closingDuration()
+      let draining = newDrainingConnection(ids, duration)
+      quicConnection.switch(draining)
+      asyncSpawn draining.close()
 
-method openStream(state: OpenConnection,
-                  unidirectional: bool): Future[Stream] {.async.} =
+      if not state.handshakeCompleted:
+        # When a server for any reason decides that the certificate is
+        # not valid, ngtcp2 will return an ERR_DRAINING and no other
+        # indication that the handshake failed, so we emit a custom
+        # error instead to indicate the handshake failed
+        quicConnection.error.emit("ERR_HANDSHAKE_FAILED")
+    elif errCode != 0 and errCode != NGTCP2_ERR_DROP_CONN:
+      quicConnection.error.emit(errMsg)
+      asyncSpawn state.close()
+
+method openStream(
+    state: OpenConnection, unidirectional: bool
+): Future[Stream] {.async.} =
   let quicConnection = state.quicConnection.valueOr:
     raise newException(QuicError, "connection is closed")
   await quicConnection.handshake.wait()
@@ -91,7 +141,8 @@ method openStream(state: OpenConnection,
   state.streams.add(result)
 
 method close(state: OpenConnection) {.async.} =
-  let quicConnection = state.quicConnection.valueOr: return
+  let quicConnection = state.quicConnection.valueOr:
+    return
   let finalDatagram = state.ngtcp2Connection.close()
   let duration = state.ngtcp2Connection.closingDuration()
   let ids = state.ids
@@ -101,10 +152,14 @@ method close(state: OpenConnection) {.async.} =
 
 method drop(state: OpenConnection) {.async.} =
   trace "Dropping OpenConnection state"
-  let quicConnection = state.quicConnection.valueOr: return
+  let quicConnection = state.quicConnection.valueOr:
+    return
   let disconnecting = newDisconnectingConnection(state.ids)
   quicConnection.switch(disconnecting)
   await disconnecting.drop()
   trace "Dropped OpenConnection state"
+
+method certificates(state: OpenConnection): seq[seq[byte]] {.raises: [].} =
+  state.ngtcp2Connection.tlsContext.extCertificateVerifier.certificates()
 
 {.pop.}

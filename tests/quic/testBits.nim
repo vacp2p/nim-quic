@@ -2,7 +2,6 @@ import pkg/unittest2
 import pkg/quic/helpers/bits
 
 suite "bits":
-
   test "can index bits":
     let value = 0b10101010'u8
     check value.bits[0] == 1

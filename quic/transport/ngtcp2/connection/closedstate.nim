@@ -12,10 +12,8 @@ type
   ClosedConnection* = ref object of ConnectionState
   ClosedConnectionError* = object of ConnectionError
 
-proc newClosedConnection*: ClosedConnection =
+proc newClosedConnection*(): ClosedConnection =
   ClosedConnection()
-
-{.push locks: "unknown".}
 
 method ids(state: ClosedConnection): seq[ConnectionId] =
   @[]
@@ -26,8 +24,9 @@ method send(state: ClosedConnection) =
 method receive(state: ClosedConnection, datagram: Datagram) =
   raise newException(ClosedConnectionError, "connection is closed")
 
-method openStream(state: ClosedConnection,
-                  unidirectional: bool): Future[Stream] {.async.} =
+method openStream(
+    state: ClosedConnection, unidirectional: bool
+): Future[Stream] {.async.} =
   raise newException(ClosedConnectionError, "connection is closed")
 
 method close(state: ClosedConnection) {.async.} =
@@ -38,4 +37,5 @@ method drop(state: ClosedConnection) {.async.} =
   discard
   trace "Dropped ClosedConnection state"
 
-{.pop.}
+method certificates(state: ClosedConnection): seq[seq[byte]] {.raises: [].} =
+  discard

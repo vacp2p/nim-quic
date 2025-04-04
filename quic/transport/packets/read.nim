@@ -21,17 +21,21 @@ proc peekVersion(reader: var PacketReader, datagram: openArray[byte]): uint32 =
 
 proc `version=`(packet: var Packet, version: uint32) =
   case packet.kind
-  of packetInitial: packet.initial.version = version
-  of packet0RTT: packet.rtt.version = version
-  of packetHandshake: packet.handshake.version = version
-  of packetRetry: packet.retry.version = version
-  of packetVersionNegotiation: discard
+  of packetInitial:
+    packet.initial.version = version
+  of packet0RTT:
+    packet.rtt.version = version
+  of packetHandshake:
+    packet.handshake.version = version
+  of packetRetry:
+    packet.retry.version = version
+  of packetVersionNegotiation:
+    discard
 
 proc readVersion*(reader: var PacketReader, datagram: openArray[byte]) =
   reader.packet.version = fromBytesBE(uint32, reader.read(datagram, 4))
 
-proc readSupportedVersions*(reader: var PacketReader,
-                            datagram: openArray[byte]) =
+proc readSupportedVersions*(reader: var PacketReader, datagram: openArray[byte]) =
   var versions: seq[uint32]
   while reader.next < datagram.len:
     versions.add(fromBytesBE(uint32, reader.read(datagram, 4)))
@@ -47,8 +51,9 @@ proc readKind*(reader: var PacketReader, datagram: openArray[byte]) =
   else:
     reader.packet = Packet(form: formLong, kind: PacketKind(kind))
 
-proc readConnectionId(reader: var PacketReader,
-                      datagram: openArray[byte]): ConnectionId =
+proc readConnectionId(
+    reader: var PacketReader, datagram: openArray[byte]
+): ConnectionId =
   let length = reader.read(datagram).int
   ConnectionId(reader.read(datagram, length))
 
@@ -64,35 +69,41 @@ proc readRetryToken*(reader: var PacketReader, datagram: openArray[byte]) =
 
 proc readIntegrity*(reader: var PacketReader, datagram: openArray[byte]) =
   try:
-    reader.packet.retry.integrity[0..<16] = reader.read(datagram, 16)
+    reader.packet.retry.integrity[0 ..< 16] = reader.read(datagram, 16)
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
 
-proc readVarInt(reader: var PacketReader,
-                datagram: openArray[byte]): VarIntCompatible =
-  result = fromVarInt(datagram.toOpenArray(reader.next, datagram.len-1))
-  reader.move(varintlen(datagram.toOpenArray(reader.next, datagram.len-1)))
+proc readVarInt(reader: var PacketReader, datagram: openArray[byte]): VarIntCompatible =
+  result = fromVarInt(datagram.toOpenArray(reader.next, datagram.len - 1))
+  reader.move(varintlen(datagram.toOpenArray(reader.next, datagram.len - 1)))
 
 proc `packetnumber=`(packet: var Packet, number: PacketNumber) =
   case packet.form
-  of formShort: packet.short.packetnumber = number
+  of formShort:
+    packet.short.packetnumber = number
   of formLong:
     case packet.kind
-    of packetHandshake: packet.handshake.packetnumber = number
-    of packet0RTT: packet.rtt.packetnumber = number
-    of packetInitial: packet.initial.packetnumber = number
-    else: discard
+    of packetHandshake:
+      packet.handshake.packetnumber = number
+    of packet0RTT:
+      packet.rtt.packetnumber = number
+    of packetInitial:
+      packet.initial.packetnumber = number
+    else:
+      discard
 
-proc readPacketNumberLength(reader: var PacketReader,
-                            datagram: openArray[byte]): range[1..4] =
+proc readPacketNumberLength(
+    reader: var PacketReader, datagram: openArray[byte]
+): range[1 .. 4] =
   1 + int(datagram[reader.first] and 0b11)
 
-proc readPacketNumber(reader: var PacketReader, datagram: openArray[byte],
-                      length: range[1..4]) =
+proc readPacketNumber(
+    reader: var PacketReader, datagram: openArray[byte], length: range[1 .. 4]
+) =
   let bytes = reader.read(datagram, length)
   var padded: array[4, byte]
   try:
-    padded[padded.len-bytes.len..<padded.len] = bytes
+    padded[padded.len - bytes.len ..< padded.len] = bytes
   except RangeError:
     doAssert false, "programmer error: assignment ranges do not match"
   reader.packet.packetnumber = fromBytesBE(uint32, padded).int64
@@ -103,23 +114,26 @@ proc `payload=`(packet: var Packet, payload: seq[byte]) =
     packet.short.payload = payload
   of formLong:
     case packet.kind
-    of packetHandshake: packet.handshake.payload = payload
-    of packet0RTT: packet.rtt.payload = payload
-    of packetInitial: packet.initial.payload = payload
-    else: discard
+    of packetHandshake:
+      packet.handshake.payload = payload
+    of packet0RTT:
+      packet.rtt.payload = payload
+    of packetInitial:
+      packet.initial.payload = payload
+    else:
+      discard
 
-proc readPacketLength(reader: var PacketReader,
-                      datagram: openArray[byte]): int =
-  case reader.packet.form:
-  of formLong: reader.readVarInt(datagram)
-  of formShort: datagram.len - reader.next
+proc readPacketLength(reader: var PacketReader, datagram: openArray[byte]): int =
+  case reader.packet.form
+  of formLong:
+    reader.readVarInt(datagram)
+  of formShort:
+    datagram.len - reader.next
 
-proc readPayload(reader: var PacketReader,
-                 datagram: openArray[byte], length: int) =
+proc readPayload(reader: var PacketReader, datagram: openArray[byte], length: int) =
   reader.packet.payload = reader.read(datagram, length)
 
-proc readPacketNumberAndPayload*(reader: var PacketReader,
-                                 datagram: openArray[byte]) =
+proc readPacketNumberAndPayload*(reader: var PacketReader, datagram: openArray[byte]) =
   let length = reader.readPacketLength(datagram)
   let packetnumberLength = reader.readPacketNumberLength(datagram)
   let payloadLength = length - packetnumberLength
@@ -137,7 +151,6 @@ proc readKeyPhase*(reader: var PacketReader, datagram: openArray[byte]) =
   reader.packet.short.keyPhase = bool(datagram[reader.next].bits[5])
   reader.move(1)
 
-proc readShortDestination*(reader: var PacketReader,
-                           datagram: openArray[byte]) =
+proc readShortDestination*(reader: var PacketReader, datagram: openArray[byte]) =
   const length = DefaultConnectionIdLength
   reader.packet.destination = ConnectionId(reader.read(datagram, length))

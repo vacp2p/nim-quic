@@ -1,5 +1,5 @@
 import pkg/chronos
-import pkg/stew/results
+import results
 import ./udp/datagram
 import ./errors
 

@@ -1,14 +1,15 @@
-import std/random
-import pkg/chronos
-import pkg/quic/transport/quicconnection
-import pkg/quic/transport/quicclientserver
-import pkg/quic/helpers/asyncloop
+import std/[random, sets]
+import chronos
+import quic/transport/[quicconnection, quicclientserver, tlsbackend]
+import quic/helpers/[asyncloop, rand]
+import ./certificate
 import ./addresses
 
 proc networkLoop*(source, destination: QuicConnection) {.async.} =
-  proc transfer {.async.} =
+  proc transfer() {.async.} =
     let datagram = await source.outgoing.get()
     destination.receive(datagram)
+
   await asyncLoop(transfer)
 
 proc simulateNetwork*(a, b: QuicConnection) {.async.} =
@@ -20,10 +21,11 @@ proc simulateNetwork*(a, b: QuicConnection) {.async.} =
     await allFutures(loop1.cancelAndWait(), loop2.cancelAndWait())
 
 proc lossyNetworkLoop*(source, destination: QuicConnection) {.async.} =
-  proc transfer {.async.} =
+  proc transfer() {.async.} =
     let datagram = await source.outgoing.get()
     if rand(1.0) < 0.2:
       destination.receive(datagram)
+
   await asyncLoop(transfer)
 
 proc simulateLossyNetwork*(a, b: QuicConnection) {.async.} =
@@ -34,19 +36,25 @@ proc simulateLossyNetwork*(a, b: QuicConnection) {.async.} =
   except CancelledError:
     await allFutures(loop1.cancelAndWait(), loop2.cancelAndWait())
 
-proc setupConnection*:
-                Future[tuple[client, server: QuicConnection]] {.async.} =
+proc setupConnection*(): Future[tuple[client, server: QuicConnection]] {.async.} =
+  let rng = newRng()
+  let clientTLSBackend = newClientTLSBackend(@[], @[],toHashSet(@["test"]), Opt.none(CertificateVerifier))
+  let client = newQuicClientConnection(clientTLSBackend, zeroAddress, zeroAddress, rng)
 
-  let client = newQuicClientConnection(zeroAddress, zeroAddress)
-  client.send()
+  client.send() # Start Handshake
   let datagram = await client.outgoing.get()
-  let server = newQuicServerConnection(zeroAddress, zeroAddress, datagram)
-  server.receive(datagram)
+  let serverTLSBackend = newServerTLSBackend(
+    testCertificate(),
+    testPrivateKey(),
+    toHashSet(@["test"]),
+    Opt.none(CertificateVerifier),
+  )
+  let server =
+    newQuicServerConnection(serverTLSBackend, zeroAddress, zeroAddress, datagram, rng)
+
   result = (client, server)
 
-
-proc performHandshake*:
-                Future[tuple[client, server: QuicConnection]] {.async.} =
+proc performHandshake*(): Future[tuple[client, server: QuicConnection]] {.async.} =
   let (client, server) = await setupConnection()
   let clientLoop = networkLoop(client, server)
   let serverLoop = networkLoop(server, client)

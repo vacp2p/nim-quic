@@ -1,13 +1,23 @@
-import pkg/chronos
-import pkg/chronos/unittest2/asynctests
-import pkg/quic
-import pkg/quic/listener
+import bearssl/rand
+import chronos
+import chronos/unittest2/asynctests
+import quic
+import quic/helpers/rand
+import quic/listener
+import quic/transport/tlsbackend
+import std/sets
 import ../helpers/udp
+import ../helpers/certificate
 
 suite "listener":
-
   setup:
-    var listener = newListener(initTAddress("127.0.0.1:0"))
+    let tlsBackend = newServerTLSBackend(
+      testCertificate(),
+      testPrivateKey(),
+      initHashSet[string](),
+      Opt.none(CertificateVerifier),
+    )
+    var listener = newListener(tlsBackend, initTAddress("127.0.0.1:0"), newRng())
     let address = listener.localAddress
 
     check address.port != Port(0)
