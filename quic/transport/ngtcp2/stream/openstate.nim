@@ -1,4 +1,5 @@
 import ../../../basics
+import ../../framesorter
 import ../../stream
 import ../native/connection
 import ../native/errors
@@ -10,13 +11,16 @@ type OpenStream* = ref object of StreamState
   stream: Opt[Stream]
   connection: Ngtcp2Connection
   incoming: AsyncQueue[seq[byte]]
+  frameSorter: FrameSorter
   cancelRead: Future[void]
 
 proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
+  let incomingQ = newAsyncQueue[seq[byte]]()
   OpenStream(
     connection: connection,
-    incoming: newAsyncQueue[seq[byte]](),
+    incoming: incomingQ,
     cancelRead: newFuture[void](),
+    frameSorter: initFrameSorter(incomingQ),
   )
 
 proc setUserData(state: OpenStream, userdata: pointer) =
@@ -85,5 +89,5 @@ method isClosed*(state: OpenStream): bool =
 
 {.pop.}
 
-proc receive*(state: OpenStream, bytes: seq[byte]) =
-  state.incoming.putNoWait(bytes)
+proc receive*(state: OpenStream, offset: uint64, bytes: seq[byte]) =
+  state.frameSorter.insert(offset, bytes)

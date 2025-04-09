@@ -4,10 +4,15 @@ import ../helpers/async
 import pkg/quic
 import pkg/chronos
 import ../helpers/certificate
+import stew/byteutils
+import random
 
 suite "examples from Readme":
   test "outgoing and incoming connections":
-    let message = cast[seq[byte]]("some message")
+    var message = newSeq[byte](50 * 1024) # 50kib
+    for i in 0..<message.len:
+      message[i] = rand(0'u8..255'u8)
+
     let alpn = @["test"]
     proc outgoing() {.async.} =
       let cb = proc(serverName: string, derCertificates: seq[seq[byte]]): bool {.gcsafe.} =
@@ -38,11 +43,16 @@ suite "examples from Readme":
       let connection = await listener.accept()
       check connection.certificates().len == 1
       let stream = await connection.incomingStream()
-      let readMessage = await stream.read()
+
+      var read: seq[byte] = @[]
+      while read.len < message.len:
+        let readMessage = await stream.read()
+        read = read & readMessage
+
       await stream.close()
       await connection.waitClosed()
       await listener.stop()
       listener.destroy()
-      check readMessage == message
+      check read.toHex() == message.toHex()
 
     waitFor allSucceeded(incoming(), outgoing())

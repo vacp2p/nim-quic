@@ -163,8 +163,9 @@ proc send*(connection: Ngtcp2Connection, streamId: int64, bytes: seq[byte]) {.as
   var done = false
   while not done:
     let written = await connection.send(streamId, messagePtr, messageLen)
-    messagePtr = messagePtr + written
-    messageLen = messageLen - written.uint
+    if written != -1:
+      messagePtr = messagePtr + written
+      messageLen = messageLen - written.uint
     done = messageLen == 0
 
 proc tryReceive(connection: Ngtcp2Connection, datagram: openArray[byte], ecn: ECN) =

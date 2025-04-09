@@ -49,7 +49,7 @@ proc onReceiveStreamData(
   let state = cast[OpenStream](stream_user_data)
   var bytes = newSeqUninitialized[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
-  state.receive(bytes)
+  state.receive(uint64(offset), bytes)
 
 proc onStreamReset(
     connection: ptr ngtcp2_conn,
