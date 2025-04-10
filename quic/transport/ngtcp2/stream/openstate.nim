@@ -89,5 +89,5 @@ method isClosed*(state: OpenStream): bool =
 
 {.pop.}
 
-proc receive*(state: OpenStream, offset: uint64, bytes: seq[byte]) =
-  state.frameSorter.insert(offset, bytes)
+proc receive*(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool) =
+  state.frameSorter.insert(offset, bytes, isFin)
