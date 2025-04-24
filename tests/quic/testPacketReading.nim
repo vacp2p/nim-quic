@@ -4,7 +4,6 @@ import pkg/quic/transport/packets
 import pkg/quic/helpers/bits
 
 suite "packet reading":
-
   var datagram: seq[byte]
 
   setup:
@@ -34,7 +33,7 @@ suite "packet reading":
 
   test "reads version negotiation packet":
     let length = datagram.write(versionNegotiationPacket())
-    check readPacket(datagram[0..<length]).kind == packetVersionNegotiation
+    check readPacket(datagram[0 ..< length]).kind == packetVersionNegotiation
 
   test "reads version":
     const version = 0xAABBCCDD'u32
@@ -58,7 +57,7 @@ suite "packet reading":
   test "reads supported versions in version negotiation packet":
     const versions = @[0xAABBCCDD'u32, 0x11223344'u32]
     let length = datagram.write(versionNegotiationPacket(versions = versions))
-    let packet = readPacket(datagram[0..<length])
+    let packet = readPacket(datagram[0 ..< length])
     check packet.negotiation.supportedVersions == versions
 
   test "reads token from retry packet":
@@ -66,14 +65,14 @@ suite "packet reading":
     var packet = retryPacket()
     packet.retry.token = token
     let length = datagram.write(packet)
-    check readPacket(datagram[0..<length]).retry.token == token
+    check readPacket(datagram[0 ..< length]).retry.token == token
 
   test "reads integrity tag from retry packet":
     const integrity = repeat(0xA'u8, 16)
     var packet = retryPacket()
-    packet.retry.integrity[0..<16] = integrity
+    packet.retry.integrity[0 ..< 16] = integrity
     let length = datagram.write(packet)
-    check readPacket(datagram[0..<length]).retry.integrity == integrity
+    check readPacket(datagram[0 ..< length]).retry.integrity == integrity
 
   test "reads packet number from handshake packet":
     const packetnumber = 0xABCD
@@ -163,4 +162,4 @@ suite "packet reading":
     packet.short.payload = payload
     packet.destination = ConnectionId(repeat(0'u8, DefaultConnectionIdLength))
     let length = datagram.write(packet)
-    check readPacket(datagram[0..<length]).short.payload == payload
+    check readPacket(datagram[0 ..< length]).short.payload == payload
