@@ -9,7 +9,7 @@ import ./transport/quicclientserver
 import ./transport/tlsbackend
 import ./helpers/asyncloop
 
-export Stream, close, read, write
+export Stream, close, read, write, id, ngtcp2Connection
 
 logScope:
   topics = "quic connection"
@@ -205,3 +205,6 @@ proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
 
 proc certificates*(connection: Connection): seq[seq[byte]] =
   connection.quic.certificates()
+
+proc ngtcp2Connection*(connection: Connection): Ngtcp2Connection =
+  return connection.quic.ngtcp2Connection()

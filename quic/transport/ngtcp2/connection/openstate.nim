@@ -162,4 +162,7 @@ method drop(state: OpenConnection) {.async.} =
 method certificates(state: OpenConnection): seq[seq[byte]] {.raises: [].} =
   state.ngtcp2Connection.tlsContext.extCertificateVerifier.certificates()
 
+method ngtcp2Connection(state: OpenConnection): Ngtcp2Connection {.raises: [].} =
+  state.ngtcp2Connection
+
 {.pop.}

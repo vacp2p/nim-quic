@@ -1,3 +1,4 @@
+# quic
 import ./quic/testBits
 import ./quic/testPacketWriting
 import ./quic/testPacketReading
@@ -15,5 +16,8 @@ import ./quic/testQuicConnection
 import ./quic/testListener
 import ./quic/testApi
 import ./quic/testExample
+
+# http3
+import ./http3/testClient
 
 {.warning[UnusedImport]: off.}

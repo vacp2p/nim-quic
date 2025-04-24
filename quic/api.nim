@@ -14,6 +14,8 @@ export Listener
 export accept
 export Connection
 export Stream
+export id
+export ngtcp2Connection
 export openStream
 export localAddress
 export remoteAddress

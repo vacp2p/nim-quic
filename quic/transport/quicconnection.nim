@@ -2,6 +2,9 @@ import pkg/chronicles
 import ../basics
 import ./connectionid
 import ./stream
+import ./ngtcp2/native/connection
+
+export Ngtcp2Connection
 
 logScope:
   topics = "quic quicconnection"
@@ -54,6 +57,9 @@ method close*(state: ConnectionState): Future[void] {.gcsafe.} =
 method certificates*(state: ConnectionState): seq[seq[byte]] {.raises: [].} =
   doAssert false # override this method
 
+method ngtcp2Connection*(state: ConnectionState): Ngtcp2Connection {.raises: [].} =
+  doAssert false # override this method
+
 {.pop.}
 
 proc newQuicConnection*(state: ConnectionState): QuicConnection =
@@ -100,3 +106,6 @@ proc drop*(connection: QuicConnection): Future[void] {.async.} =
 
 proc certificates*(connection: QuicConnection): seq[seq[byte]] {.raises: [].} =
   connection.state.certificates()
+
+proc ngtcp2Connection*(connection: QuicConnection): Ngtcp2Connection {.raises: [].} =
+  connection.state.ngtcp2Connection()
