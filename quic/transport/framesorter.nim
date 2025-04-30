@@ -2,12 +2,12 @@ import ../errors
 import std/[strformat, tables]
 import chronos
 
-type
-  FrameSorter* = object
-    buffer: Table[uint64, byte] # sparse byte storage
-    readPos: uint64 # where to emit data from
-    incoming: AsyncQueue[seq[byte]]
-    lastPos: Opt[uint64] # contains the index for the last position for a stream once a FIN is received
+type FrameSorter* = object
+  buffer: Table[uint64, byte] # sparse byte storage
+  readPos: uint64 # where to emit data from
+  incoming: AsyncQueue[seq[byte]]
+  lastPos: Opt[uint64]
+    # contains the index for the last position for a stream once a FIN is received
 
 proc initFrameSorter*(incoming: AsyncQueue[seq[byte]]): FrameSorter =
   result.incoming = incoming
@@ -49,4 +49,4 @@ proc isComplete*(fs: FrameSorter): bool =
   if fs.lastPos.isNone:
     return false
 
-  return  fs.readPos > fs.lastPos.get()
+  return fs.readPos > fs.lastPos.get()

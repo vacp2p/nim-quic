@@ -25,6 +25,6 @@ proc newPath*(local, remote: TransportAddress): Path =
       addr_field: cast[ptr ngtcp2_sockaddr](p.remoteAddress.addr),
       addr_len: p.remoteAddrLen,
     ),
-    user_data: nil
+    user_data: nil,
   )
   p
