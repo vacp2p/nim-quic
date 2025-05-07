@@ -31,9 +31,9 @@ proc onStreamClose(
     stream_user_data: pointer,
 ): cint {.cdecl.} =
   trace "onStreamClose"
-  let openStream = cast[OpenStream](stream_user_data)
-  if openStream != nil:
-    openStream.onClose()
+  let state = cast[StreamState](stream_user_data)
+  if state != nil:
+    state.onClose()
 
 proc onReceiveStreamData(
     connection: ptr ngtcp2_conn,
@@ -46,7 +46,7 @@ proc onReceiveStreamData(
     stream_user_data: pointer,
 ): cint {.cdecl.} =
   trace "onReceiveStreamData"
-  let state = cast[OpenStream](stream_user_data)
+  let state = cast[StreamState](stream_user_data)
   var bytes = newSeqUninitialized[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
   let isFin = (flags and NGTCP2_STREAM_DATA_FLAG_FIN) != 0
@@ -61,9 +61,9 @@ proc onStreamReset(
     stream_user_data: pointer,
 ): cint {.cdecl.} =
   trace "onStreamReset"
-  let openStream = cast[OpenStream](stream_user_data)
-  if openStream != nil:
-    openStream.onClose()
+  let stream = cast[Stream](stream_user_data)
+  if stream != nil:
+    stream.onClose()
   return 0
 
 proc onStreamStopSending(

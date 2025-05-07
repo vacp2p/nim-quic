@@ -15,5 +15,6 @@ import ./quic/testQuicConnection
 import ./quic/testListener
 import ./quic/testApi
 import ./quic/testExample
+import ./quic/testFramesorter
 
 {.warning[UnusedImport]: off.}

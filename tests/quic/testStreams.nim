@@ -40,10 +40,16 @@ suite "streams":
 
     check datagram.len > 0
 
-  asyncTest "raises when reading from or writing to closed stream":
+  asyncTest "raises when writing to closed stream":
     let stream = await client.openStream()
     await stream.close()
 
+    expect QuicError:
+      await stream.write(@[1'u8, 2'u8, 3'u8])
+
+  asyncTest "raises when reading from or writing to reset stream":
+    let stream = await client.openStream()
+    await stream.reset()
     expect QuicError:
       discard await stream.read()
 
@@ -131,9 +137,11 @@ suite "streams":
     await clientStream.write(@[1'u8, 2'u8, 3'u8])
 
     let serverStream = await server.incomingStream()
+
     discard await serverStream.read()
 
     await clientStream.close()
+
     await sleepAsync(100.milliseconds) # wait for stream to be closed
 
     expect QuicError:

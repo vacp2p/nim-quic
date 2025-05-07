@@ -87,10 +87,10 @@ proc stopSending(connection: Connection) {.async.} =
   await connection.loop.cancelAndWait()
   trace "Stopped sending loop"
 
-method closeUdp(connection: Connection) {.async, base, raises: [].} =
+method closeUdp(connection: Connection) {.async: (raises: []), base.} =
   discard
 
-method closeUdp(connection: OutgoingConnection) {.async.} =
+method closeUdp(connection: OutgoingConnection) {.async: (raises: []).} =
   await connection.udp.closeWait()
 
 proc disconnect(connection: Connection) {.async.} =

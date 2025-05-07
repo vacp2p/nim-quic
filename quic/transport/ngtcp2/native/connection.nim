@@ -108,9 +108,12 @@ proc trySend(
     messagePtr: ptr byte = nil,
     messageLen: uint = 0,
     written: ptr int = nil,
+    isFin: bool = false,
 ): Datagram =
   let conn = connection.conn.valueOr:
     raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
+
+  let flags = if isFin: NGTCP2_WRITE_STREAM_FLAG_FIN else: NGTCP2_WRITE_STREAM_FLAG_NONE
 
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream_versioned(
@@ -121,7 +124,7 @@ proc trySend(
     addr connection.buffer[0],
     connection.buffer.len.uint,
     cast[ptr ngtcp2_ssize](written),
-    NGTCP2_WRITE_STREAM_FLAG_NONE,
+    flags,
     streamId,
     messagePtr,
     messageLen,
@@ -147,22 +150,25 @@ proc send(
     streamId: int64,
     messagePtr: ptr byte,
     messageLen: uint,
+    isFin: bool = false,
 ): Future[int] {.async.} =
   let written = addr result
-  var datagram = trySend(connection, streamId, messagePtr, messageLen, written)
+  var datagram = trySend(connection, streamId, messagePtr, messageLen, written, isFin)
   while datagram.data.len == 0:
     connection.flowing.clear()
     await connection.flowing.wait()
-    datagram = trySend(connection, streamId, messagePtr, messageLen, written)
+    datagram = trySend(connection, streamId, messagePtr, messageLen, written, isFin)
   connection.onSend(datagram)
   connection.updateTimeout()
 
-proc send*(connection: Ngtcp2Connection, streamId: int64, bytes: seq[byte]) {.async.} =
+proc send*(
+    connection: Ngtcp2Connection, streamId: int64, bytes: seq[byte], isFin: bool = false
+) {.async.} =
   var messagePtr = bytes.toUnsafePtr
   var messageLen = bytes.len.uint
   var done = false
   while not done:
-    let written = await connection.send(streamId, messagePtr, messageLen)
+    let written = await connection.send(streamId, messagePtr, messageLen, isFin)
     if written != -1:
       messagePtr = messagePtr + written
       messageLen = messageLen - written.uint

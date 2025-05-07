@@ -19,3 +19,8 @@ proc parseDatagram*(datagram: openArray[byte]): PacketInfo =
     destination: toConnectionId(version.dcid, version.dcidlen),
     version: version.version.uint32,
   )
+
+proc shouldAccept*(datagram: openArray[byte]): bool =
+  var hd: ngtcp2_pkt_hd
+  let ret = ngtcp2_accept(hd.unsafeAddr, datagram[0].unsafeAddr, datagram.len.uint)
+  return ret == 0
