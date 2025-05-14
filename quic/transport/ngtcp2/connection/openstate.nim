@@ -88,6 +88,7 @@ method enter(state: OpenConnection, connection: QuicConnection) =
   trace "Entered OpenConnection state"
 
 method leave(state: OpenConnection) =
+  echo "CHAUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU"
   trace "Leaving OpenConnection state"
   procCall leave(ConnectionState(state))
   state.streams.closeAll()
@@ -146,6 +147,7 @@ method close(state: OpenConnection) {.async.} =
   let finalDatagram = state.ngtcp2Connection.close()
   let duration = state.ngtcp2Connection.closingDuration()
   let ids = state.ids
+  echo "CLOSING CONNECTION"
   let closing = newClosingConnection(finalDatagram, ids, duration)
   quicConnection.switch(closing)
   await closing.close()
