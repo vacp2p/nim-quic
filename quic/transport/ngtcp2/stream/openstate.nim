@@ -69,8 +69,10 @@ method reset(state: OpenStream) {.async.} =
   stream.switch(newClosedStream(state.incoming, state.frameSorter, state.connection))
 
 method onClose*(state: OpenStream) =
+  echo "ON CLOSE IN OPEN STREAM"
   let stream = state.stream.valueOr:
     return
+  echo "STATE IS NIL", state == nil
   stream.switch(newClosedStream(state.incoming, state.frameSorter, state.connection))
 
 method isClosed*(state: OpenStream): bool =

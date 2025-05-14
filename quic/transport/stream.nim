@@ -72,6 +72,7 @@ proc reset*(stream: Stream) {.async.} =
   await stream.state.reset()
 
 proc onClose*(stream: Stream) =
+  echo "STREAM ONCLOSE", stream.state == nil
   stream.state.onClose()
 
 proc isClosed*(stream: Stream): bool =
