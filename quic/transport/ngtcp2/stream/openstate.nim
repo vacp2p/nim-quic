@@ -29,7 +29,7 @@ method enter*(state: OpenStream, stream: Stream) =
   echo "SET STATE IN OPENSTREAM"
   setUserData(state.stream, state.connection, unsafeAddr state[])
 
-proc clearUserData*(state: OpenStream) =
+method clearUserData*(state: OpenStream) =
   try:
     echo "CLEANING USERDATA!!!!!!!!!!!!!"
     setUserData(state.stream, state.connection, nil)

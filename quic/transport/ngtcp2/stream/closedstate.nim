@@ -36,7 +36,7 @@ method enter(state: ClosedStream, stream: Stream) =
   echo "SET STATE IN CLOSEDSTREAM"
   setUserData(state.stream, state.connection, unsafeAddr state[])
 
-proc clearUserData*(state: ClosedStream) =
+method clearUserData*(state: ClosedStream) =
   try:
     echo "CLEANING USERDATA!!!!!!!!!!!!!"
     setUserData(state.stream, state.connection, nil)
