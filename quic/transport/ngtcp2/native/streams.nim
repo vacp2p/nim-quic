@@ -61,7 +61,14 @@ proc onStreamReset(
     stream_user_data: pointer,
 ): cint {.cdecl.} =
   trace "onStreamReset"
+
+  echo repr stream_user_data
+
+
   let stream = cast[Stream](stream_user_data)
+
+  echo repr stream
+
   if stream != nil:
     stream.onClose()
   return 0
