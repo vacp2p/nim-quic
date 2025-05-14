@@ -25,6 +25,7 @@ proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
 method enter*(state: OpenStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
+  echo "SET STATE IN OPENSTREAM"
   setUserData(state.stream, state.connection, unsafeAddr state[])
 
 method leave(state: OpenStream) =

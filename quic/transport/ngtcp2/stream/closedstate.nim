@@ -32,11 +32,13 @@ proc newClosedStream*(
 
 method enter(state: ClosedStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
-  setUserData(state.stream, state.connection, unsafeAddr state[])
   state.stream = Opt.some(stream)
+  echo "SET STATE IN CLOSEDSTREAM"
+  setUserData(state.stream, state.connection, unsafeAddr state[])
 
 proc clearUserData*(state: ClosedStream) =
   try:
+    echo "CLEANING USERDATA!!!!!!!!!!!!!"
     setUserData(state.stream, state.connection, nil)
   except Ngtcp2Error:
     discard # stream already closed
