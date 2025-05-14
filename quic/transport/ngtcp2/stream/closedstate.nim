@@ -44,6 +44,7 @@ proc clearUserData*(state: ClosedStream) =
     discard # stream already closed
 
 method leave(state: ClosedStream) =
+  echo "LEAVING CLOSED STREAM"
   state.stream = Opt.none(Stream)
 
 method read(state: ClosedStream): Future[seq[byte]] {.async.} =

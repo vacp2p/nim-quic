@@ -34,6 +34,7 @@ method reset*(state: StreamState) {.base, async.} =
   doAssert false # override this method
 
 method onClose*(state: StreamState) {.base.} =
+  echo "ONCLOSE ASSERT FALSE"
   doAssert false # override this method
 
 method isClosed*(state: StreamState): bool {.base, raises: [].} =

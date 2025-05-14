@@ -18,4 +18,5 @@ proc setUserData*(
 ) =
   let stream = stream.valueOr:
     return
+  echo "SET STREAM USERDATA"
   connection.setStreamUserData(stream.id, userdata)

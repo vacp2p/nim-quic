@@ -30,6 +30,7 @@ method enter*(state: OpenStream, stream: Stream) =
 
 method leave(state: OpenStream) =
   procCall leave(StreamState(state))
+  echo "LEAVING OPENSTREAM"
   state.stream = Opt.none(Stream)
 
 method read(state: OpenStream): Future[seq[byte]] {.async.} =
