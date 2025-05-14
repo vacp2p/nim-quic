@@ -74,6 +74,7 @@ proc reset*(stream: Stream) {.async.} =
 
 proc onClose*(stream: Stream) =
   echo "STREAM ONCLOSE", stream.state == nil
+  echo repr stream
   stream.state.onClose()
 
 proc isClosed*(stream: Stream): bool =
