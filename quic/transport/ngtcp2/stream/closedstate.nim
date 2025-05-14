@@ -81,8 +81,8 @@ method receive(state: ClosedStream, offset: uint64, bytes: seq[byte], isFin: boo
 
   state.frameSorter.insert(offset, bytes, isFin)
 
-  if state.frameSorter.isComplete():
-    state.clearUserData()
+  #if state.frameSorter.isComplete():
+  #  state.clearUserData()
 
   if state.stream.isSome:
     let stream = state.stream.get()
