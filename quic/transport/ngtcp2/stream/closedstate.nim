@@ -30,9 +30,10 @@ proc newClosedStream*(
     connection: connection,
   )
 
-method enter(state: ClosedStream, stream: Stream) =
+method enter*(state: ClosedStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
+  setUserData(state.stream, state.connection, nil)
 
 proc clearUserData*(state: ClosedStream) =
   try:
@@ -40,10 +41,10 @@ proc clearUserData*(state: ClosedStream) =
   except Ngtcp2Error:
     discard # stream already closed
 
-method leave(state: ClosedStream) =
+method leave*(state: ClosedStream) =
   state.stream = Opt.none(Stream)
 
-method read(state: ClosedStream): Future[seq[byte]] {.async.} =
+method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
   if not state.frameSorter.isComplete():
     let incomingFut = state.remaining.get()
     if (await race(incomingFut, state.cancelRead)) == incomingFut:
@@ -61,27 +62,24 @@ method read(state: ClosedStream): Future[seq[byte]] {.async.} =
 
     raise newException(StreamError, "stream is closed")
 
-method write(state: ClosedStream, bytes: seq[byte]) {.async.} =
+method write*(state: ClosedStream, bytes: seq[byte]) {.async.} =
   trace "cant write, stream is closed"
   raise newException(ClosedStreamError, "stream is closed")
 
-method close(state: ClosedStream) {.async.} =
+method close*(state: ClosedStream) {.async.} =
   discard
 
-method onClose(state: ClosedStream) =
+method onClose*(state: ClosedStream) =
   discard
 
-method isClosed(state: ClosedStream): bool =
+method isClosed*(state: ClosedStream): bool =
   true
 
-method receive(state: ClosedStream, offset: uint64, bytes: seq[byte], isFin: bool) =
+method receive*(state: ClosedStream, offset: uint64, bytes: seq[byte], isFin: bool) =
   if state.frameSorter.isComplete():
     return
 
   state.frameSorter.insert(offset, bytes, isFin)
-
-  if state.frameSorter.isComplete():
-    state.clearUserData()
 
   if state.stream.isSome:
     let stream = state.stream.get()

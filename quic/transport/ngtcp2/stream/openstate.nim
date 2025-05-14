@@ -2,7 +2,7 @@ import ../../../basics
 import ../../framesorter
 import ../../stream
 import ./helpers
-import ../native/connection
+import ../native/[connection, errors]
 import ./closedstate
 import chronicles
 
@@ -27,11 +27,11 @@ method enter*(state: OpenStream, stream: Stream) =
   state.stream = Opt.some(stream)
   setUserData(state.stream, state.connection, unsafeAddr state[])
 
-method leave(state: OpenStream) =
+method leave*(state: OpenStream) =
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
 
-method read(state: OpenStream): Future[seq[byte]] {.async.} =
+method read*(state: OpenStream): Future[seq[byte]] {.async.} =
   let incomingFut = state.incoming.get()
   if (await race(incomingFut, state.cancelRead)) == incomingFut:
     result = await incomingFut
@@ -46,19 +46,19 @@ method read(state: OpenStream): Future[seq[byte]] {.async.} =
       )
     raise newException(StreamError, "stream is closed")
 
-method write(state: OpenStream, bytes: seq[byte]): Future[void] =
+method write*(state: OpenStream, bytes: seq[byte]): Future[void] =
   # let stream = state.stream.valueOr:
   #   raise newException(QuicError, "stream is closed")
   # See https://github.com/status-im/nim-quic/pull/41 for more details
   state.connection.send(state.stream.get.id, bytes)
 
-method close(state: OpenStream) {.async.} =
+method close*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true)
   stream.switch(newClosedStream(state.incoming, state.frameSorter, state.connection))
 
-method reset(state: OpenStream) {.async.} =
+method reset*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
   state.cancelRead.cancelSoon()
@@ -75,7 +75,7 @@ method onClose*(state: OpenStream) =
 method isClosed*(state: OpenStream): bool =
   false
 
-method receive(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool) =
+method receive*(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool) =
   let stream = state.stream.valueOr:
     return
 

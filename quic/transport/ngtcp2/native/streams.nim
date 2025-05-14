@@ -50,7 +50,8 @@ proc onReceiveStreamData(
   var bytes = newSeqUninitialized[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
   let isFin = (flags and NGTCP2_STREAM_DATA_FLAG_FIN) != 0
-  state.receive(uint64(offset), bytes, isFin)
+  if state != nil:
+    state.receive(uint64(offset), bytes, isFin)
 
 proc onStreamReset(
     connection: ptr ngtcp2_conn,
