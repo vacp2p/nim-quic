@@ -22,6 +22,15 @@ proc add*(streams: OpenStreams, stream: Stream) =
   asyncSpawn handleClose()
 
 proc closeAll*(streams: OpenStreams) =
+  echo "=================="
+  echo "=================="
+  echo "=================="
+  echo "=================="
+  echo "=================="
+  echo "=================="
+  echo "=================="
+  echo "CALLING CLOSE ALL"
   for stream in streams.streams:
+    stream.clearUserData()
     stream.onClose()
   streams.streams = @[]

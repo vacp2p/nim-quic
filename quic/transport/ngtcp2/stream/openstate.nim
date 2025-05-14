@@ -2,9 +2,10 @@ import ../../../basics
 import ../../framesorter
 import ../../stream
 import ./helpers
-import ../native/connection
+import ../native/[connection, errors]
 import ./closedstate
 import chronicles
+
 
 type OpenStream* = ref object of StreamState
   stream*: Opt[Stream]
@@ -27,6 +28,13 @@ method enter*(state: OpenStream, stream: Stream) =
   state.stream = Opt.some(stream)
   echo "SET STATE IN OPENSTREAM"
   setUserData(state.stream, state.connection, unsafeAddr state[])
+
+proc clearUserData*(state: OpenStream) =
+  try:
+    echo "CLEANING USERDATA!!!!!!!!!!!!!"
+    setUserData(state.stream, state.connection, nil)
+  except Ngtcp2Error:
+    discard # stream already closed
 
 method leave(state: OpenStream) =
   procCall leave(StreamState(state))

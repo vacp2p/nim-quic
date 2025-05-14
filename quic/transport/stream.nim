@@ -37,6 +37,10 @@ method onClose*(state: StreamState) {.base.} =
   echo "ONCLOSE ASSERT FALSE"
   doAssert false # override this method
 
+method clearUserData*(state: StreamState) {.base.} =
+  echo "CLEAR USERDATA"
+  doAssert false # override this method
+
 method isClosed*(state: StreamState): bool {.base, raises: [].} =
   doAssert false # override this method
 
@@ -75,6 +79,11 @@ proc reset*(stream: Stream) {.async.} =
 proc onClose*(stream: Stream) =
   echo "STREAM ONCLOSE", stream.state == nil
   stream.state.onClose()
+
+
+proc clearUserData*(stream: Stream) =
+  echo "STREAM CLEAR USERDATA"
+  stream.state.clearUserData()
 
 proc isClosed*(stream: Stream): bool =
   stream.state.isClosed()
