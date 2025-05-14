@@ -34,7 +34,7 @@ method enter(state: ClosedStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   echo "SET STATE IN CLOSEDSTREAM"
-  setUserData(state.stream, state.connection, unsafeAddr state[])
+  #setUserData(state.stream, state.connection, unsafeAddr state[])
 
 method clearUserData*(state: ClosedStream) =
   try:
