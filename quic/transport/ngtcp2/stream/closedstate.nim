@@ -32,6 +32,7 @@ proc newClosedStream*(
 
 method enter(state: ClosedStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
+  setUserData(state.stream, state.connection, unsafeAddr state[])
   state.stream = Opt.some(stream)
 
 proc clearUserData*(state: ClosedStream) =
