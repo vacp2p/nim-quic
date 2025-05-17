@@ -131,7 +131,7 @@ suite "FrameSorter tests":
     fs.insert(0, @[1'u8, 2, 3], true)
     check fs.lastPos.isSome
     fs.reset()
-    check fs.lastPos.get() == 0
+    check fs.lastPos.isNone
     check fs.readPos == 0
     check fs.ranges.len == 0
     check fs.buffer.len == 0

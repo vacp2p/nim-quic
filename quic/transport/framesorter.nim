@@ -95,7 +95,7 @@ proc isEOF*(fs: FrameSorter): bool =
   return fs.readPos >= fs.lastPos.get()
 
 proc reset*(fs: var FrameSorter) =
-  fs.lastPos = Opt.some(0'u64)
+  fs.lastPos = Opt.none(uint64)
   fs.buffer.clear()
   fs.incoming.clear()
   fs.ranges = @[]
