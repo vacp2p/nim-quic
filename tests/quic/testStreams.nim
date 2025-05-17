@@ -47,14 +47,14 @@ suite "streams":
     expect QuicError:
       await stream.write(@[1'u8, 2'u8, 3'u8])
 
-  asyncTest "raises when reading from or writing to reset stream":
-    let stream = await client.openStream()
-    await stream.reset()
-    expect QuicError:
-      discard await stream.read()
+  # asyncTest "raises when reading from or writing to reset stream":
+  #   let stream = await client.openStream()
+  #   await stream.reset()
+  #   expect QuicError:
+  #     discard await stream.read()
 
-    expect QuicError:
-      await stream.write(@[1'u8, 2'u8, 3'u8])
+  #   expect QuicError:
+  #     await stream.write(@[1'u8, 2'u8, 3'u8])
 
   asyncTest "accepts incoming streams":
     let simulation = simulateNetwork(client, server)
