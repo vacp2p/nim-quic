@@ -47,7 +47,7 @@ method leave*(state: ClosedStream) =
 method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
   if not state.frameSorter.isComplete():
     let incomingFut = state.remaining.get()
-    if (await race(incomingFut, state.cancelRead)) == incomingFut:
+    if (await race(incomingFut, state.cancelRead, timeout(1.seconds))) == incomingFut:
       result = await incomingFut
       allowMoreIncomingBytes(state.stream, state.connection, result.len.uint64)
     else:

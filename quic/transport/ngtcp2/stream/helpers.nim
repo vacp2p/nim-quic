@@ -19,3 +19,7 @@ proc setUserData*(
   let stream = stream.valueOr:
     return
   connection.setStreamUserData(stream.id, userdata)
+
+proc timeout*(duration: Duration): Future[string] {.async.} =
+  await sleepAsync(duration)
+  return "timeout"
