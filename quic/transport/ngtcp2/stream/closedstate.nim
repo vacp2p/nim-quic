@@ -1,5 +1,6 @@
 import ../../../basics
 import ../../stream
+import ../../timeout
 import ./helpers
 import ../../framesorter
 import ../native/[connection, errors]
@@ -47,12 +48,18 @@ method leave*(state: ClosedStream) =
 method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
   if not state.frameSorter.isComplete():
     let incomingFut = state.remaining.get()
-    if (await race(incomingFut, state.cancelRead)) == incomingFut:
+    let timeoutFut = state.connection.timeout.expired()
+    let raceFut = await race(incomingFut, state.cancelRead, timeoutFut)
+    if raceFut == incomingFut:
       result = await incomingFut
       allowMoreIncomingBytes(state.stream, state.connection, result.len.uint64)
     else:
       incomingFut.cancelSoon()
-      raise newException(StreamError, "stream is closed")
+      raise
+        if raceFut == timeoutFut:
+          newException(StreamError, "stream timed out")
+        else:
+          newException(StreamError, "stream is closed")
   else:
     try:
       result = state.remaining.popFirstNoWait()

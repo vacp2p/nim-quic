@@ -5,7 +5,7 @@ description = "QUIC protocol implementation"
 license = "MIT"
 
 requires "nim >= 1.6.0"
-requires "stew#head"
+requires "stew >= 0.4.0"
 requires "chronos >= 4.0.3 & < 5.0.0"
 requires "nimcrypto >= 0.6.0 & < 0.7.0"
 requires "ngtcp2 >= 0.36.1"
