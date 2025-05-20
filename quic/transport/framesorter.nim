@@ -2,85 +2,51 @@ import ../errors
 import std/tables
 import chronos
 
-type
-  Range = tuple[startPos, endPos: uint64]
-
-  FrameSorter* = object
-    buffer*: Table[uint64, byte] # sparse byte storage
-    readPos*: uint64 # where to emit data from
-    ranges*: seq[Range]
-    incoming*: AsyncQueue[seq[byte]]
-    lastPos*: Opt[uint64]
-      # contains the index for the last position for a stream once a FIN is received
+type FrameSorter* = object
+  buffer*: Table[int64, byte] # sparse byte storage
+  emitPos*: int64 # where to emit data from
+  incoming*: AsyncQueue[seq[byte]]
+  totalBytes*: Opt[int64]
+    # contains total bytes for frame; and is known once a FIN is received
 
 proc initFrameSorter*(incoming: AsyncQueue[seq[byte]]): FrameSorter =
   result.incoming = incoming
-  result.buffer = initTable[uint64, byte]()
-  result.readPos = 0
-  result.lastPos = Opt.none(uint64)
-
-proc insertRanges(fs: var FrameSorter, newStart, newEnd: uint64) =
-  var toInsertS = newStart
-  var toInsertE = newEnd
-  var i = 0
-  while i < fs.ranges.len:
-    let (s, e) = fs.ranges[i]
-    if newEnd + 1 < s:
-      break # insert before
-    elif newStart > e + 1:
-      inc i
-    else:
-      toInsertS = min(newStart, s)
-      toInsertE = max(newEnd, e)
-      fs.ranges.delete(i)
-      continue
-  fs.ranges.insert((toInsertS, toInsertE), i)
+  result.buffer = initTable[int64, byte]()
+  result.emitPos = 0
+  result.totalBytes = Opt.none(int64)
 
 proc insert*(
     fs: var FrameSorter, offset: uint64, data: openArray[byte], isFin: bool
 ) {.raises: [QuicError].} =
-  let endPos =
-    if data.len != 0:
-      offset + uint64(data.len) - 1
-    else:
-      offset
-
-  if isFin and fs.lastPos.isNone:
-    # Remove any data received after the end
-    fs.lastPos = Opt.some(endPos)
-
-  # Insert ranges
-  let rangeStart = min(fs.lastPos.get(offset), offset)
-  let rangeEnd = min(fs.lastPos.get(endPos), endPos)
+  if isFin and fs.totalBytes.isNone:
+    fs.totalBytes = Opt.some(offset.int64 + max(data.len - 1, 0))
 
   # Insert bytes into sparse buffer
   for i, b in data:
-    let pos = offset + uint64(i)
+    let pos = offset.int + i
 
-    if fs.lastPos.isSome and pos > fs.lastPos.unsafeGet:
+    if fs.totalBytes.isSome and pos > fs.totalBytes.unsafeGet:
       continue
 
     if fs.buffer.hasKey(pos):
       try:
         if fs.buffer[pos] != b:
           raise newException(QuicError, "conflicting byte received. protocol violation")
+        # else: already same value, nothing to do
       except KeyError:
         doAssert false, "already checked with hasKey"
-      # else: already same value, nothing to do
-    else:
+    elif pos >= fs.emitPos: # put data to buffer, avoiding emitted data
       fs.buffer[pos] = b
-
-  fs.insertRanges(rangeStart, rangeEnd)
 
   # Try to emit contiguous data
   var emitData: seq[byte]
-  while fs.buffer.hasKey(fs.readPos):
+  while fs.buffer.hasKey(fs.emitPos):
     try:
-      emitData.add fs.buffer[fs.readPos]
+      emitData.add fs.buffer[fs.emitPos]
     except KeyError:
       doAssert false, "already checked with hasKey"
-    fs.buffer.del(fs.readPos)
-    inc fs.readPos
+    fs.buffer.del(fs.emitPos)
+    inc fs.emitPos
 
   if emitData.len > 0:
     try:
@@ -89,29 +55,20 @@ proc insert*(
       raise newException(QuicError, "Incoming queue is full")
 
 proc isEOF*(fs: FrameSorter): bool =
-  if fs.lastPos.isNone:
+  if fs.totalBytes.isNone:
     return false
 
-  return fs.readPos >= fs.lastPos.get()
+  return fs.emitPos >= fs.totalBytes.get()
 
 proc reset*(fs: var FrameSorter) =
-  fs.lastPos = Opt.none(uint64)
+  fs.totalBytes = Opt.none(int64)
   fs.buffer.clear()
   fs.incoming.clear()
-  fs.ranges = @[]
-  fs.readPos = 0
+  fs.emitPos = 0
 
 proc isComplete*(fs: FrameSorter): bool =
-  if fs.lastPos.isNone:
+  if fs.totalBytes.isNone:
     return false
 
-  if fs.ranges.len == 0:
-    return true
-
-  for i in 0 ..< fs.ranges.len - 1:
-    let gapStart = fs.ranges[i].endPos + 1
-    let gapEnd = fs.ranges[i + 1].startPos - 1
-    if gapStart <= gapEnd:
-      return false
-
-  return true
+  let total = fs.totalBytes.unsafeGet
+  return fs.emitPos - 1 + len(fs.buffer) >= total

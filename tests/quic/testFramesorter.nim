@@ -10,7 +10,7 @@ suite "FrameSorter tests":
     var fs = initFrameSorter(q)
 
     fs.insert(0, @[1'u8, 2, 3], false)
-    check fs.readPos == 3
+    check fs.emitPos == 3
     check fs.buffer.len == 0
     check q.len == 1
     let emitted = waitFor(q.get())
@@ -24,7 +24,7 @@ suite "FrameSorter tests":
     fs.insert(1, @[2'u8], false)
     fs.insert(3, @[4'u8], false)
 
-    check fs.readPos == 0
+    check fs.emitPos == 0
     check fs.buffer.len == 2
     check q.len == 0
     check not fs.isEOF()
@@ -34,7 +34,7 @@ suite "FrameSorter tests":
     var fs = initFrameSorter(q)
 
     fs.insert(0, @[1'u8, 2, 3], true)
-    check fs.lastPos.get() == 2
+    check fs.totalBytes.get() == 2
     check fs.isEOF()
 
   test "chunks inserted out of order are emitted in correct order":
@@ -45,7 +45,7 @@ suite "FrameSorter tests":
     fs.insert(4, @[5'u8, 6], true)
     fs.insert(0, @[1'u8], false)
 
-    check fs.readPos == 6
+    check fs.emitPos == 6
     check fs.buffer.len == 0
     check q.len == 1
     let emitted = waitFor(q.get())
@@ -58,7 +58,7 @@ suite "FrameSorter tests":
 
     fs.insert(0, @[1'u8, 2, 3], false)
 
-    check fs.readPos == 3
+    check fs.emitPos == 3
     check fs.buffer.len == 0
     check q.len == 1
     var emitted = waitFor(q.get())
@@ -68,7 +68,7 @@ suite "FrameSorter tests":
 
     fs.insert(3, @[4'u8, 5, 6], false)
 
-    check fs.readPos == 6
+    check fs.emitPos == 6
     check fs.buffer.len == 3 # [10, 11, 12] are not emitted yet
     check q.len == 1
     emitted = waitFor(q.get())
@@ -83,7 +83,7 @@ suite "FrameSorter tests":
     fs.insert(2, @[3'u8, 4, 5], false)
     fs.insert(0, @[1'u8], false)
 
-    check fs.readPos == 4
+    check fs.emitPos == 4
     check fs.buffer.len == 0
     check q.len == 1
     var emitted = waitFor(q.get())
@@ -95,7 +95,7 @@ suite "FrameSorter tests":
 
     fs.insert(0, @[1'u8, 2, 3], false)
     fs.insert(1, @[2'u8, 3], false) # identical bytes, should not raise
-    check fs.readPos == 3
+    check fs.emitPos == 3
     check q.len == 1
     discard waitFor(q.get())
 
@@ -129,9 +129,8 @@ suite "FrameSorter tests":
     var fs = initFrameSorter(q)
 
     fs.insert(0, @[1'u8, 2, 3], true)
-    check fs.lastPos.isSome
+    check fs.totalBytes.isSome
     fs.reset()
-    check fs.lastPos.isNone
-    check fs.readPos == 0
-    check fs.ranges.len == 0
+    check fs.totalBytes.isNone
+    check fs.emitPos == 0
     check fs.buffer.len == 0
