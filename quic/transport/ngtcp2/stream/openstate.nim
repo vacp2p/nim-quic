@@ -36,7 +36,7 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
   let incomingFut = state.incoming.get()
   let timeoutFut = state.connection.timeout.expired()
   let raceFut = await race(incomingFut, state.cancelRead, timeoutFut)
-  if (await race(incomingFut, state.cancelRead)) == incomingFut:
+  if raceFut == incomingFut:
     result = await incomingFut
     allowMoreIncomingBytes(state.stream, state.connection, result.len.uint64)
   else:
