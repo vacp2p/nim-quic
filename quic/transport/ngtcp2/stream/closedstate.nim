@@ -1,8 +1,6 @@
 import ../../../basics
 import ../../stream
-import ./helpers
 import ../../framesorter
-import ../native/[connection, errors]
 import chronicles
 
 logScope:
@@ -10,66 +8,29 @@ logScope:
 
 type
   ClosedStream* = ref object of StreamState
-    stream*: Opt[Stream]
     remaining: AsyncQueue[seq[byte]]
-    connection*: Ngtcp2Connection
     frameSorter: FrameSorter
-    cancelRead*: Future[void]
-    timedOut*: Future[void]
 
   ClosedStreamError* = object of StreamError
 
 proc newClosedStream*(
-    messages: AsyncQueue[seq[byte]],
-    frameSorter: FrameSorter,
-    connection: Ngtcp2Connection,
+    remaining: AsyncQueue[seq[byte]], frameSorter: FrameSorter
 ): ClosedStream =
-  ClosedStream(
-    remaining: messages,
-    cancelRead: newFuture[void](),
-    timedOut: newFuture[void](),
-    frameSorter: frameSorter,
-    connection: connection,
-  )
+  ClosedStream(remaining: remaining)
 
 method enter*(state: ClosedStream, stream: Stream) =
-  procCall enter(StreamState(state), stream)
-  state.stream = Opt.some(stream)
-  setUserData(state.stream, state.connection, nil)
-
-proc clearUserData*(state: ClosedStream) =
-  try:
-    setUserData(state.stream, state.connection, nil)
-  except Ngtcp2Error:
-    discard # stream already closed
+  discard
 
 method leave*(state: ClosedStream) =
-  state.stream = Opt.none(Stream)
+  discard
 
 method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
-  if not state.frameSorter.isComplete():
-    let incomingFut = state.remaining.get()
-    let raceFut = await race(state.cancelRead, state.timedOut, incomingFut)
-    if raceFut == incomingFut:
-      result = await incomingFut
-      allowMoreIncomingBytes(state.stream, state.connection, result.len.uint64)
-    else:
-      incomingFut.cancelSoon()
-      raise
-        if raceFut == state.timedOut:
-          state.cancelRead.cancelSoon()
-          newException(StreamError, "connection timed out")
-        else:
-          state.timedOut.cancelSoon()
-          newException(StreamError, "stream is closed")
-  else:
-    try:
-      result = state.remaining.popFirstNoWait()
-      return
-    except AsyncQueueEmptyError:
-      discard
-
-    raise newException(StreamError, "stream is closed")
+  try:
+    return state.remaining.popFirstNoWait()
+  except AsyncQueueEmptyError:
+    discard
+  trace "cant read, stream is closed"
+  raise newException(StreamError, "stream is closed")
 
 method write*(state: ClosedStream, bytes: seq[byte]) {.async.} =
   trace "cant write, stream is closed"
@@ -85,24 +46,10 @@ method isClosed*(state: ClosedStream): bool =
   true
 
 method receive*(state: ClosedStream, offset: uint64, bytes: seq[byte], isFin: bool) =
-  if state.frameSorter.isComplete():
-    return
-
-  state.frameSorter.insert(offset, bytes, isFin)
-
-  if state.stream.isSome:
-    let stream = state.stream.get()
-    stream.closed.fire()
+  discard
 
 method reset*(state: ClosedStream) {.async.} =
-  let stream = state.stream.valueOr:
-    return
-  state.cancelRead.complete()
-  state.connection.shutdownStream(stream.id)
-  stream.closed.fire()
+  discard
 
 method expire*(state: ClosedStream) {.raises: [].} =
-  let stream = state.stream.valueOr:
-    return
-  state.timedOut.complete()
-  stream.closed.fire()
+  discard

@@ -130,7 +130,9 @@ proc newIncomingConnection*(
   connection.startSending(remote)
   connection
 
-proc checkIfClosed(connection: Connection) {.async.} =
+proc ensureClosed(connection: Connection) {.async.} =
+  ## This will automatically close the connection if there's an idle timeout reported
+  ## by ngtcp2
   discard await race(connection.quic.timeout.wait(), connection.closed.wait())
   await connection.close()
 
@@ -154,7 +156,7 @@ proc newOutgoingConnection*(
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
 
-  asyncSpawn connection.checkIfClosed()
+  asyncSpawn connection.ensureClosed()
 
   connection
 
