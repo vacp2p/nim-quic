@@ -1,6 +1,5 @@
 import ../../../basics
 import ../../stream
-import ../../timeout
 import ./helpers
 import ../../framesorter
 import ../native/[connection, errors]
@@ -16,6 +15,7 @@ type
     connection*: Ngtcp2Connection
     frameSorter: FrameSorter
     cancelRead*: Future[void]
+    timedOut*: Future[void]
 
   ClosedStreamError* = object of StreamError
 
@@ -27,6 +27,7 @@ proc newClosedStream*(
   ClosedStream(
     remaining: messages,
     cancelRead: newFuture[void](),
+    timedOut: newFuture[void](),
     frameSorter: frameSorter,
     connection: connection,
   )
@@ -48,17 +49,18 @@ method leave*(state: ClosedStream) =
 method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
   if not state.frameSorter.isComplete():
     let incomingFut = state.remaining.get()
-    let timeoutFut = state.connection.timeout.expired()
-    let raceFut = await race(incomingFut, state.cancelRead, timeoutFut)
+    let raceFut = await race(state.cancelRead, state.timedOut, incomingFut)
     if raceFut == incomingFut:
       result = await incomingFut
       allowMoreIncomingBytes(state.stream, state.connection, result.len.uint64)
     else:
       incomingFut.cancelSoon()
       raise
-        if raceFut == timeoutFut:
-          newException(StreamError, "stream timed out")
+        if raceFut == state.timedOut:
+          state.cancelRead.cancelSoon()
+          newException(StreamError, "connection timed out")
         else:
+          state.timedOut.cancelSoon()
           newException(StreamError, "stream is closed")
   else:
     try:
@@ -92,9 +94,15 @@ method receive*(state: ClosedStream, offset: uint64, bytes: seq[byte], isFin: bo
     let stream = state.stream.get()
     stream.closed.fire()
 
-method reset(state: ClosedStream) {.async.} =
+method reset*(state: ClosedStream) {.async.} =
   let stream = state.stream.valueOr:
     return
-  state.cancelRead.cancelSoon()
+  state.cancelRead.complete()
   state.connection.shutdownStream(stream.id)
+  stream.closed.fire()
+
+method expire*(state: ClosedStream) {.raises: [].} =
+  let stream = state.stream.valueOr:
+    return
+  state.timedOut.complete()
   stream.closed.fire()

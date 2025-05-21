@@ -22,29 +22,32 @@ method leave*(state: StreamState) {.base.} =
   discard
 
 method read*(state: StreamState): Future[seq[byte]] {.base, async.} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method write*(state: StreamState, bytes: seq[byte]) {.base, async.} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method close*(state: StreamState) {.base, async.} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method reset*(state: StreamState) {.base, async.} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method onClose*(state: StreamState) {.base.} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method isClosed*(state: StreamState): bool {.base, raises: [].} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 method receive*(
     state: StreamState, offset: uint64, bytes: seq[byte], isFin: bool
 ) {.base.} =
-  doAssert false # override this method
+  doAssert false, "override this method"
 
 {.pop.}
+
+method expire*(state: StreamState) {.base, raises: [].} =
+  doAssert false, "override this method"
 
 proc newStream*(id: int64, state: StreamState): Stream =
   let stream = Stream(state: state, id: id, closed: newAsyncEvent())
@@ -79,3 +82,6 @@ proc isClosed*(stream: Stream): bool =
 
 proc isUnidirectional*(stream: Stream): bool =
   stream.id.byte.bits[6].bool
+
+proc expire*(stream: Stream) {.raises: [].} =
+  stream.state.expire()

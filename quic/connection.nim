@@ -130,6 +130,10 @@ proc newIncomingConnection*(
   connection.startSending(remote)
   connection
 
+proc checkIfClosed(connection: Connection) {.async.} =
+  discard await race(connection.quic.timeout.wait(), connection.closed.wait())
+  await connection.close()
+
 proc newOutgoingConnection*(
     tlsBackend: TLSBackend,
     udp: DatagramTransport,
@@ -149,6 +153,9 @@ proc newOutgoingConnection*(
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
   connection.startSending(remote)
+
+  asyncSpawn connection.checkIfClosed()
+
   connection
 
 proc startHandshake*(connection: Connection) {.gcsafe.} =

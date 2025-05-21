@@ -25,3 +25,8 @@ proc closeAll*(streams: OpenStreams) =
   for stream in streams.streams:
     stream.onClose()
   streams.streams = @[]
+
+proc expireAll*(streams: OpenStreams) =
+  for stream in streams.streams:
+    stream.expire()
+  streams.streams = @[]

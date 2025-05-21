@@ -82,6 +82,7 @@ method enter(state: OpenConnection, connection: QuicConnection) =
   state.ngtcp2Connection.onTimeout = proc() {.gcsafe, raises: [].} =
     try:
       connection.timeout.fire()
+      state.streams.expireAll()
     except Ngtcp2ConnectionClosed:
       trace "connection closed"
 

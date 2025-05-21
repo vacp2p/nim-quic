@@ -1,7 +1,6 @@
 import ../../../basics
 import ../../framesorter
 import ../../stream
-import ../../timeout
 import ./helpers
 import ../native/[connection, errors]
 import ./closedstate
@@ -13,6 +12,7 @@ type OpenStream* = ref object of StreamState
   connection*: Ngtcp2Connection
   frameSorter*: FrameSorter
   cancelRead*: Future[void]
+  timedOut*: Future[void]
 
 proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
   let incomingQ = newAsyncQueue[seq[byte]]()
@@ -20,6 +20,7 @@ proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
     connection: connection,
     incoming: incomingQ,
     cancelRead: newFuture[void](),
+    timedOut: newFuture[void](),
     frameSorter: initFrameSorter(incomingQ),
   )
 
@@ -34,8 +35,7 @@ method leave*(state: OpenStream) =
 
 method read*(state: OpenStream): Future[seq[byte]] {.async.} =
   let incomingFut = state.incoming.get()
-  let timeoutFut = state.connection.timeout.expired()
-  let raceFut = await race(incomingFut, state.cancelRead, timeoutFut)
+  let raceFut = await race(state.cancelRead, state.timedOut, incomingFut)
   if raceFut == incomingFut:
     result = await incomingFut
     allowMoreIncomingBytes(state.stream, state.connection, result.len.uint64)
@@ -49,8 +49,8 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
       )
 
     raise
-      if raceFut == timeoutFut:
-        newException(StreamError, "stream timed out")
+      if raceFut == state.timedOut:
+        newException(StreamError, "connection timed out")
       else:
         newException(StreamError, "stream is closed")
 
@@ -69,7 +69,7 @@ method close*(state: OpenStream) {.async.} =
 method reset*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
-  state.cancelRead.cancelSoon()
+  state.cancelRead.complete()
   state.connection.shutdownStream(stream.id)
   stream.closed.fire()
   state.frameSorter.reset()
@@ -92,3 +92,9 @@ method receive*(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool
   if state.frameSorter.isComplete():
     stream.closed.fire()
     stream.switch(newClosedStream(state.incoming, state.frameSorter, state.connection))
+
+method expire*(state: OpenStream) {.raises: [].} =
+  let stream = state.stream.valueOr:
+    return
+  state.timedOut.complete()
+  stream.closed.fire()
