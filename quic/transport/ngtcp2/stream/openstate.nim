@@ -1,25 +1,27 @@
 import ../../../basics
 import ../../framesorter
 import ../../stream
-import ../../timeout
 import ./helpers
-import ../native/[connection, errors]
+import ../native/connection
 import ./closedstate
 import chronicles
+
+logScope:
+  topics = "open state"
 
 type OpenStream* = ref object of StreamState
   stream*: Opt[Stream]
   incoming*: AsyncQueue[seq[byte]]
   connection*: Ngtcp2Connection
   frameSorter*: FrameSorter
-  cancelRead*: Future[void]
+  closeFut*: Future[string]
 
 proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
   let incomingQ = newAsyncQueue[seq[byte]]()
   OpenStream(
     connection: connection,
     incoming: incomingQ,
-    cancelRead: newFuture[void](),
+    closeFut: newFuture[string](),
     frameSorter: initFrameSorter(incomingQ),
   )
 
@@ -31,12 +33,12 @@ method enter*(state: OpenStream, stream: Stream) =
 method leave*(state: OpenStream) =
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
+  # TODO: clear userdata
 
 method read*(state: OpenStream): Future[seq[byte]] {.async.} =
   let incomingFut = state.incoming.get()
-  let timeoutFut = state.connection.timeout.expired()
-  let raceFut = await race(incomingFut, state.cancelRead, timeoutFut)
-  if (await race(incomingFut, state.cancelRead)) == incomingFut:
+  let raceFut = await race(state.closeFut, incomingFut)
+  if raceFut == incomingFut:
     result = await incomingFut
     allowMoreIncomingBytes(state.stream, state.connection, result.len.uint64)
   else:
@@ -44,15 +46,10 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
     let stream = state.stream.valueOr:
       return
     if state.frameSorter.isEOF():
-      stream.switch(
-        newClosedStream(state.incoming, state.frameSorter, state.connection)
-      )
+      stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
-    raise
-      if raceFut == timeoutFut:
-        newException(StreamError, "stream timed out")
-      else:
-        newException(StreamError, "stream is closed")
+    let closeReason = await state.closeFut
+    raise newException(StreamError, closeReason)
 
 method write*(state: OpenStream, bytes: seq[byte]): Future[void] =
   # let stream = state.stream.valueOr:
@@ -64,21 +61,21 @@ method close*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true)
-  stream.switch(newClosedStream(state.incoming, state.frameSorter, state.connection))
+  stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
 method reset*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
-  state.cancelRead.cancelSoon()
+  state.closeFut.complete("stream reset")
   state.connection.shutdownStream(stream.id)
   stream.closed.fire()
   state.frameSorter.reset()
-  stream.switch(newClosedStream(state.incoming, state.frameSorter, state.connection))
+  stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
 method onClose*(state: OpenStream) =
   let stream = state.stream.valueOr:
     return
-  stream.switch(newClosedStream(state.incoming, state.frameSorter, state.connection))
+  stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
 method isClosed*(state: OpenStream): bool =
   false
@@ -91,4 +88,10 @@ method receive*(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool
 
   if state.frameSorter.isComplete():
     stream.closed.fire()
-    stream.switch(newClosedStream(state.incoming, state.frameSorter, state.connection))
+    stream.switch(newClosedStream(state.incoming, state.frameSorter))
+
+method expire*(state: OpenStream) {.raises: [].} =
+  let stream = state.stream.valueOr:
+    return
+  state.closeFut.complete("connection timed out")
+  stream.closed.fire()

@@ -29,7 +29,7 @@ type
     rng*: ref HmacDrbgContext
     buffer*: array[4096, byte]
     flowing*: AsyncEvent
-    timeout*: Timeout
+    expiryTimer*: Timeout
     onSend*: proc(datagram: Datagram) {.gcsafe, raises: [].}
     onTimeout*: proc() {.gcsafe, raises: [].}
     onIncomingStream*: proc(stream: Stream)
@@ -42,7 +42,7 @@ type
 proc destroy*(connection: Ngtcp2Connection) =
   let conn = connection.conn.valueOr:
     return
-  connection.timeout.stop()
+  connection.expiryTimer.stop()
   ngtcp2_conn_del(conn)
   ngtcp2_crypto_picotls_deconfigure_session(connection.cptls)
   connection.tlsConn.destroy()
@@ -75,7 +75,7 @@ proc newConnection*(path: Path, rng: ref HmacDrbgContext): Ngtcp2Connection =
   connection.rng = rng
   connection.path = path
   connection.flowing = newAsyncEvent()
-  connection.timeout = newTimeout(
+  connection.expiryTimer = newTimeout(
     proc() =
       connection.handleTimeout()
   )
@@ -92,15 +92,15 @@ proc ids*(connection: Ngtcp2Connection): seq[ConnectionId] =
   discard ngtcp2_conn_get_scid(conn, scids.toPtr)
   scids.mapIt(ConnectionId(it.data[0 ..< it.datalen]))
 
-proc updateTimeout*(connection: Ngtcp2Connection) =
+proc updateExpiryTimer*(connection: Ngtcp2Connection) =
   let conn = connection.conn.valueOr:
     raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
   trace "updateTimeout"
   let expiry = ngtcp2_conn_get_expiry(conn)
   if expiry != uint64.high:
-    connection.timeout.set(Moment.init(expiry.int64, 1.nanoseconds))
+    connection.expiryTimer.set(Moment.init(expiry.int64, 1.nanoseconds))
   else:
-    connection.timeout.stop()
+    connection.expiryTimer.stop()
 
 proc trySend(
     connection: Ngtcp2Connection,
@@ -143,7 +143,7 @@ proc send*(connection: Ngtcp2Connection) =
       connection.onSend(datagram)
     else:
       done = true
-  connection.updateTimeout()
+  connection.updateExpiryTimer()
 
 proc send(
     connection: Ngtcp2Connection,
@@ -159,7 +159,7 @@ proc send(
     await connection.flowing.wait()
     datagram = trySend(connection, streamId, messagePtr, messageLen, written, isFin)
   connection.onSend(datagram)
-  connection.updateTimeout()
+  connection.updateExpiryTimer()
 
 proc send*(
     connection: Ngtcp2Connection, streamId: int64, bytes: seq[byte], isFin: bool = false
@@ -208,6 +208,7 @@ proc handleTimeout(connection: Ngtcp2Connection) =
     let ret = ngtcp2_conn_handle_expiry(conn, now())
     trace "handleExpiry", code = ret
     if ret == NGTCP2_ERR_IDLE_CLOSE:
+      trace "Connection has expired!"
       connection.onTimeout()
     else:
       checkResult ret
