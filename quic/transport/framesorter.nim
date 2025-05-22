@@ -15,11 +15,40 @@ proc initFrameSorter*(incoming: AsyncQueue[seq[byte]]): FrameSorter =
   result.emitPos = 0
   result.totalBytes = Opt.none(int64)
 
+proc putToQueue(fs: FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
+  if data.len > 0:
+    try:
+      fs.incoming.putNoWait(data)
+    except AsyncQueueFullError:
+      raise newException(QuicError, "Incoming queue is full")
+
+proc emitBufferedData(fs: var FrameSorter) {.raises: [QuicError].} =
+  var emitData: seq[byte]
+  while fs.buffer.hasKey(fs.emitPos):
+    try:
+      emitData.add fs.buffer[fs.emitPos]
+    except KeyError:
+      doAssert false, "already checked with hasKey"
+    fs.buffer.del(fs.emitPos)
+    inc fs.emitPos
+
+  fs.putToQueue(emitData)
+
 proc insert*(
-    fs: var FrameSorter, offset: uint64, data: openArray[byte], isFin: bool
+    fs: var FrameSorter, offset: uint64, data: seq[byte], isFin: bool
 ) {.raises: [QuicError].} =
   if isFin and fs.totalBytes.isNone:
     fs.totalBytes = Opt.some(offset.int64 + max(data.len - 1, 0))
+
+  # if offset matches emit position, framesorter can emit entire input in batch
+  if offset.int == fs.emitPos and data.len > 0:
+    fs.emitPos += data.len
+    fs.putToQueue(data)    
+    
+    # in addition check if there is buffered data to emit
+    fs.emitBufferedData() 
+
+    return
 
   # Insert bytes into sparse buffer
   for i, b in data:
@@ -39,20 +68,7 @@ proc insert*(
       fs.buffer[pos] = b
 
   # Try to emit contiguous data
-  var emitData: seq[byte]
-  while fs.buffer.hasKey(fs.emitPos):
-    try:
-      emitData.add fs.buffer[fs.emitPos]
-    except KeyError:
-      doAssert false, "already checked with hasKey"
-    fs.buffer.del(fs.emitPos)
-    inc fs.emitPos
-
-  if emitData.len > 0:
-    try:
-      fs.incoming.putNoWait(emitData)
-    except AsyncQueueFullError:
-      raise newException(QuicError, "Incoming queue is full")
+  fs.emitBufferedData()
 
 proc isEOF*(fs: FrameSorter): bool =
   if fs.totalBytes.isNone:

@@ -4,6 +4,12 @@ import quic/errors
 import std/[options, tables]
 import chronos
 
+proc allData(q: AsyncQueue[seq[byte]]): seq[byte] =
+  var data: seq[byte]
+  while q.len > 0:
+    data.add(waitFor(q.get()))
+  return data
+
 suite "FrameSorter tests":
   test "insert single chunk no FIN":
     var q = newAsyncQueue[seq[byte]]()
@@ -12,8 +18,7 @@ suite "FrameSorter tests":
     fs.insert(0, @[1'u8, 2, 3], false)
     check fs.emitPos == 3
     check fs.buffer.len == 0
-    check q.len == 1
-    let emitted = waitFor(q.get())
+    let emitted = allData(q)
     check emitted == @[1'u8, 2, 3]
     check not fs.isEOF()
 
@@ -47,8 +52,7 @@ suite "FrameSorter tests":
 
     check fs.emitPos == 6
     check fs.buffer.len == 0
-    check q.len == 1
-    let emitted = waitFor(q.get())
+    let emitted = allData(q)
     check emitted == @[1'u8, 2, 3, 4, 5, 6]
     check fs.isEOF()
 
@@ -60,8 +64,7 @@ suite "FrameSorter tests":
 
     check fs.emitPos == 3
     check fs.buffer.len == 0
-    check q.len == 1
-    var emitted = waitFor(q.get())
+    var emitted = allData(q)
     check emitted == @[1'u8, 2, 3]
 
     fs.insert(9, @[10'u8, 11, 12], false)
@@ -70,8 +73,7 @@ suite "FrameSorter tests":
 
     check fs.emitPos == 6
     check fs.buffer.len == 3 # [10, 11, 12] are not emitted yet
-    check q.len == 1
-    emitted = waitFor(q.get())
+    emitted = allData(q)
     check emitted == @[4'u8, 5, 6]
 
   test "chunks received after fin are ignored":
@@ -85,8 +87,7 @@ suite "FrameSorter tests":
 
     check fs.emitPos == 4
     check fs.buffer.len == 0
-    check q.len == 1
-    var emitted = waitFor(q.get())
+    var emitted = allData(q)
     check emitted == @[1'u8, 2, 3, 4]
 
   test "insert overlapping identical chunk":
@@ -96,8 +97,8 @@ suite "FrameSorter tests":
     fs.insert(0, @[1'u8, 2, 3], false)
     fs.insert(1, @[2'u8, 3], false) # identical bytes, should not raise
     check fs.emitPos == 3
-    check q.len == 1
-    discard waitFor(q.get())
+    var emitted = allData(q)
+    check emitted == @[1'u8, 2, 3]
 
   test "insert overlapping conflicting chunk":
     var q = newAsyncQueue[seq[byte]]()
