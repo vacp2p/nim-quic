@@ -43,10 +43,10 @@ proc insert*(
   # if offset matches emit position, framesorter can emit entire input in batch
   if offset.int == fs.emitPos and data.len > 0:
     fs.emitPos += data.len
-    fs.putToQueue(data)    
-    
+    fs.putToQueue(data)
+
     # in addition check if there is buffered data to emit
-    fs.emitBufferedData() 
+    fs.emitBufferedData()
 
     return
 
