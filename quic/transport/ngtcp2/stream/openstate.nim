@@ -31,9 +31,9 @@ method enter*(state: OpenStream, stream: Stream) =
   setUserData(state.stream, state.connection, unsafeAddr state[])
 
 method leave*(state: OpenStream) =
+  setUserData(state.stream, state.connection, nil)
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
-  # TODO: clear userdata
 
 method read*(state: OpenStream): Future[seq[byte]] {.async.} =
   let incomingFut = state.incoming.get()
@@ -63,9 +63,10 @@ method close*(state: OpenStream) {.async.} =
   discard state.connection.send(state.stream.get.id, @[], true)
   stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
-method reset*(state: OpenStream) {.async.} =
+method reset*(state: OpenStream) =
   let stream = state.stream.valueOr:
     return
+
   state.closeFut.complete("stream reset")
   state.connection.shutdownStream(stream.id)
   stream.closed.fire()

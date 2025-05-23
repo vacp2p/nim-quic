@@ -62,10 +62,9 @@ proc onStreamReset(
     stream_user_data: pointer,
 ): cint {.cdecl.} =
   trace "onStreamReset"
-  let stream = cast[Stream](stream_user_data)
-  if stream != nil:
-    stream.onClose()
-  return 0
+  let state = cast[StreamState](stream_user_data)
+  if state != nil:
+    state.reset()
 
 proc onStreamStopSending(
     conn: ptr ngtcp2_conn,

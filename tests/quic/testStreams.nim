@@ -49,7 +49,7 @@ suite "streams":
 
   asyncTest "raises when reading from or writing to reset stream":
     let stream = await client.openStream()
-    await stream.reset()
+    stream.reset()
     expect QuicError:
       discard await stream.read()
 

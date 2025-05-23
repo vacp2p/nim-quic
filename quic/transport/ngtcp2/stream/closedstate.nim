@@ -48,7 +48,7 @@ method isClosed*(state: ClosedStream): bool =
 method receive*(state: ClosedStream, offset: uint64, bytes: seq[byte], isFin: bool) =
   discard
 
-method reset*(state: ClosedStream) {.async.} =
+method reset*(state: ClosedStream) =
   discard
 
 method expire*(state: ClosedStream) {.raises: [].} =
