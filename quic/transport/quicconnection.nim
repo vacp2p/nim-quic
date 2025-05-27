@@ -20,6 +20,7 @@ type
 
   ConnectionState* = ref object of RootObj
     entered: bool
+    derCertificates*: seq[seq[byte]]
 
   IdCallback* = proc(id: ConnectionId) {.gcsafe, raises: [].}
   ConnectionError* = object of QuicError
@@ -51,8 +52,8 @@ method drop*(state: ConnectionState): Future[void] {.gcsafe.} =
 method close*(state: ConnectionState): Future[void] {.gcsafe.} =
   doAssert false # override this method
 
-method certificates*(state: ConnectionState): seq[seq[byte]] {.raises: [].} =
-  doAssert false # override this method
+proc certificates*(state: ConnectionState): seq[seq[byte]] {.raises: [].} =
+  state.derCertificates
 
 {.pop.}
 

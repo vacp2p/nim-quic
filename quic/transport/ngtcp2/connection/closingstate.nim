@@ -7,10 +7,13 @@ type ClosingConnection* = ref object of DrainingConnection
   finalDatagram: Datagram
 
 proc newClosingConnection*(
-    finalDatagram: Datagram, ids: seq[ConnectionId], duration: Duration
+    finalDatagram: Datagram,
+    ids: seq[ConnectionId],
+    duration: Duration,
+    certificates: seq[seq[byte]],
 ): ClosingConnection =
   let state = ClosingConnection(finalDatagram: finalDatagram)
-  state.init(ids, duration)
+  state.init(ids, duration, certificates)
   state
 
 proc sendFinalDatagram(state: ClosingConnection) =

@@ -13,16 +13,22 @@ type DrainingConnection* = ref object of ConnectionState
   duration: Duration
   done: AsyncEvent
 
-proc init*(state: DrainingConnection, ids: seq[ConnectionId], duration: Duration) =
+proc init*(
+    state: DrainingConnection,
+    ids: seq[ConnectionId],
+    duration: Duration,
+    certificates: seq[seq[byte]],
+) =
   state.ids = ids
   state.duration = duration
+  state.derCertificates = certificates
   state.done = newAsyncEvent()
 
 proc newDrainingConnection*(
-    ids: seq[ConnectionId], duration: Duration
+    ids: seq[ConnectionId], duration: Duration, certificates: seq[seq[byte]]
 ): DrainingConnection =
   let state = DrainingConnection()
-  state.init(ids, duration)
+  state.init(ids, duration, certificates)
   state
 
 proc onTimeout(state: DrainingConnection) {.raises: [].} =
@@ -62,18 +68,15 @@ method close(state: DrainingConnection) {.async.} =
   await state.done.wait()
   let connection = state.connection.valueOr:
     return
-  let disconnecting = newDisconnectingConnection(state.ids)
+  let disconnecting = newDisconnectingConnection(state.ids, state.derCertificates)
   connection.switch(disconnecting)
   await disconnecting.close()
 
 method drop(state: DrainingConnection) {.async.} =
   let connection = state.connection.valueOr:
     return
-  let disconnecting = newDisconnectingConnection(state.ids)
+  let disconnecting = newDisconnectingConnection(state.ids, state.derCertificates)
   connection.switch(disconnecting)
   await disconnecting.drop()
-
-method certificates(state: DrainingConnection): seq[seq[byte]] {.raises: [].} =
-  discard
 
 {.pop.}

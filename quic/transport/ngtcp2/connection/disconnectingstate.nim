@@ -14,8 +14,10 @@ type DisconnectingConnection* = ref object of ConnectionState
   disconnect: Future[void]
   ids: seq[ConnectionId]
 
-proc newDisconnectingConnection*(ids: seq[ConnectionId]): DisconnectingConnection =
-  DisconnectingConnection(ids: ids)
+proc newDisconnectingConnection*(
+    ids: seq[ConnectionId], certificates: seq[seq[byte]]
+): DisconnectingConnection =
+  DisconnectingConnection(ids: ids, derCertificates: certificates)
 
 proc callDisconnect(connection: QuicConnection) {.async.} =
   let disconnect = connection.disconnect.valueOr:
@@ -55,7 +57,7 @@ method close(state: DisconnectingConnection) {.async.} =
   await state.disconnect
   let connection = state.connection.valueOr:
     return
-  connection.switch(newClosedConnection())
+  connection.switch(newClosedConnection(state.derCertificates))
 
 method drop(state: DisconnectingConnection) {.async.} =
   trace "Dropping DisconnectingConnection state"
@@ -64,8 +66,5 @@ method drop(state: DisconnectingConnection) {.async.} =
   trace "Quic disconnecton finished"
   let connection = state.connection.valueOr:
     return
-  connection.switch(newClosedConnection())
+  connection.switch(newClosedConnection(state.derCertificates))
   trace "dropped DisconnectingConnection state"
-
-method certificates(state: DisconnectingConnection): seq[seq[byte]] {.raises: [].} =
-  discard

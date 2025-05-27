@@ -12,8 +12,8 @@ type
   ClosedConnection* = ref object of ConnectionState
   ClosedConnectionError* = object of ConnectionError
 
-proc newClosedConnection*(): ClosedConnection =
-  ClosedConnection()
+proc newClosedConnection*(certificates: seq[seq[byte]]): ClosedConnection =
+  ClosedConnection(derCertificates: certificates)
 
 method ids(state: ClosedConnection): seq[ConnectionId] =
   @[]
@@ -36,6 +36,3 @@ method drop(state: ClosedConnection) {.async.} =
   trace "Dropping ClosedConnection state"
   discard
   trace "Dropped ClosedConnection state"
-
-method certificates(state: ClosedConnection): seq[seq[byte]] {.raises: [].} =
-  discard

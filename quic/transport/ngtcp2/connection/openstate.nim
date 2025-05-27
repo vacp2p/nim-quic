@@ -77,6 +77,8 @@ method enter(state: OpenConnection, connection: QuicConnection) =
     connection.incoming.putNoWait(stream)
   state.ngtcp2Connection.onHandshakeDone = proc() =
     state.handshakeCompleted = true
+    state.derCertificates =
+      state.ngtcp2Connection.tlsContext.extCertificateVerifier.certificates()
     connection.handshake.fire()
 
   state.ngtcp2Connection.onTimeout = proc() {.gcsafe, raises: [].} =
@@ -118,7 +120,7 @@ method receive(state: OpenConnection, datagram: Datagram) =
     if isDraining:
       let ids = state.ids
       let duration = state.ngtcp2Connection.closingDuration()
-      let draining = newDrainingConnection(ids, duration)
+      let draining = newDrainingConnection(ids, duration, state.derCertificates)
       quicConnection.switch(draining)
       asyncSpawn draining.close()
 
@@ -147,7 +149,8 @@ method close(state: OpenConnection) {.async.} =
   let finalDatagram = state.ngtcp2Connection.close()
   let duration = state.ngtcp2Connection.closingDuration()
   let ids = state.ids
-  let closing = newClosingConnection(finalDatagram, ids, duration)
+  let closing =
+    newClosingConnection(finalDatagram, ids, duration, state.derCertificates)
   quicConnection.switch(closing)
   await closing.close()
 
@@ -155,12 +158,9 @@ method drop(state: OpenConnection) {.async.} =
   trace "Dropping OpenConnection state"
   let quicConnection = state.quicConnection.valueOr:
     return
-  let disconnecting = newDisconnectingConnection(state.ids)
+  let disconnecting = newDisconnectingConnection(state.ids, state.derCertificates)
   quicConnection.switch(disconnecting)
   await disconnecting.drop()
   trace "Dropped OpenConnection state"
-
-method certificates(state: OpenConnection): seq[seq[byte]] {.raises: [].} =
-  state.ngtcp2Connection.tlsContext.extCertificateVerifier.certificates()
 
 {.pop.}
