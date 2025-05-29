@@ -44,7 +44,8 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
   else:
     incomingFut.cancelSoon()
     let stream = state.stream.valueOr:
-      return
+      raise newException(StreamError, "stream is closed")
+
     if state.frameSorter.isEOF():
       stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
