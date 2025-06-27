@@ -52,11 +52,11 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
     let closeReason = await state.closeFut
     raise newException(StreamError, closeReason)
 
-method write*(state: OpenStream, bytes: seq[byte]): Future[void] =
+method write*(state: OpenStream, bytes: seq[byte]): Future[void] {.async.} =
   # let stream = state.stream.valueOr:
   #   raise newException(QuicError, "stream is closed")
   # See https://github.com/status-im/nim-quic/pull/41 for more details
-  state.connection.send(state.stream.get.id, bytes)
+  await state.connection.send(state.stream.get.id, bytes)
 
 method close*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
