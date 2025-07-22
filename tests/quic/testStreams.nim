@@ -245,84 +245,84 @@ suite "streams":
 
   asyncTest "empty write + closeWrite pattern works":
     let simulation = simulateNetwork(client, server)
-    
+
     let clientStream = await client.openStream()
     await clientStream.write(@[])
     await clientStream.closeWrite()
-    
+
     await simulation.cancelAndWait()
 
   asyncTest "empty write + data + closeWrite (libp2p pattern) works":
     let simulation = simulateNetwork(client, server)
     var uploadData = @[1'u8, 2'u8, 3'u8, 4'u8, 5'u8]
-    
+
     let clientStream = await client.openStream()
     await clientStream.write(@[])
     await clientStream.write(uploadData)
     await clientStream.closeWrite()
-    
+
     let serverStream = await server.incomingStream()
     let received = await serverStream.read()
     check received == uploadData
-    
+
     await simulation.cancelAndWait()
 
   asyncTest "multiple empty writes before closeWrite works":
     let simulation = simulateNetwork(client, server)
-    
+
     let clientStream = await client.openStream()
     await clientStream.write(@[])
     await clientStream.write(@[])
     await clientStream.closeWrite()
-    
+
     await simulation.cancelAndWait()
 
   asyncTest "closeWrite immediately after openStream works":
     let simulation = simulateNetwork(client, server)
-    
+
     let clientStream = await client.openStream()
     await clientStream.closeWrite()
-    
+
     await simulation.cancelAndWait()
 
   asyncTest "perf-like upload/download pattern works":
     let simulation = simulateNetwork(client, server)
     var uploadData = @[6'u8, 7'u8, 8'u8, 9'u8, 10'u8]
-    
+
     let clientStream = await client.openStream()
     await clientStream.write(@[])
     await clientStream.write(uploadData)
     await clientStream.closeWrite()
-    
+
     let serverStream = await server.incomingStream()
     let received = await serverStream.read()
     check received == uploadData
-    
+
     # Server sends response back
     var downloadData = @[11'u8, 12'u8, 13'u8, 14'u8, 15'u8]
     await serverStream.write(downloadData)
     await serverStream.closeWrite()
-    
+
     let response = await clientStream.read()
     check response == downloadData
-    
+
     await simulation.cancelAndWait()
 
   asyncTest "large data transfers with empty write activation work":
     let simulation = simulateNetwork(client, server)
     var largeData = newSeq[uint8](1000)
-    for i in 0..<1000:
+    for i in 0 ..< 1000:
       largeData[i] = uint8(i mod 256)
-    
+
     let clientStream = await client.openStream()
     await clientStream.write(@[])
     await clientStream.write(largeData)
     await clientStream.closeWrite()
-    
+
     let serverStream = await server.incomingStream()
     let received = await serverStream.read()
     check received == largeData
-    
+
     await simulation.cancelAndWait()
 
   asyncTest "multiple data chunks after empty write activation work":
@@ -330,31 +330,31 @@ suite "streams":
     var chunk1 = @[20'u8, 21'u8, 22'u8]
     var chunk2 = @[23'u8, 24'u8, 25'u8]
     var chunk3 = @[26'u8, 27'u8, 28'u8]
-    
+
     let clientStream = await client.openStream()
     await clientStream.write(@[])
     await clientStream.write(chunk1)
     await clientStream.write(chunk2)
     await clientStream.write(chunk3)
     await clientStream.closeWrite()
-    
+
     let serverStream = await server.incomingStream()
     var allReceived: seq[uint8]
-    
+
     # Read all chunks
     let received1 = await serverStream.read()
     allReceived.add(received1)
-    
+
     try:
       let received2 = await serverStream.read()
       allReceived.add(received2)
-      let received3 = await serverStream.read()  
+      let received3 = await serverStream.read()
       allReceived.add(received3)
     except:
       # May receive combined chunks due to TCP-like behavior
       discard
-    
+
     var expectedData = chunk1 & chunk2 & chunk3
     check allReceived == expectedData
-    
+
     await simulation.cancelAndWait()

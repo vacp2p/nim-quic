@@ -154,7 +154,7 @@ proc send(
 ): Future[int] {.async.} =
   let written = addr result
   var datagram = trySend(connection, streamId, messagePtr, messageLen, written, isFin)
-  
+
   # Special handling for empty data - avoid infinite waiting
   if messageLen == 0:
     if isFin:
@@ -172,7 +172,7 @@ proc send(
       result = 0
       connection.updateExpiryTimer()
       return
-  
+
   # Normal flow control for data packets
   while datagram.data.len == 0:
     connection.flowing.clear()
