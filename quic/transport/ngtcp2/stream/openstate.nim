@@ -87,7 +87,7 @@ method closeWrite*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
   discard
-    state.connection.send(state.stream.get.id, @[], true) # Відправляємо FIN
+    state.connection.send(state.stream.get.id, @[], true) # Sending FIN
   state.writeFinSent = true
   # Note: we don't switch to ClosedStream here - read side stays open for half-close
 
