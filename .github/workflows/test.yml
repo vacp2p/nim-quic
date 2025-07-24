@@ -35,8 +35,8 @@ jobs:
             cpu: amd64
             shell: msys2 {0}
         nim:
-          - ref: version-1-6
           - ref: version-2-0
+          - ref: version-2-2
 
     defaults:
       run:
