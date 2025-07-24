@@ -10,13 +10,14 @@ type
   ClosedStream* = ref object of StreamState
     remaining: AsyncQueue[seq[byte]]
     frameSorter: FrameSorter
+    wasReset: bool
 
   ClosedStreamError* = object of StreamError
 
 proc newClosedStream*(
-    remaining: AsyncQueue[seq[byte]], frameSorter: FrameSorter
+    remaining: AsyncQueue[seq[byte]], frameSorter: FrameSorter, wasReset: bool = false
 ): ClosedStream =
-  ClosedStream(remaining: remaining)
+  ClosedStream(remaining: remaining, wasReset: wasReset)
 
 method enter*(state: ClosedStream, stream: Stream) =
   discard
@@ -25,12 +26,17 @@ method leave*(state: ClosedStream) =
   discard
 
 method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
+  # If stream was reset, always throw exception
+  if state.wasReset:
+    raise newException(ClosedStreamError, "stream was reset")
+
   try:
     return state.remaining.popFirstNoWait()
   except AsyncQueueEmptyError:
     discard
-  trace "cant read, stream is closed"
-  raise newException(ClosedStreamError, "stream is closed")
+
+  # When no more data is available, return EOF instead of throwing exception
+  return @[] # Return EOF for closed streams
 
 method write*(state: ClosedStream, bytes: seq[byte]) {.async.} =
   trace "cant write, stream is closed"

@@ -130,7 +130,7 @@ suite "streams":
 
     await simulation.cancelAndWait()
 
-  asyncTest "raises when stream is closed by peer":
+  asyncTest "stream behavior when peer closes":
     let simulation = simulateNetwork(client, server)
 
     let clientStream = await client.openStream()
@@ -144,11 +144,18 @@ suite "streams":
 
     await sleepAsync(100.milliseconds) # wait for stream to be closed
 
-    expect QuicError:
-      discard await serverStream.read()
+    # Reading from a closed stream should return EOF, not throw exception
+    let eof = await serverStream.read()
+    check eof.len == 0 # Should return EOF (empty array)
 
+    # In QUIC, receiving FIN doesn't prevent writing back (half-close semantics)
+    # Writing should still work unless the local side is closed
+    await serverStream.write(@[4'u8, 5'u8, 6'u8])
+
+    # But after we close our side, writing should fail
+    await serverStream.close()
     expect QuicError:
-      await serverStream.write(@[1'u8, 2'u8, 3'u8])
+      await serverStream.write(@[7'u8, 8'u8, 9'u8])
 
     await simulation.cancelAndWait()
 
@@ -356,5 +363,68 @@ suite "streams":
 
     var expectedData = chunk1 & chunk2 & chunk3
     check allReceived == expectedData
+
+    await simulation.cancelAndWait()
+
+  asyncTest "read() returns EOF after closeWrite()":
+    let simulation = simulateNetwork(client, server)
+    let testData = @[1'u8, 2'u8, 3'u8, 4'u8, 5'u8]
+
+    # Client writes data and closes write side
+    let clientStream = await client.openStream()
+    await clientStream.write(testData)
+    await clientStream.closeWrite()
+
+    # Server reads data
+    let serverStream = await server.incomingStream()
+    let received = await serverStream.read()
+    check received == testData
+
+    # Second read should return EOF (empty array)
+    let eof = await serverStream.read()
+    check eof.len == 0 # EOF should be empty array
+
+    # Third read should also return EOF
+    let eof2 = await serverStream.read()
+    check eof2.len == 0 # Multiple EOF reads should work
+
+    await simulation.cancelAndWait()
+
+  asyncTest "request-response pattern with half-close":
+    let simulation = simulateNetwork(client, server)
+    let request = cast[seq[byte]]("GET /\n")
+    let response = cast[seq[byte]]("HTTP/1.1 200 OK\n")
+
+    # Client sends request and closes write side (signals end of request)
+    let clientStream = await client.openStream()
+    await clientStream.write(request)
+    await clientStream.closeWrite() # "I'm done sending the request"
+
+    # Server receives the request  
+    let serverStream = await server.incomingStream()
+    let receivedRequest = await serverStream.read()
+    check receivedRequest == request
+
+    # Server detects end of request (EOF)
+    let requestEof = await serverStream.read()
+    check requestEof.len == 0 # End of request
+
+    # Server processes and sends response (can still write back!)
+    await serverStream.write(response)
+    await serverStream.close() # Server finishes and closes completely
+
+    # Client reads the response
+    let receivedResponse = await clientStream.read()
+    check receivedResponse == response
+
+    # Client detects end of response
+    let responseEof = await clientStream.read()
+    check responseEof.len == 0 # End of response
+
+    # At this point both sides have received what they need
+    # Client can't write (closeWrite called), server can't write (close called)
+    expect QuicError:
+      await clientStream.write(@[ord('X').uint8])
+        # Should fail - client closed write side
 
     await simulation.cancelAndWait()

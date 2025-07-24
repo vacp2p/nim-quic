@@ -38,11 +38,22 @@ method leave*(state: OpenStream) =
   state.stream = Opt.none(Stream)
 
 method read*(state: OpenStream): Future[seq[byte]] {.async.} =
+  # Check if we have EOF and no more data in queue  
+  if state.frameSorter.isEOF() and state.incoming.len == 0:
+    return @[] # Always return EOF when we hit end of stream
+
   let incomingFut = state.incoming.get()
   let raceFut = await race(state.closeFut, incomingFut)
   if raceFut == incomingFut:
     result = await incomingFut
-    allowMoreIncomingBytes(state.stream, state.connection, result.len.uint64)
+
+    # If we got empty data and isEOF, this means EOF
+    if result.len == 0 and state.frameSorter.isEOF():
+      return @[] # Return EOF (empty array)
+
+    # If we got real data, return it
+    if result.len > 0:
+      allowMoreIncomingBytes(state.stream, state.connection, result.len.uint64)
   else:
     incomingFut.cancelSoon()
     let stream = state.stream.valueOr:
@@ -75,9 +86,9 @@ method closeWrite*(state: OpenStream) {.async.} =
   ## Close write side by sending FIN, but keep read side open
   let stream = state.stream.valueOr:
     return
-  discard state.connection.send(state.stream.get.id, @[], true)
+  discard state.connection.send(state.stream.get.id, @[], true) # Sending FIN
   state.writeFinSent = true
-  # Note: we don't switch to ClosedStream here - read side stays open
+  # Note: we don't switch to ClosedStream here - read side stays open for half-close
 
 method reset*(state: OpenStream) =
   let stream = state.stream.valueOr:
@@ -87,7 +98,7 @@ method reset*(state: OpenStream) =
   state.connection.shutdownStream(stream.id)
   stream.closed.fire()
   state.frameSorter.reset()
-  stream.switch(newClosedStream(state.incoming, state.frameSorter))
+  stream.switch(newClosedStream(state.incoming, state.frameSorter, wasReset = true))
 
 method onClose*(state: OpenStream) =
   let stream = state.stream.valueOr:
@@ -106,6 +117,12 @@ method receive*(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool
   if state.frameSorter.isComplete():
     stream.closed.fire()
     stream.switch(newClosedStream(state.incoming, state.frameSorter))
+  elif isFin and bytes.len == 0 and state.frameSorter.isEOF():
+    # Special handling: FIN with no data and we've reached EOF
+    # Peer has finished sending data, but we don't switch to ClosedStream automatically
+    # because we might still need to write back (half-close scenario)
+    # Don't switch to ClosedStream - stay in OpenStream so we can still write
+    discard
 
 method expire*(state: OpenStream) {.raises: [].} =
   let stream = state.stream.valueOr:
