@@ -392,41 +392,15 @@ suite "streams":
 
   asyncTest "request-response pattern with half-close":
     let simulation = simulateNetwork(client, server)
-    let request =
-      @[
-        ord('G').uint8,
-        ord('E').uint8,
-        ord('T').uint8,
-        ord(' ').uint8,
-        ord('/').uint8,
-        ord('\n').uint8,
-      ] # HTTP-like request
-    let response =
-      @[
-        ord('H').uint8,
-        ord('T').uint8,
-        ord('T').uint8,
-        ord('P').uint8,
-        ord('/').uint8,
-        ord('1').uint8,
-        ord('.').uint8,
-        ord('1').uint8,
-        ord(' ').uint8,
-        ord('2').uint8,
-        ord('0').uint8,
-        ord('0').uint8,
-        ord(' ').uint8,
-        ord('O').uint8,
-        ord('K').uint8,
-        ord('\n').uint8,
-      ]
+    let request = cast[seq[byte]]("GET /\n")
+    let response = cast[seq[byte]]("HTTP/1.1 200 OK\n")
 
     # Client sends request and closes write side (signals end of request)
     let clientStream = await client.openStream()
     await clientStream.write(request)
     await clientStream.closeWrite() # "I'm done sending the request"
 
-    # Server receives the request  
+    # Server receives the request
     let serverStream = await server.incomingStream()
     let receivedRequest = await serverStream.read()
     check receivedRequest == request
