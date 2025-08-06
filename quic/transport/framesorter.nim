@@ -1,6 +1,7 @@
 import ../errors
 import std/tables
 import chronos
+import sequtils
 
 type FrameSorter* = object
   buffer*: Table[int64, byte] # sparse byte storage
@@ -8,17 +9,24 @@ type FrameSorter* = object
   incoming*: AsyncQueue[seq[byte]]
   totalBytes*: Opt[int64]
     # contains total bytes for frame; and is known once a FIN is received
+  data: seq[byte]
 
 proc initFrameSorter*(incoming: AsyncQueue[seq[byte]]): FrameSorter =
   result.incoming = incoming
   result.buffer = initTable[int64, byte]()
   result.emitPos = 0
   result.totalBytes = Opt.none(int64)
+  result.data = newSeq[byte]()
 
-proc putToQueue(fs: FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
-  if data.len > 0:
+proc putToQueue(fs: var FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
+  fs.data.add(data)
+
+  # if fs.totalBytes.isSome:
+  #   echo $fs.data.len & "  :   " & $fs.totalBytes.unsafeGet
+
+  if fs.totalBytes.isSome and fs.data.len-1 == fs.totalBytes.unsafeGet:
     try:
-      fs.incoming.putNoWait(data)
+      fs.incoming.putNoWait(fs.data)
     except AsyncQueueFullError:
       raise newException(QuicError, "Incoming queue is full")
 
@@ -81,6 +89,7 @@ proc reset*(fs: var FrameSorter) =
   fs.buffer.clear()
   fs.incoming.clear()
   fs.emitPos = 0
+  fs.data.setLen(0)
 
 proc isComplete*(fs: FrameSorter): bool =
   if fs.totalBytes.isNone:
