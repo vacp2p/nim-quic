@@ -29,7 +29,7 @@ proc putToQueue(fs: FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
       fs.incoming.putNoWait(data)
     except AsyncQueueFullError:
       raise newException(QuicError, "Incoming queue is full")
-  
+
   if fs.isEOF() and not fs.eofFut.finished:
     fs.eofFut.complete()
 
