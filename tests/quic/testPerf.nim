@@ -8,7 +8,7 @@ import pkg/quic/transport/ngtcp2/native
 import pkg/quic/udp/datagram
 import tests/helpers/simulation
 
-suite "perf protocol like test - half-close hang":
+suite "perf protocol like test":
   setup:
     var (client, server) = waitFor performHandshake()
 
@@ -16,7 +16,7 @@ suite "perf protocol like test - half-close hang":
     waitFor client.drop()
     waitFor server.drop()
 
-  asyncTest "perf protocol simulation hangs on read after closeWrite":
+  asyncTest "perf protocol simulation":
     # This test simulates the exact perf protocol flow:
     # 1. Client sends 8 bytes (download size)
     # 2. Client sends upload data (100KB)
@@ -47,7 +47,7 @@ suite "perf protocol like test - half-close hang":
       var totalBytesRead = 0
       while true:
         echo "SERVER: Waiting for next chunk..."
-        let chunk = await serverStream.read() # THIS WILL HANG after closeWrite!
+        let chunk = await serverStream.read()
         echo "SERVER: Read chunk: ", chunk.len, " bytes"
 
         if chunk.len == 0:
