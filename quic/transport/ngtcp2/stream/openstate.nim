@@ -59,11 +59,16 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
     stream.switch(newClosedStream(state.incoming, state.frameSorter))
     return @[] # Return EOF for locally closed read
 
+  proc delayedFuture(): Future[string] {.async.} =
+    await sleepAsync(100)  # delay
+    await state.frameSorter.eofFut
+    return "Done after 100ms"
+
   # Priority 3: Get data from incoming queue
   var data: seq[byte]
   if state.incoming.len == 0:
     let getFut = state.incoming.get()
-    let fut = await race(getFut, state.frameSorter.eofFut)
+    let fut = await race(getFut, delayedFuture())
     if fut == getFut:
       data = await getFut
     elif state.incoming.len > 0:
