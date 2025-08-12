@@ -88,6 +88,7 @@ proc reset*(fs: var FrameSorter) =
   fs.buffer.clear()
   fs.incoming.clear()
   fs.emitPos = 0
+  fs.eofFut = newFuture[void]()
 
 proc isComplete*(fs: FrameSorter): bool =
   if fs.totalBytes.isNone:

@@ -61,10 +61,15 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
 
   # Priority 3: Get data from incoming queue
   var data: seq[byte]
-  let getFut = state.incoming.get()
-  let fut = await race(getFut, state.frameSorter.eofFut)
-  if fut == getFut:
-    data = await getFut
+  if state.incoming.len == 0:
+    let getFut = state.incoming.get()
+    let fut = await race(getFut, state.frameSorter.eofFut)
+    if fut == getFut:
+      data = await getFut
+    elif state.incoming.len > 0:
+      data = await getFut
+  else:
+    data = await state.incoming.get()
 
   # If we got real data, return it with flow control update
   if data.len > 0:
