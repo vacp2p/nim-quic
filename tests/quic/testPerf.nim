@@ -6,7 +6,7 @@ import pkg/quic/transport/stream
 import pkg/quic/transport/quicconnection
 import pkg/quic/transport/ngtcp2/native
 import pkg/quic/udp/datagram
-import tests/helpers/simulation
+import ../helpers/simulation
 
 suite "perf protocol like test":
   setup:
