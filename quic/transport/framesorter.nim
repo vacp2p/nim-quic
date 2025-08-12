@@ -8,12 +8,20 @@ type FrameSorter* = object
   incoming*: AsyncQueue[seq[byte]]
   totalBytes*: Opt[int64]
     # contains total bytes for frame; and is known once a FIN is received
+  eofFut*: Future[void]
 
 proc initFrameSorter*(incoming: AsyncQueue[seq[byte]]): FrameSorter =
   result.incoming = incoming
   result.buffer = initTable[int64, byte]()
   result.emitPos = 0
   result.totalBytes = Opt.none(int64)
+  result.eofFut = newFuture[void]()
+
+proc isEOF*(fs: FrameSorter): bool =
+  if fs.totalBytes.isNone:
+    return false
+
+  return fs.emitPos >= fs.totalBytes.get()
 
 proc putToQueue(fs: FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
   if data.len > 0:
@@ -21,6 +29,9 @@ proc putToQueue(fs: FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
       fs.incoming.putNoWait(data)
     except AsyncQueueFullError:
       raise newException(QuicError, "Incoming queue is full")
+  
+  if fs.isEOF() and not fs.eofFut.finished:
+    fs.eofFut.complete()
 
 proc emitBufferedData(fs: var FrameSorter) {.raises: [QuicError].} =
   var emitData: seq[byte]
@@ -39,6 +50,8 @@ proc insert*(
 ) {.raises: [QuicError].} =
   if isFin and fs.totalBytes.isNone:
     fs.totalBytes = Opt.some(offset.int64 + max(data.len - 1, 0))
+    if fs.isEOF() and not fs.eofFut.finished:
+      fs.eofFut.complete()
 
   # if offset matches emit position, framesorter can emit entire input in batch
   if offset.int == fs.emitPos and data.len > 0:
@@ -69,12 +82,6 @@ proc insert*(
 
   # Try to emit contiguous data
   fs.emitBufferedData()
-
-proc isEOF*(fs: FrameSorter): bool =
-  if fs.totalBytes.isNone:
-    return false
-
-  return fs.emitPos >= fs.totalBytes.get()
 
 proc reset*(fs: var FrameSorter) =
   fs.totalBytes = Opt.none(int64)

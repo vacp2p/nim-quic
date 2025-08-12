@@ -57,18 +57,12 @@ suite "perf protocol like test - half-close hang":
         totalBytesRead += chunk.len
         echo "SERVER: Total bytes read so far: ", totalBytesRead
 
-        if totalBytesRead >= uploadSize:
-          echo "SERVER: Read all expected upload data"
-          break # Exit the reading loop once we have all expected data
-
       echo "SERVER: Starting to send download data"
       # Step 3: Send download data back
       var remainingToSend = downloadSize
       while remainingToSend > 0:
         let toSend = min(remainingToSend, chunkSize)
-        let dummyData = newSeq[byte](toSend)
-        echo "about to send"
-        await serverStream.write(dummyData)
+        await serverStream.write(newSeq[byte](toSend))
         remainingToSend -= toSend
         echo "SERVER: Sent ", toSend, " bytes, remaining: ", remainingToSend
 
@@ -77,8 +71,6 @@ suite "perf protocol like test - half-close hang":
 
     # Start server handler
     asyncSpawn serverHandler()
-
-    await clientStream.write(@[])
 
     # Step 1: Send download size (8 bytes) - activate stream first
     echo "CLIENT: Sending download size"
