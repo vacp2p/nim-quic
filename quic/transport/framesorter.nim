@@ -22,11 +22,12 @@ proc isEOF*(fs: FrameSorter): bool =
 
   return fs.emitPos >= fs.totalBytes.get()
 
-proc sendEof(fs: var FrameSorter) =
+proc sendEof(fs: var FrameSorter) {.raises: [QuicError].} =
   if fs.isEOF() and not fs.sentEof:
-    fs.sentEof = true
+    # empty sequence is sent to unblock reading from incoming queue
     try:
       fs.incoming.putNoWait(@[])
+      fs.sentEof = true
     except AsyncQueueFullError:
       raise newException(QuicError, "Incoming queue is full")
 
