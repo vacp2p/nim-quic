@@ -23,6 +23,10 @@ proc isEOF*(fs: FrameSorter): bool =
 
   return fs.emitPos >= fs.totalBytes.get()
 
+proc completeEofFut(fs: FrameSorter) =
+  if fs.isEOF() and not fs.eofFut.finished:
+    fs.eofFut.complete()
+
 proc putToQueue(fs: FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
   if data.len > 0:
     try:
@@ -30,8 +34,7 @@ proc putToQueue(fs: FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
     except AsyncQueueFullError:
       raise newException(QuicError, "Incoming queue is full")
 
-  if fs.isEOF() and not fs.eofFut.finished:
-    fs.eofFut.complete()
+  fs.completeEofFut()
 
 proc emitBufferedData(fs: var FrameSorter) {.raises: [QuicError].} =
   var emitData: seq[byte]
@@ -50,8 +53,10 @@ proc insert*(
 ) {.raises: [QuicError].} =
   if isFin and fs.totalBytes.isNone:
     fs.totalBytes = Opt.some(offset.int64 + max(data.len - 1, 0))
-    if fs.isEOF() and not fs.eofFut.finished:
-      fs.eofFut.complete()
+    defer:
+      # complete EOF fut in defer so that it happens after 
+      # data is written to incoming queue (if any)
+      fs.completeEofFut()
 
   # if offset matches emit position, framesorter can emit entire input in batch
   if offset.int == fs.emitPos and data.len > 0:
