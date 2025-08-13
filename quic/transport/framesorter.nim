@@ -8,14 +8,13 @@ type FrameSorter* = object
   incoming*: AsyncQueue[seq[byte]]
   totalBytes*: Opt[int64]
     # contains total bytes for frame; and is known once a FIN is received
-  eofFut*: Future[void]
+  sentEof: bool
 
 proc initFrameSorter*(incoming: AsyncQueue[seq[byte]]): FrameSorter =
   result.incoming = incoming
   result.buffer = initTable[int64, byte]()
   result.emitPos = 0
   result.totalBytes = Opt.none(int64)
-  result.eofFut = newFuture[void]()
 
 proc isEOF*(fs: FrameSorter): bool =
   if fs.totalBytes.isNone:
@@ -23,18 +22,22 @@ proc isEOF*(fs: FrameSorter): bool =
 
   return fs.emitPos >= fs.totalBytes.get()
 
-proc completeEofFut(fs: FrameSorter) =
-  if fs.isEOF() and not fs.eofFut.finished:
-    fs.eofFut.complete()
+proc sendEof(fs: var FrameSorter) =
+  if fs.isEOF() and not fs.sentEof:
+    fs.sentEof = true
+    try:
+      fs.incoming.putNoWait(@[])
+    except AsyncQueueFullError:
+      raise newException(QuicError, "Incoming queue is full")
 
-proc putToQueue(fs: FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
+proc putToQueue(fs: var FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
   if data.len > 0:
     try:
       fs.incoming.putNoWait(data)
     except AsyncQueueFullError:
       raise newException(QuicError, "Incoming queue is full")
 
-  fs.completeEofFut()
+  fs.sendEof()
 
 proc emitBufferedData(fs: var FrameSorter) {.raises: [QuicError].} =
   var emitData: seq[byte]
@@ -54,9 +57,9 @@ proc insert*(
   if isFin and fs.totalBytes.isNone:
     fs.totalBytes = Opt.some(offset.int64 + max(data.len - 1, 0))
     defer:
-      # complete EOF fut in defer so that it happens after 
+      # send EOF in defer so that it happens after 
       # data is written to incoming queue (if any)
-      fs.completeEofFut()
+      fs.sendEof()
 
   # if offset matches emit position, framesorter can emit entire input in batch
   if offset.int == fs.emitPos and data.len > 0:
@@ -93,7 +96,7 @@ proc reset*(fs: var FrameSorter) =
   fs.buffer.clear()
   fs.incoming.clear()
   fs.emitPos = 0
-  fs.eofFut = newFuture[void]()
+  fs.sentEof = false
 
 proc isComplete*(fs: FrameSorter): bool =
   if fs.totalBytes.isNone:

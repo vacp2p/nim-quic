@@ -59,19 +59,8 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
     stream.switch(newClosedStream(state.incoming, state.frameSorter))
     return @[] # Return EOF for locally closed read
 
-  proc delayedFuture(fut: Future[void]): Future[void] {.async.} =
-    # TODO: https://github.com/vacp2p/nim-quic/issues/92
-    # this is temporall fix, delay is introduced to give
-    # more priority to future reading from incoming queue
-    await sleepAsync(100.milliseconds)
-    await fut
-
   # Priority 3: Get data from incoming queue
-  var data: seq[byte]
-  let getFut = state.incoming.get()
-  let fut = await race(getFut, delayedFuture(state.frameSorter.eofFut))
-  if fut == getFut:
-    data = await getFut
+  var data = await state.incoming.get()
 
   # If we got real data, return it with flow control update
   if data.len > 0:
