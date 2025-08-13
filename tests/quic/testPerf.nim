@@ -71,7 +71,7 @@ suite "perf protocol like test":
       await clientStream.write(dummyData)
       remainingToSend -= toSend
 
-    # Step 3: Close write side (this is where the problem happens)
+    # Step 3: Close write side
     await clientStream.closeWrite()
 
     # Step 4: Start reading download data
