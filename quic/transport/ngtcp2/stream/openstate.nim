@@ -60,7 +60,7 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
     return @[] # Return EOF for locally closed read
 
   # Priority 3: Get data from incoming queue
-  var data = await state.incoming.get()
+  let data = await state.incoming.get()
 
   # If we got real data, return it with flow control update
   if data.len > 0:
