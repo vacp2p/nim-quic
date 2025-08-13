@@ -8,7 +8,6 @@ type FrameSorter* = object
   incoming*: AsyncQueue[seq[byte]]
   totalBytes*: Opt[int64]
     # contains total bytes for frame; and is known once a FIN is received
-  sentEof: bool
 
 proc initFrameSorter*(incoming: AsyncQueue[seq[byte]]): FrameSorter =
   result.incoming = incoming
@@ -23,11 +22,10 @@ proc isEOF*(fs: FrameSorter): bool =
   return fs.emitPos >= fs.totalBytes.get()
 
 proc sendEof(fs: var FrameSorter) {.raises: [QuicError].} =
-  if fs.isEOF() and not fs.sentEof:
+  if fs.isEOF():
     # empty sequence is sent to unblock reading from incoming queue
     try:
       fs.incoming.putNoWait(@[])
-      fs.sentEof = true
     except AsyncQueueFullError:
       raise newException(QuicError, "Incoming queue is full")
 
@@ -97,7 +95,6 @@ proc reset*(fs: var FrameSorter) =
   fs.buffer.clear()
   fs.incoming.clear()
   fs.emitPos = 0
-  fs.sentEof = false
 
 proc isComplete*(fs: FrameSorter): bool =
   if fs.totalBytes.isNone:
