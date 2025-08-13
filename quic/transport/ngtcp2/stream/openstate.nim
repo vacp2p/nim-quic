@@ -63,7 +63,7 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
     # TODO: https://github.com/vacp2p/nim-quic/issues/92
     # this is temporall fix, delay is introduced to give
     # more priority to future reading from incoming queue
-    await sleepAsync(100.milliseconds)
+    await sleepAsync(50.milliseconds)
     await fut
 
   # Priority 3: Get data from incoming queue
