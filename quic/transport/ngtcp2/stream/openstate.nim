@@ -4,6 +4,7 @@ import ../../stream
 import ./helpers
 import ../native/connection
 import ./closedstate
+import ./writeclosedstate
 import chronicles
 
 logScope:
@@ -14,8 +15,6 @@ type OpenStream* = ref object of StreamState
   incoming*: AsyncQueue[seq[byte]]
   connection*: Ngtcp2Connection
   frameSorter*: FrameSorter
-  closeFut*: Future[string]
-  writeFinSent*: bool
   readClosed*: bool
 
 proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
@@ -23,9 +22,7 @@ proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
   OpenStream(
     connection: connection,
     incoming: incomingQ,
-    closeFut: newFuture[string](),
     frameSorter: initFrameSorter(incomingQ),
-    writeFinSent: false,
     readClosed: false,
   )
 
@@ -89,10 +86,6 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
   return await state.read()
 
 method write*(state: OpenStream, bytes: seq[byte]): Future[void] =
-  if state.writeFinSent:
-    let fut = newFuture[void]()
-    fut.fail(newException(StreamError, "write side is closed"))
-    return fut
   # let stream = state.stream.valueOr:
   #   raise newException(QuicError, "stream is closed")
   # See https://github.com/status-im/nim-quic/pull/41 for more details
@@ -102,30 +95,20 @@ method close*(state: OpenStream) {.async.} =
   ## Close both write and read sides of the stream
   let stream = state.stream.valueOr:
     return
-
-  # Close write side by sending FIN
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
-  state.writeFinSent = true
-
-  # Close read side locally
-  state.readClosed = true
-
-  # Don't switch to ClosedStream immediately - let read() handle the transition
-  # when all buffered data is consumed
+  stream.switch(newWriteClosedStream(state.connection, state.incoming, state.frameSorter))
 
 method closeWrite*(state: OpenStream) {.async.} =
   ## Close write side by sending FIN, but keep read side open
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
-  state.writeFinSent = true
-  # Note: we don't switch to ClosedStream here - read side stays open for half-close
+  stream.switch(newWriteClosedStream(state.connection, state.incoming, state.frameSorter))
 
 method reset*(state: OpenStream) =
   let stream = state.stream.valueOr:
     return
 
-  state.closeFut.complete("stream reset")
   state.connection.shutdownStream(stream.id)
   stream.closed.fire()
   state.frameSorter.reset()
@@ -167,5 +150,4 @@ method receive*(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool
 method expire*(state: OpenStream) {.raises: [].} =
   let stream = state.stream.valueOr:
     return
-  state.closeFut.complete("connection timed out")
   stream.closed.fire()

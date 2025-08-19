@@ -1,18 +1,16 @@
 import ../../../basics
 import ../../stream
 import ../../framesorter
+import ./errors
 import chronicles
 
 logScope:
   topics = "closed state"
 
-type
-  ClosedStream* = ref object of StreamState
-    remaining: AsyncQueue[seq[byte]]
-    frameSorter: FrameSorter
-    wasReset: bool
-
-  ClosedStreamError* = object of StreamError
+type ClosedStream* = ref object of StreamState
+  remaining: AsyncQueue[seq[byte]]
+  frameSorter: FrameSorter
+  wasReset: bool
 
 proc newClosedStream*(
     remaining: AsyncQueue[seq[byte]], frameSorter: FrameSorter, wasReset: bool = false
