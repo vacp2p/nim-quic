@@ -65,9 +65,7 @@ method onClose*(state: SendStream) =
 method isClosed*(state: SendStream): bool =
   false
 
-method receive*(
-    state: SendStream, offset: uint64, bytes: seq[byte], isFin: bool
-) =
+method receive*(state: SendStream, offset: uint64, bytes: seq[byte], isFin: bool) =
   let stream = state.stream.valueOr:
     return
 

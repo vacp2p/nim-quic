@@ -17,9 +17,7 @@ proc newReceiveStream*(
     incoming: AsyncQueue[seq[byte]],
     frameSorter: FrameSorter,
 ): ReceiveStream =
-  ReceiveStream(
-    connection: connection, incoming: incoming, frameSorter: frameSorter
-  )
+  ReceiveStream(connection: connection, incoming: incoming, frameSorter: frameSorter)
 
 method enter*(state: ReceiveStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
@@ -92,9 +90,7 @@ method onClose*(state: ReceiveStream) =
 method isClosed*(state: ReceiveStream): bool =
   false
 
-method receive*(
-    state: ReceiveStream, offset: uint64, bytes: seq[byte], isFin: bool
-) =
+method receive*(state: ReceiveStream, offset: uint64, bytes: seq[byte], isFin: bool) =
   let stream = state.stream.valueOr:
     return
 
