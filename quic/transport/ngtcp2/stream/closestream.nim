@@ -29,7 +29,7 @@ method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
     discard
 
   # When no more data is available, return EOF instead of throwing exception
-  return @[] # Return EOF for closed streams
+  return @[]
 
 method write*(state: ClosedStream, bytes: seq[byte]) {.async.} =
   raise newException(ClosedStreamError, "stream is closed")
