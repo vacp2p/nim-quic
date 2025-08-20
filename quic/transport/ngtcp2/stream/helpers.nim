@@ -19,3 +19,8 @@ proc setUserData*(
   let stream = stream.valueOr:
     return
   connection.setStreamUserData(stream.id, userdata)
+
+proc expire*(stream: Opt[stream.Stream]) =
+  let stream = stream.valueOr:
+    return
+  stream.closed.fire()

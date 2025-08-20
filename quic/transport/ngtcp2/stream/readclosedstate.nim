@@ -119,6 +119,4 @@ method reset*(state: ReadClosedStream) =
   stream.switch(newClosedStream(state.remaining, state.frameSorter, wasReset = true))
 
 method expire*(state: ReadClosedStream) {.raises: [].} =
-  let stream = state.stream.valueOr:
-    return
-  stream.closed.fire()
+  expire(state.stream)
