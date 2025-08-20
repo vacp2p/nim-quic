@@ -8,14 +8,14 @@ logScope:
   topics = "closed state"
 
 type ClosedStream* = ref object of StreamState
-  remaining: AsyncQueue[seq[byte]]
+  incoming: AsyncQueue[seq[byte]]
   frameSorter: FrameSorter
   wasReset: bool
 
 proc newClosedStream*(
-    remaining: AsyncQueue[seq[byte]], frameSorter: FrameSorter, wasReset: bool = false
+    incoming: AsyncQueue[seq[byte]], frameSorter: FrameSorter, wasReset: bool = false
 ): ClosedStream =
-  ClosedStream(remaining: remaining, wasReset: wasReset)
+  ClosedStream(incoming: incoming, wasReset: wasReset)
 
 method enter*(state: ClosedStream, stream: Stream) =
   discard
@@ -29,7 +29,7 @@ method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
     raise newException(ClosedStreamError, "stream was reset")
 
   try:
-    return state.remaining.popFirstNoWait()
+    return state.incoming.popFirstNoWait()
   except AsyncQueueEmptyError:
     discard
 
