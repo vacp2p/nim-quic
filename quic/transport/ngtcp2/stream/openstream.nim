@@ -6,12 +6,9 @@ import ../native/connection
 import ./closestream
 import ./receivestream
 import ./sendstream
+import ./basestream
 
-type OpenStream* = ref object of StreamState
-  stream*: Opt[Stream]
-  incoming*: AsyncQueue[seq[byte]]
-  connection*: Ngtcp2Connection
-  frameSorter*: FrameSorter
+type OpenStream* = ref object of BaseStream
 
 proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
   let incomingQ = newAsyncQueue[seq[byte]]()

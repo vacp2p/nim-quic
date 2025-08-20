@@ -2,10 +2,9 @@ import ../../../basics
 import ../../stream
 import ../../framesorter
 import ./errors
+import ./basestream
 
-type ClosedStream* = ref object of StreamState
-  incoming: AsyncQueue[seq[byte]]
-  frameSorter: FrameSorter
+type ClosedStream* = ref object of BaseStream
   wasReset: bool
 
 proc newClosedStream*(

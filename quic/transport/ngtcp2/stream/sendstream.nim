@@ -5,12 +5,9 @@ import ../native/connection
 import ./closestream
 import ./helpers
 import ./errors
+import ./basestream
 
-type SendStream* = ref object of StreamState
-  stream*: Opt[Stream]
-  connection*: Ngtcp2Connection
-  incoming: AsyncQueue[seq[byte]]
-  frameSorter: FrameSorter
+type SendStream* = ref object of BaseStream
 
 proc newSendStream*(
     connection: Ngtcp2Connection,
