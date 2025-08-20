@@ -63,15 +63,15 @@ method write*(state: ReceiveStream, bytes: seq[byte]) {.async.} =
   raise newException(ClosedStreamError, "write side is closed")
 
 method close*(state: ReceiveStream) {.async.} =
-  # noop already closed
   discard
 
 method closeWrite*(state: ReceiveStream) {.async.} =
-  # noop already closed
   discard
 
-proc closeRead*(stream: ReceiveStream) {.async.} =
-  discard
+proc closeRead*(state: ReceiveStream) {.async.} =
+  let stream = state.stream.valueOr:
+    return
+  stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
 method onClose*(state: ReceiveStream) =
   let stream = state.stream.valueOr:
@@ -99,12 +99,6 @@ method receive*(state: ReceiveStream, offset: uint64, bytes: seq[byte], isFin: b
   if state.frameSorter.isComplete():
     stream.closed.fire()
     stream.switch(newClosedStream(state.incoming, state.frameSorter))
-  elif isFin and bytes.len == 0 and state.frameSorter.isEOF():
-    # Special handling: FIN with no data and we've reached EOF
-    # Peer has finished sending data, but we don't switch to ClosedStream automatically
-    # because we might still need to write back (half-close scenario)
-    # Don't switch to ClosedStream - stay in OpenStream so we can still write
-    discard
 
 method reset*(state: ReceiveStream) =
   let stream = state.stream.valueOr:

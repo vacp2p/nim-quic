@@ -58,7 +58,7 @@ method write*(state: OpenStream, bytes: seq[byte]): Future[void] =
   state.connection.send(state.stream.get.id, bytes)
 
 method close*(state: OpenStream) {.async.} =
-  ## Close both write and read sides of the stream
+  # Bidirectional streams, close() only closes the send side of the stream.
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
@@ -102,12 +102,6 @@ method receive*(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool
   if state.frameSorter.isComplete():
     stream.closed.fire()
     stream.switch(newClosedStream(state.incoming, state.frameSorter))
-  elif isFin and bytes.len == 0 and state.frameSorter.isEOF():
-    # Special handling: FIN with no data and we've reached EOF
-    # Peer has finished sending data, but we don't switch to ClosedStream automatically
-    # because we might still need to write back (half-close scenario)
-    # Don't switch to ClosedStream - stay in OpenStream so we can still write
-    discard
 
 method reset*(state: OpenStream) =
   let stream = state.stream.valueOr:
