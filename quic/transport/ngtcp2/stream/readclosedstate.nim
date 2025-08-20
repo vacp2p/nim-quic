@@ -13,7 +13,9 @@ type ReadClosedStream* = ref object of StreamState
   frameSorter: FrameSorter
 
 proc newReadClosedStream*(
-    connection: Ngtcp2Connection, incoming: AsyncQueue[seq[byte]], frameSorter: FrameSorter
+    connection: Ngtcp2Connection,
+    incoming: AsyncQueue[seq[byte]],
+    frameSorter: FrameSorter,
 ): ReadClosedStream =
   ReadClosedStream(connection: connection, incoming: incoming, frameSorter: frameSorter)
 
@@ -124,4 +126,3 @@ method expire*(state: ReadClosedStream) {.raises: [].} =
   let stream = state.stream.valueOr:
     return
   stream.closed.fire()
-

@@ -19,9 +19,7 @@ type OpenStream* = ref object of StreamState
 proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
   let incomingQ = newAsyncQueue[seq[byte]]()
   OpenStream(
-    connection: connection,
-    incoming: incomingQ,
-    frameSorter: initFrameSorter(incomingQ),
+    connection: connection, incoming: incomingQ, frameSorter: initFrameSorter(incomingQ)
   )
 
 method enter*(state: OpenStream, stream: Stream) =
@@ -67,14 +65,18 @@ method close*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
-  stream.switch(newWriteClosedStream(state.connection, state.incoming, state.frameSorter))
+  stream.switch(
+    newWriteClosedStream(state.connection, state.incoming, state.frameSorter)
+  )
 
 method closeWrite*(state: OpenStream) {.async.} =
   ## Close write side by sending FIN, but keep read side open
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
-  stream.switch(newWriteClosedStream(state.connection, state.incoming, state.frameSorter))
+  stream.switch(
+    newWriteClosedStream(state.connection, state.incoming, state.frameSorter)
+  )
 
 method onClose*(state: OpenStream) =
   let stream = state.stream.valueOr:

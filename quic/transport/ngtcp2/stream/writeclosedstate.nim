@@ -17,9 +17,13 @@ type WriteClosedStream* = ref object of StreamState
   frameSorter: FrameSorter
 
 proc newWriteClosedStream*(
-    connection: Ngtcp2Connection, incoming: AsyncQueue[seq[byte]], frameSorter: FrameSorter
+    connection: Ngtcp2Connection,
+    incoming: AsyncQueue[seq[byte]],
+    frameSorter: FrameSorter,
 ): WriteClosedStream =
-  WriteClosedStream(connection: connection, incoming: incoming, frameSorter: frameSorter)
+  WriteClosedStream(
+    connection: connection, incoming: incoming, frameSorter: frameSorter
+  )
 
 method enter*(state: WriteClosedStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
