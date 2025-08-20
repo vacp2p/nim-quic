@@ -2,10 +2,6 @@ import ../../../basics
 import ../../stream
 import ../../framesorter
 import ./errors
-import chronicles
-
-logScope:
-  topics = "closed state"
 
 type ReadClosedStream* = ref object of StreamState
   connection*: Ngtcp2Connection

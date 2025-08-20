@@ -5,10 +5,6 @@ import ./helpers
 import ../native/connection
 import ./closedstate
 import ./writeclosedstate
-import chronicles
-
-logScope:
-  topics = "open state"
 
 type OpenStream* = ref object of StreamState
   stream*: Opt[Stream]
