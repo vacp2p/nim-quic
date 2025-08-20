@@ -1,31 +1,37 @@
 import ../../../basics
 import ../../stream
 import ../../framesorter
+import ./helpers
+import ../native/connection
+import ./closestream
 import ./errors
 
-type ReadClosedStream* = ref object of StreamState
+type ReceiveStream* = ref object of StreamState
+  stream*: Opt[Stream]
   connection*: Ngtcp2Connection
   incoming: AsyncQueue[seq[byte]]
   frameSorter: FrameSorter
 
-proc newReadClosedStream*(
+proc newReceiveStream*(
     connection: Ngtcp2Connection,
     incoming: AsyncQueue[seq[byte]],
     frameSorter: FrameSorter,
-): ReadClosedStream =
-  ReadClosedStream(connection: connection, incoming: incoming, frameSorter: frameSorter)
+): ReceiveStream =
+  ReceiveStream(
+    connection: connection, incoming: incoming, frameSorter: frameSorter
+  )
 
-method enter*(state: ReadClosedStream, stream: Stream) =
+method enter*(state: ReceiveStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   setUserData(state.stream, state.connection, unsafeAddr state[])
 
-method leave*(state: ReadClosedStream) =
+method leave*(state: ReceiveStream) =
   setUserData(state.stream, state.connection, nil)
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
 
-method read*(state: ReadClosedStream): Future[seq[byte]] {.async.} =
+method read*(state: ReceiveStream): Future[seq[byte]] {.async.} =
   # RFC 9000 compliant stream reading logic
   # Priority 1: Check for immediate EOF conditions
   if state.frameSorter.isEOF() and state.incoming.len == 0:
@@ -33,14 +39,6 @@ method read*(state: ReadClosedStream): Future[seq[byte]] {.async.} =
       return @[] # Already closed
     stream.switch(newClosedStream(state.incoming, state.frameSorter))
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
-
-  # Priority 2: Check if local read is closed but there's still buffered data
-  if state.incoming.len == 0:
-    # Local read closed and no buffered data - switch to ClosedStream
-    let stream = state.stream.valueOr:
-      return @[] # Already closed
-    stream.switch(newClosedStream(state.incoming, state.frameSorter))
-    return @[] # Return EOF for locally closed read
 
   # Priority 3: Get data from incoming queue
   let data = await state.incoming.get()
@@ -59,22 +57,25 @@ method read*(state: ReadClosedStream): Future[seq[byte]] {.async.} =
     stream.switch(newClosedStream(state.incoming, state.frameSorter))
     return @[] # Return EOF per RFC 9000
 
+  # Empty data but no EOF - this shouldn't happen in normal operation
+  # Continue reading for more data
   return await state.read()
 
-method write*(state: ReadClosedStream, bytes: seq[byte]) {.async.} =
-  state.connection.send(state.stream.get.id, bytes)
+method write*(state: ReceiveStream, bytes: seq[byte]) {.async.} =
+  raise newException(ClosedStreamError, "write side is closed")
 
-method close*(state: ReadClosedStream) {.async.} =
+method close*(state: ReceiveStream) {.async.} =
+  # noop already closed
   discard
 
-method closeWrite*(state: ReadClosedStream) {.async.} =
-  ## Close write side by sending FIN, but keep read side open
-  let stream = state.stream.valueOr:
-    return
-  discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
-  stream.switch(newClosedStream(state.incoming, state.frameSorter))
+method closeWrite*(state: ReceiveStream) {.async.} =
+  # noop already closed
+  discard
 
-method onClose*(state: ReadClosedStream) =
+proc closeRead*(stream: ReceiveStream) {.async.} =
+  discard
+
+method onClose*(state: ReceiveStream) =
   let stream = state.stream.valueOr:
     return
 
@@ -88,11 +89,11 @@ method onClose*(state: ReadClosedStream) =
 
   stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
-method isClosed*(state: ReadClosedStream): bool =
+method isClosed*(state: ReceiveStream): bool =
   false
 
 method receive*(
-    state: ReadClosedStream, offset: uint64, bytes: seq[byte], isFin: bool
+    state: ReceiveStream, offset: uint64, bytes: seq[byte], isFin: bool
 ) =
   let stream = state.stream.valueOr:
     return
@@ -109,14 +110,14 @@ method receive*(
     # Don't switch to ClosedStream - stay in OpenStream so we can still write
     discard
 
-method reset*(state: ReadClosedStream) =
+method reset*(state: ReceiveStream) =
   let stream = state.stream.valueOr:
     return
 
   state.connection.shutdownStream(stream.id)
   stream.closed.fire()
   state.frameSorter.reset()
-  stream.switch(newClosedStream(state.remaining, state.frameSorter, wasReset = true))
+  stream.switch(newClosedStream(state.incoming, state.frameSorter, wasReset = true))
 
-method expire*(state: ReadClosedStream) {.raises: [].} =
+method expire*(state: ReceiveStream) {.raises: [].} =
   expire(state.stream)

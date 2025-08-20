@@ -22,6 +22,7 @@ export incomingStream
 export read
 export write
 export closeWrite
+export closeRead
 export stop
 export drop
 export close

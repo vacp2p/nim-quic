@@ -41,6 +41,9 @@ method close*(state: ClosedStream) {.async.} =
 method closeWrite*(state: ClosedStream) {.async.} =
   discard
 
+proc closeRead*(stream: ClosedStream) {.async.} =
+  discard
+
 method onClose*(state: ClosedStream) =
   discard
 

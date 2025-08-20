@@ -3,8 +3,9 @@ import ../../framesorter
 import ../../stream
 import ./helpers
 import ../native/connection
-import ./closedstate
-import ./writeclosedstate
+import ./closestream
+import ./receivestream
+import ./sendstream
 
 type OpenStream* = ref object of StreamState
   stream*: Opt[Stream]
@@ -62,7 +63,7 @@ method close*(state: OpenStream) {.async.} =
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
   stream.switch(
-    newWriteClosedStream(state.connection, state.incoming, state.frameSorter)
+    newReceiveStream(state.connection, state.incoming, state.frameSorter)
   )
 
 method closeWrite*(state: OpenStream) {.async.} =
@@ -71,7 +72,14 @@ method closeWrite*(state: OpenStream) {.async.} =
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
   stream.switch(
-    newWriteClosedStream(state.connection, state.incoming, state.frameSorter)
+    newReceiveStream(state.connection, state.incoming, state.frameSorter)
+  )
+
+proc closeRead*(state: OpenStream) {.async.} =
+  let stream = state.stream.valueOr:
+    return
+  stream.switch(
+    newSendStream(state.connection, state.incoming, state.frameSorter)
   )
 
 method onClose*(state: OpenStream) =
