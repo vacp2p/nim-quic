@@ -15,6 +15,15 @@ proc newData(size: int, val: uint8 = uint8(0xEE)): seq[uint8] =
     data[i] = val
   return data
 
+proc readStreamTillEOF(stream: Stream): Future[seq[uint8]] {.async.} =
+  var receivedData: seq[uint8]
+  while true:
+    let chunk = await stream.read()
+    if chunk.len == 0:
+      break
+    receivedData.add(chunk)
+  return receivedData
+
 suite "streams":
   setup:
     var (client, server) = waitFor performHandshake()
@@ -375,20 +384,8 @@ suite "streams":
     await clientStream.closeWrite()
 
     let serverStream = await server.incomingStream()
-    var allReceived: seq[uint8]
 
-    # Read all chunks
-    allReceived.add(await serverStream.read())
-
-    try:
-      allReceived.add(await serverStream.read())
-      allReceived.add(await serverStream.read())
-    except:
-      # May receive combined chunks due to TCP-like behavior
-      discard
-
-    var expectedData = chunk1 & chunk2 & chunk3
-    check allReceived == expectedData
+    check (chunk1 & chunk2 & chunk3) == (await readStreamTillEOF(serverStream))
 
     await simulation.cancelAndWait()
 
@@ -559,8 +556,7 @@ suite "streams":
     check (await clientStream.read()).len == 0
 
     # Server should also receive data from client (before its close())
-    let receivedByServer = await serverStream.read()
-    check receivedByServer == clientData
+    check (await serverStream.read()) == clientData
 
     await simulation.cancelAndWait()
 
@@ -602,22 +598,10 @@ suite "streams":
     let serverStream = await server.incomingStream()
 
     # Server starts reading IMMEDIATELY (parallel with client writing)
-    proc serverReadData(): Future[seq[uint8]] {.async.} =
-      var receivedData: seq[uint8]
-      var chunkCount = 0
-      while true:
-        let chunk = await serverStream.read()
-        if chunk.len == 0:
-          break
-        receivedData.add(chunk)
-        chunkCount += 1
-      return receivedData
-
-    let serverTask = serverReadData()
+    let serverTask = readStreamTillEOF(serverStream)
 
     # Client writes data WHILE server is reading
     await clientStream.write(testData)
-
     await clientStream.closeWrite()
 
     # Wait for server to finish reading
@@ -640,31 +624,8 @@ suite "streams":
     let serverStream = await server.incomingStream()
 
     # Start parallel read operations for both directions
-    proc clientReadData(): Future[seq[uint8]] {.async.} =
-      var receivedData: seq[uint8]
-      var chunkCount = 0
-      while true:
-        let chunk = await clientStream.read()
-        if chunk.len == 0:
-          break
-        receivedData.add(chunk)
-        chunkCount += 1
-      return receivedData
-
-    proc serverReadData(): Future[seq[uint8]] {.async.} =
-      var receivedData: seq[uint8]
-      var chunkCount = 0
-      while true:
-        let chunk = await serverStream.read()
-        if chunk.len == 0:
-          break
-        receivedData.add(chunk)
-        chunkCount += 1
-      return receivedData
-
-    # Start both read tasks
-    let clientReadTask = clientReadData()
-    let serverReadTask = serverReadData()
+    let clientReadTask = readStreamTillEOF(clientStream)
+    let serverReadTask = readStreamTillEOF(serverStream)
 
     # Client writes 10MB and closes write side
     await clientStream.write(clientData)
@@ -683,21 +644,10 @@ suite "streams":
     check serverReceivedData.len == dataSize
 
     # Verify data patterns
-    var clientDataValid = true
-    var serverDataValid = true
-
     for i in 0 ..< min(dataSize, clientReceivedData.len):
-      if clientReceivedData[i] != 0xBB: # Client should receive server pattern
-        clientDataValid = false
-        break
-
+      check clientReceivedData[i] == 0xBB # Client should receive server pattern
     for i in 0 ..< min(dataSize, serverReceivedData.len):
-      if serverReceivedData[i] != 0xAA: # Server should receive client pattern  
-        serverDataValid = false
-        break
-
-    check clientDataValid
-    check serverDataValid
+      check serverReceivedData[i] == 0xAA # Server should receive client pattern  
 
     # Both sides should be able to detect EOF now
     check (await clientStream.read()).len == 0
@@ -718,32 +668,9 @@ suite "streams":
     await clientStream.write(@[]) # Activate stream
     let serverStream = await server.incomingStream()
 
-    # Start parallel read operations
-    proc clientReadData(): Future[seq[uint8]] {.async.} =
-      var receivedData: seq[uint8]
-      var chunkCount = 0
-      while true:
-        let chunk = await clientStream.read()
-        if chunk.len == 0:
-          break
-        receivedData.add(chunk)
-        chunkCount += 1
-      return receivedData
-
-    proc serverReadData(): Future[seq[uint8]] {.async.} =
-      var receivedData: seq[uint8]
-      var chunkCount = 0
-      while true:
-        let chunk = await serverStream.read()
-        if chunk.len == 0:
-          break
-        receivedData.add(chunk)
-        chunkCount += 1
-      return receivedData
-
     # Start both read tasks
-    let clientReadTask = clientReadData()
-    let serverReadTask = serverReadData()
+    let clientReadTask = readStreamTillEOF(clientStream)
+    let serverReadTask = readStreamTillEOF(serverStream)
 
     # Client writes 10MB and does closeWrite() (half-close)
     await clientStream.write(clientData)
@@ -762,21 +689,10 @@ suite "streams":
     check serverReceivedData.len == dataSize
 
     # Verify data patterns
-    var clientDataValid = true
-    var serverDataValid = true
-
     for i in 0 ..< min(dataSize, clientReceivedData.len):
-      if clientReceivedData[i] != 0xDD: # Client should receive server pattern
-        clientDataValid = false
-        break
-
+      check clientReceivedData[i] == 0xDD # Client should receive server pattern
     for i in 0 ..< min(dataSize, serverReceivedData.len):
-      if serverReceivedData[i] != 0xCC: # Server should receive client pattern  
-        serverDataValid = false
-        break
-
-    check clientDataValid
-    check serverDataValid
+      check serverReceivedData[i] == 0xCC # Server should receive client pattern  
 
     # Client should get EOF when trying to read (server did full close)
     check (await clientStream.read()).len == 0
@@ -795,7 +711,7 @@ suite "streams":
     await clientStream.write(@[]) # Activate stream
     let serverStream = await server.incomingStream()
 
-    # CLIENT STARTS WRITING FIRST (non-blocking)
+    # Client starts writing first (non-blocking)
     let clientWriteTask = proc() {.async.} =
       await clientStream.write(testData)
       await clientStream.closeWrite()
@@ -805,19 +721,8 @@ suite "streams":
     # Small delay to let client start writing first
     await sleepAsync(5.milliseconds)
 
-    # SERVER STARTS READING IN PARALLEL (after client already started)
-    proc serverReadData(): Future[seq[uint8]] {.async.} =
-      var receivedData: seq[uint8]
-      var chunkCount = 0
-      while true:
-        let chunk = await serverStream.read()
-        if chunk.len == 0:
-          break
-        receivedData.add(chunk)
-        chunkCount += 1
-      return receivedData
-
-    let serverTask = serverReadData()
+    # Server starts reading in parallel (after client already started)
+    let serverTask = readStreamTillEOF(serverStream)
 
     # Wait for both operations to complete
     await clientTask
@@ -827,13 +732,9 @@ suite "streams":
     check receivedData.len == dataSize
 
     # Verify data pattern
-    var dataValid = true
     for i in 0 ..< min(dataSize, receivedData.len):
-      if receivedData[i] != 0xEE:
-        dataValid = false
-        break
+      check receivedData[i] == 0xEE
 
-    check dataValid
     check (await serverStream.read()).len == 0
 
     await serverStream.close()
