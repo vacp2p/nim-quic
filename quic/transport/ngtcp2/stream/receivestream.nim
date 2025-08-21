@@ -51,8 +51,7 @@ method read*(state: ReceiveStream): Future[seq[byte]] {.async.} =
     stream.switch(newClosedStream(state.incoming, state.frameSorter))
     return @[] # Return EOF per RFC 9000
 
-  # Empty data but no EOF - this shouldn't happen in normal operation
-  # Continue reading for more data
+  # Empty data but no EOF; continue reading for more data
   return await state.read()
 
 method write*(state: ReceiveStream, bytes: seq[byte]) {.async.} =

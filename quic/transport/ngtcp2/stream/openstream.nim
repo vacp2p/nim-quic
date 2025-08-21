@@ -43,8 +43,7 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
   if data.len == 0 and state.frameSorter.isEOF():
     return @[] # Return EOF per RFC 9000
 
-  # Empty data but no EOF - this shouldn't happen in normal operation
-  # Continue reading for more data
+  # Empty data but no EOF; continue reading for more data
   return await state.read()
 
 method write*(state: OpenStream, bytes: seq[byte]): Future[void] =
