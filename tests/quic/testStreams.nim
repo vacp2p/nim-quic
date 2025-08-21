@@ -857,5 +857,3 @@ suite "streams":
     await serverStream.close()
     await clientStream.close()
     await simulation.cancelAndWait()
-
-
