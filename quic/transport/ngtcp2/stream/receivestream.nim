@@ -88,7 +88,7 @@ method isClosed*(state: ReceiveStream): bool =
 
 method receive*(state: ReceiveStream, offset: uint64, bytes: seq[byte], isFin: bool) =
   state.frameSorter.insert(offset, bytes, isFin)
-  
+
   if state.frameSorter.isComplete():
     let stream = state.stream.valueOr:
       return
