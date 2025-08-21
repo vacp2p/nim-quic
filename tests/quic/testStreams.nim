@@ -219,7 +219,7 @@ suite "streams":
     let simulation = simulateNetwork(client, server)
     let clientStream = await client.openStream()
     await clientStream.write(@[]) # Activate stream
-    let serverStream = await  server.incomingStream()
+    let serverStream = await server.incomingStream()
 
     # closed for read
     await clientStream.closeRead()
@@ -597,7 +597,7 @@ suite "streams":
     let dataSize = 10 * 1024 * 1024 # 10 MB
     var testData = newData(dataSize, uint8(0xAA))
 
-    let clientStream = await client.openStream()    
+    let clientStream = await client.openStream()
     await clientStream.write(@[]) # Activate stream
     let serverStream = await server.incomingStream()
 
@@ -635,7 +635,7 @@ suite "streams":
     var clientData = newData(dataSize, uint8(0xAA))
     var serverData = newData(dataSize, uint8(0xBB))
 
-    let clientStream = await client.openStream()    
+    let clientStream = await client.openStream()
     await clientStream.write(@[]) # Activate stream
     let serverStream = await server.incomingStream()
 
@@ -714,7 +714,7 @@ suite "streams":
     var clientData = newData(dataSize, uint8(0xCC))
     var serverData = newData(dataSize, uint8(0xDD))
 
-    let clientStream = await client.openStream()    
+    let clientStream = await client.openStream()
     await clientStream.write(@[]) # Activate stream
     let serverStream = await server.incomingStream()
 
