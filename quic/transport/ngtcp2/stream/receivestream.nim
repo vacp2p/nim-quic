@@ -27,15 +27,14 @@ method leave*(state: ReceiveStream) =
   state.stream = Opt.none(Stream)
 
 method read*(state: ReceiveStream): Future[seq[byte]] {.async.} =
-  # RFC 9000 compliant stream reading logic
-  # Priority 1: Check for immediate EOF conditions
+  # Check for immediate EOF conditions
   if state.frameSorter.isEOF() and state.incoming.len == 0:
     let stream = state.stream.valueOr:
       return @[] # Already closed
     stream.switch(newClosedStream(state.incoming, state.frameSorter))
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
 
-  # Priority 3: Get data from incoming queue
+  # Get data from incoming queue
   let data = await state.incoming.get()
 
   # If we got real data, return it with flow control update

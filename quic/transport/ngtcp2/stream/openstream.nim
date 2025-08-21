@@ -27,12 +27,11 @@ method leave*(state: OpenStream) =
   state.stream = Opt.none(Stream)
 
 method read*(state: OpenStream): Future[seq[byte]] {.async.} =
-  # RFC 9000 compliant stream reading logic
-  # Priority 1: Check for immediate EOF conditions
+  # Check for immediate EOF conditions
   if state.frameSorter.isEOF() and state.incoming.len == 0:
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
 
-  # Priority 2: Get data from incoming queue
+  # Get data from incoming queue
   let data = await state.incoming.get()
 
   # If we got real data, return it with flow control update
@@ -49,9 +48,6 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
   return await state.read()
 
 method write*(state: OpenStream, bytes: seq[byte]): Future[void] =
-  # let stream = state.stream.valueOr:
-  #   raise newException(QuicError, "stream is closed")
-  # See https://github.com/status-im/nim-quic/pull/41 for more details
   state.connection.send(state.stream.get.id, bytes)
 
 method close*(state: OpenStream) {.async.} =
@@ -62,7 +58,6 @@ method close*(state: OpenStream) {.async.} =
   stream.switch(newReceiveStream(state.connection, state.incoming, state.frameSorter))
 
 method closeWrite*(state: OpenStream) {.async.} =
-  ## Close write side by sending FIN, but keep read side open
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
