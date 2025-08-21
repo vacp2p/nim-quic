@@ -22,7 +22,6 @@ method enter*(state: ReceiveStream, stream: Stream) =
   setUserData(state.stream, state.connection, unsafeAddr state[])
 
 method leave*(state: ReceiveStream) =
-  setUserData(state.stream, state.connection, nil)
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
 
@@ -88,12 +87,11 @@ method isClosed*(state: ReceiveStream): bool =
   false
 
 method receive*(state: ReceiveStream, offset: uint64, bytes: seq[byte], isFin: bool) =
-  let stream = state.stream.valueOr:
-    return
-
   state.frameSorter.insert(offset, bytes, isFin)
 
   if state.frameSorter.isComplete():
+    let stream = state.stream.valueOr:
+      return
     stream.closed.fire()
     stream.switch(newClosedStream(state.incoming, state.frameSorter))
 

@@ -22,7 +22,6 @@ method enter*(state: SendStream, stream: Stream) =
   setUserData(state.stream, state.connection, unsafeAddr state[])
 
 method leave*(state: SendStream) =
-  setUserData(state.stream, state.connection, nil)
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
 

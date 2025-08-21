@@ -704,17 +704,10 @@ suite "streams":
       await clientStream.write(testData)
       await clientStream.closeWrite()
 
-    let clientTask = clientWriteTask()
-
-    # Small delay to let client start writing first
-    await sleepAsync(5.milliseconds)
+    discard clientWriteTask()
 
     # Server starts reading in parallel (after client already started)
-    let serverTask = readStreamTillEOF(serverStream)
-
-    # Wait for both operations to complete
-    await clientTask
-    let receivedData = await serverTask
+    let receivedData = await readStreamTillEOF(serverStream)
 
     # Verify data
     check receivedData == testData

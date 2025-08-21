@@ -3,6 +3,7 @@ import ../../../basics
 import ../../stream
 import ../../framesorter
 import ./basestream
+import ./helpers
 
 type ClosedStream* = ref object of BaseStream
   wasReset: bool
@@ -13,7 +14,7 @@ proc newClosedStream*(
   ClosedStream(incoming: incoming, wasReset: wasReset)
 
 method enter*(state: ClosedStream, stream: Stream) =
-  discard
+  setUserData(state.stream, state.connection, nil)
 
 method leave*(state: ClosedStream) =
   discard
