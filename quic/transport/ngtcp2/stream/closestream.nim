@@ -40,7 +40,7 @@ method close*(state: ClosedStream) {.async.} =
 method closeWrite*(state: ClosedStream) {.async.} =
   discard
 
-proc closeRead*(state: ClosedStream) {.async.} =
+method closeRead*(state: ClosedStream) {.async.} =
   discard
 
 method onClose*(state: ClosedStream) =

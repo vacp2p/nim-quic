@@ -44,7 +44,7 @@ method closeWrite*(state: SendStream) {.async.} =
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
   stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
-proc closeRead*(stream: SendStream) {.async.} =
+method closeRead*(stream: SendStream) {.async.} =
   discard
 
 method onClose*(state: SendStream) =

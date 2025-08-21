@@ -63,7 +63,7 @@ method closeWrite*(state: OpenStream) {.async.} =
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
   stream.switch(newReceiveStream(state.connection, state.incoming, state.frameSorter))
 
-proc closeRead*(state: OpenStream) {.async.} =
+method closeRead*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
   stream.switch(newSendStream(state.connection, state.incoming, state.frameSorter))

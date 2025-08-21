@@ -66,7 +66,7 @@ method close*(state: ReceiveStream) {.async.} =
 method closeWrite*(state: ReceiveStream) {.async.} =
   discard
 
-proc closeRead*(state: ReceiveStream) {.async.} =
+method closeRead*(state: ReceiveStream) {.async.} =
   let stream = state.stream.valueOr:
     return
   stream.switch(newClosedStream(state.incoming, state.frameSorter))
