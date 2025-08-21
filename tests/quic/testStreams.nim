@@ -9,6 +9,12 @@ import pkg/quic/udp/datagram
 import ../helpers/simulation
 import ../helpers/contains
 
+proc newData(size: int, val: uint8 = uint8(0xEE)): seq[uint8] =
+  var data = newSeq[uint8](size)
+  for i in 0 ..< size:
+    data[i] = val
+  return data
+
 suite "streams":
   setup:
     var (client, server) = waitFor performHandshake()
@@ -77,8 +83,7 @@ suite "streams":
     let serverStream = await server.incomingStream()
     check clientStream.id == serverStream.id
 
-    let incoming = await serverStream.read()
-    check incoming == message
+    check (await serverStream.read()) == message
 
     await simulation.cancelAndWait()
 
@@ -124,9 +129,7 @@ suite "streams":
     await clientStream.write(message)
 
     let serverStream = await server.incomingStream()
-    let incoming = await serverStream.read()
-
-    check incoming == message
+    check (await serverStream.read()) == message
 
     await simulation.cancelAndWait()
 
@@ -145,8 +148,7 @@ suite "streams":
     await sleepAsync(100.milliseconds) # wait for stream to be closed
 
     # Reading from a closed stream should return EOF, not throw exception
-    let eof = await serverStream.read()
-    check eof.len == 0 # Should return EOF (empty array)
+    check (await serverStream.read()).len == 0
 
     # In QUIC, receiving FIN doesn't prevent writing back (half-close semantics)
     # Writing should still work unless the local side is closed
@@ -185,8 +187,7 @@ suite "streams":
     await sleepAsync(100.milliseconds) # wait for stream to be closed
 
     let serverStream = await server.incomingStream()
-    let incoming = await serverStream.read()
-    check incoming == message
+    check (await serverStream.read()) == message
 
     await simulation.cancelAndWait()
 
@@ -216,15 +217,13 @@ suite "streams":
 
     # Server reads client message
     let serverStream = await server.incomingStream()
-    let incoming = await serverStream.read()
-    check incoming == clientMessage
+    check (await serverStream.read()) == clientMessage
 
     # Server should still be able to write back
     await serverStream.write(serverMessage)
 
     # Client should be able to read server's response
-    let response = await clientStream.read()
-    check response == serverMessage
+    check (await clientStream.read()) == serverMessage
 
     await simulation.cancelAndWait()
 
@@ -269,8 +268,7 @@ suite "streams":
     await clientStream.closeWrite()
 
     let serverStream = await server.incomingStream()
-    let received = await serverStream.read()
-    check received == uploadData
+    check (await serverStream.read()) == uploadData
 
     await simulation.cancelAndWait()
 
@@ -302,22 +300,20 @@ suite "streams":
     await clientStream.closeWrite()
 
     let serverStream = await server.incomingStream()
-    let received = await serverStream.read()
-    check received == uploadData
+    check (await serverStream.read()) == uploadData
 
     # Server sends response back
     var downloadData = @[11'u8, 12'u8, 13'u8, 14'u8, 15'u8]
     await serverStream.write(downloadData)
     await serverStream.closeWrite()
 
-    let response = await clientStream.read()
-    check response == downloadData
+    check (await clientStream.read()) == downloadData
 
     await simulation.cancelAndWait()
 
   asyncTest "large data transfers with empty write activation work":
     let simulation = simulateNetwork(client, server)
-    var largeData = newSeq[uint8](1000)
+    var largeData = newData(1000)
     for i in 0 ..< 1000:
       largeData[i] = uint8(i mod 256)
 
@@ -327,8 +323,7 @@ suite "streams":
     await clientStream.closeWrite()
 
     let serverStream = await server.incomingStream()
-    let received = await serverStream.read()
-    check received == largeData
+    check (await serverStream.read()) == largeData
 
     await simulation.cancelAndWait()
 
@@ -349,14 +344,11 @@ suite "streams":
     var allReceived: seq[uint8]
 
     # Read all chunks
-    let received1 = await serverStream.read()
-    allReceived.add(received1)
+    allReceived.add(await serverStream.read())
 
     try:
-      let received2 = await serverStream.read()
-      allReceived.add(received2)
-      let received3 = await serverStream.read()
-      allReceived.add(received3)
+      allReceived.add(await serverStream.read())
+      allReceived.add(await serverStream.read())
     except:
       # May receive combined chunks due to TCP-like behavior
       discard
@@ -377,16 +369,12 @@ suite "streams":
 
     # Server reads data
     let serverStream = await server.incomingStream()
-    let received = await serverStream.read()
-    check received == testData
 
+    check (await serverStream.read()) == testData
     # Second read should return EOF (empty array)
-    let eof = await serverStream.read()
-    check eof.len == 0 # EOF should be empty array
-
-    # Third read should also return EOF
-    let eof2 = await serverStream.read()
-    check eof2.len == 0 # Multiple EOF reads should work
+    check (await serverStream.read()).len == 0
+    # Third read should also return EOF (multiple EOF reads should work)
+    check (await serverStream.read()).len == 0
 
     await simulation.cancelAndWait()
 
@@ -402,24 +390,18 @@ suite "streams":
 
     # Server receives the request  
     let serverStream = await server.incomingStream()
-    let receivedRequest = await serverStream.read()
-    check receivedRequest == request
-
+    check (await serverStream.read()) == request
     # Server detects end of request (EOF)
-    let requestEof = await serverStream.read()
-    check requestEof.len == 0 # End of request
+    check (await serverStream.read()).len == 0
 
     # Server processes and sends response (can still write back!)
     await serverStream.write(response)
     await serverStream.close() # Server finishes and closes completely
 
     # Client reads the response
-    let receivedResponse = await clientStream.read()
-    check receivedResponse == response
-
+    check (await clientStream.read()) == response
     # Client detects end of response
-    let responseEof = await clientStream.read()
-    check responseEof.len == 0 # End of response
+    check (await clientStream.read()).len == 0
 
     # At this point both sides have received what they need
     # Client can't write (closeWrite called), server can't write (close called)
@@ -451,11 +433,8 @@ suite "streams":
       await clientStream.write(@[6'u8, 7, 8])
 
     # Server should receive data and EOF
-    let receivedData = await serverStream.read()
-    check receivedData == clientData
-
-    let eof = await serverStream.read()
-    check eof.len == 0 # EOF
+    check (await serverStream.read()) == clientData
+    check (await serverStream.read()).len == 0 # EOF
 
     # Server can still write back (until it receives indication that client closed read)
     # But in QUIC when close() is called, it closes ALL directions
@@ -474,7 +453,6 @@ suite "streams":
     # Both send data
     let clientData = @[1'u8, 2, 3]
     let serverData = @[4'u8, 5, 6]
-
     await clientStream.write(clientData)
     await serverStream.write(serverData)
 
@@ -489,18 +467,11 @@ suite "streams":
       await serverStream.write(@[8'u8])
 
     # But both can read each other's data
-    let receivedByClient = await clientStream.read()
-    let receivedByServer = await serverStream.read()
-
-    check receivedByClient == serverData
-    check receivedByServer == clientData
-
+    check (await clientStream.read()) == serverData
+    check (await serverStream.read()) == clientData
     # And both receive EOF
-    let eofClient = await clientStream.read()
-    let eofServer = await serverStream.read()
-
-    check eofClient.len == 0
-    check eofServer.len == 0
+    check (await clientStream.read()).len == 0
+    check (await serverStream.read()).len == 0
 
     await simulation.cancelAndWait()
 
@@ -521,8 +492,7 @@ suite "streams":
     await serverStream.write(serverData)
 
     # Client reads response
-    let response = await clientStream.read()
-    check response == serverData
+    check (await clientStream.read()) == serverData
 
     # Now client fully closes stream
     await clientStream.close()
@@ -550,12 +520,9 @@ suite "streams":
     await serverStream.close()
 
     # Client should receive data from server
-    let receivedByClient = await clientStream.read()
-    check receivedByClient == serverData
-
+    check (await clientStream.read()) == serverData
     # And EOF
-    let eofClient = await clientStream.read()
-    check eofClient.len == 0
+    check (await clientStream.read()).len == 0
 
     # Server should also receive data from client (before its close())
     let receivedByServer = await serverStream.read()
@@ -594,11 +561,7 @@ suite "streams":
   asyncTest "simple 10MB write test":
     let simulation = simulateNetwork(client, server)
     let dataSize = 10 * 1024 * 1024 # 10 MB
-    var testData = newSeq[uint8](dataSize)
-
-    # Fill with pattern
-    for i in 0 ..< dataSize:
-      testData[i] = uint8(i mod 256)
+    var testData = newData(dataSize, uint8(0xAA))
 
     let clientStream = await client.openStream()
     let serverStreamFuture = server.incomingStream()
@@ -639,16 +602,8 @@ suite "streams":
   asyncTest "bidirectional 10MB + 10MB closeWrite test":
     let simulation = simulateNetwork(client, server)
     let dataSize = 10 * 1024 * 1024 # 10 MB each direction
-
-    # Client data pattern
-    var clientData = newSeq[uint8](dataSize)
-    for i in 0 ..< dataSize:
-      clientData[i] = uint8(0xAA) # Client pattern
-
-    # Server data pattern  
-    var serverData = newSeq[uint8](dataSize)
-    for i in 0 ..< dataSize:
-      serverData[i] = uint8(0xBB) # Server pattern
+    var clientData = newData(dataSize, uint8(0xAA))
+    var serverData = newData(dataSize, uint8(0xBB))
 
     let clientStream = await client.openStream()
     let serverStreamFuture = server.incomingStream()
@@ -719,10 +674,8 @@ suite "streams":
     check serverDataValid
 
     # Both sides should be able to detect EOF now
-    let clientEOF = await clientStream.read()
-    let serverEOF = await serverStream.read()
-    check clientEOF.len == 0
-    check serverEOF.len == 0
+    check (await clientStream.read()).len == 0
+    check (await serverStream.read()).len == 0
 
     await serverStream.close()
     await clientStream.close()
@@ -732,15 +685,8 @@ suite "streams":
     let simulation = simulateNetwork(client, server)
     let dataSize = 10 * 1024 * 1024 # 10 MB
 
-    # Client data pattern
-    var clientData = newSeq[uint8](dataSize)
-    for i in 0 ..< dataSize:
-      clientData[i] = uint8(0xCC) # Client pattern
-
-    # Server data pattern  
-    var serverData = newSeq[uint8](dataSize)
-    for i in 0 ..< dataSize:
-      serverData[i] = uint8(0xDD) # Server pattern
+    var clientData = newData(dataSize, uint8(0xCC))
+    var serverData = newData(dataSize, uint8(0xDD))
 
     let clientStream = await client.openStream()
     let serverStreamFuture = server.incomingStream()
@@ -811,8 +757,7 @@ suite "streams":
     check serverDataValid
 
     # Client should get EOF when trying to read (server did full close)
-    let clientEOF = await clientStream.read()
-    check clientEOF.len == 0
+    check (await clientStream.read()).len == 0
 
     # Client should still be able to close its read side
     await clientStream.close()
@@ -822,10 +767,7 @@ suite "streams":
   asyncTest "reverse order: client starts writing first, server reads parallel":
     let simulation = simulateNetwork(client, server)
     let dataSize = 10 * 1024 * 1024 # 10 MB
-
-    var testData = newSeq[uint8](dataSize)
-    for i in 0 ..< dataSize:
-      testData[i] = uint8(0xEE) # Pattern for this test
+    var testData = newData(dataSize, uint8(0xEE))
 
     let clientStream = await client.openStream()
     let serverStreamFuture = server.incomingStream()
@@ -874,10 +816,27 @@ suite "streams":
         break
 
     check dataValid
+    check (await serverStream.read()).len == 0
 
-    # EOF check
-    let eofCheck = await serverStream.read()
-    check eofCheck.len == 0
+    await serverStream.close()
+    await clientStream.close()
+    await simulation.cancelAndWait()
+
+  asyncTest "closeWrite()":
+    let simulation = simulateNetwork(client, server)
+    let clientStream = await client.openStream()
+    let serverStreamFuture = server.incomingStream()
+    await clientStream.write(@[]) # Activate stream
+    let serverStream = await serverStreamFuture
+
+    await clientStream.write(newData(5))
+    await clientStream.closeWrite()
+    expect ClosedStreamError:
+      await clientStream.write(@[])
+
+    check (await serverStream.read()) == newData(5)
+    for i in 0 ..< 10:
+      check (await serverStream.read()).len == 0
 
     await serverStream.close()
     await clientStream.close()
