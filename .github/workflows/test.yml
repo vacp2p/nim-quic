@@ -69,5 +69,5 @@ jobs:
         # because output is written to stdout only after binary finishes.
         run: |
           nim c ./tests/testAll.nim
-          ./testAll
+          ./tests/testAll
 
