@@ -1,12 +1,12 @@
 import ../../../basics
 import ../../framesorter
 import ../../stream
-import ./helpers
 import ../native/connection
+import ./basestream
 import ./closestream
 import ./receivestream
 import ./sendstream
-import ./basestream
+import ./helpers
 
 type OpenStream* = ref object of BaseStream
 

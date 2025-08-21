@@ -35,6 +35,7 @@ export CustomCertificateVerifier
 export InsecureCertificateVerifier
 export init
 export TimeOutError
+export ClosedStreamError
 export certificates
 
 type TLSConfig* = object

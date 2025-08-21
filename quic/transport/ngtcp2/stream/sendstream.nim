@@ -1,11 +1,11 @@
+import ../../../errors
 import ../../../basics
 import ../../stream
 import ../../framesorter
 import ../native/connection
+import ./basestream
 import ./closestream
 import ./helpers
-import ./errors
-import ./basestream
 
 type SendStream* = ref object of BaseStream
 
@@ -33,7 +33,10 @@ method write*(state: SendStream, bytes: seq[byte]) {.async.} =
   await state.connection.send(state.stream.get.id, bytes)
 
 method close*(state: SendStream) {.async.} =
-  discard
+  let stream = state.stream.valueOr:
+    return
+  discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
+  stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
 method closeWrite*(state: SendStream) {.async.} =
   let stream = state.stream.valueOr:

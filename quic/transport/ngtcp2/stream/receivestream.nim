@@ -1,11 +1,11 @@
+import ../../../errors
 import ../../../basics
 import ../../stream
 import ../../framesorter
-import ./helpers
 import ../native/connection
-import ./closestream
-import ./errors
 import ./basestream
+import ./closestream
+import ./helpers
 
 type ReceiveStream* = ref object of BaseStream
 
@@ -59,7 +59,9 @@ method write*(state: ReceiveStream, bytes: seq[byte]) {.async.} =
   raise newException(ClosedStreamError, "write side is closed")
 
 method close*(state: ReceiveStream) {.async.} =
-  discard
+  let stream = state.stream.valueOr:
+    return
+  stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
 method closeWrite*(state: ReceiveStream) {.async.} =
   discard

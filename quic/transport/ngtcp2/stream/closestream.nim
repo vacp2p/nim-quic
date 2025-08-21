@@ -1,7 +1,7 @@
+import ../../../errors
 import ../../../basics
 import ../../stream
 import ../../framesorter
-import ./errors
 import ./basestream
 
 type ClosedStream* = ref object of BaseStream
@@ -40,7 +40,7 @@ method close*(state: ClosedStream) {.async.} =
 method closeWrite*(state: ClosedStream) {.async.} =
   discard
 
-proc closeRead*(stream: ClosedStream) {.async.} =
+proc closeRead*(state: ClosedStream) {.async.} =
   discard
 
 method onClose*(state: ClosedStream) =
