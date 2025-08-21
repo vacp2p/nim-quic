@@ -191,18 +191,54 @@ suite "streams":
 
     await simulation.cancelAndWait()
 
-  asyncTest "closeWrite() prevents further writes":
+  asyncTest "closeWrite() basic test":
     let simulation = simulateNetwork(client, server)
-    let message = @[1'u8, 2'u8, 3'u8]
-
     let clientStream = await client.openStream()
-    await clientStream.write(message)
+    let serverStreamFuture = server.incomingStream()
+    await clientStream.write(@[]) # Activate stream
+    let serverStream = await serverStreamFuture
+
+    # client sends data and closes write side
+    await clientStream.write(newData(5))
     await clientStream.closeWrite()
+    expect ClosedStreamError:
+      await clientStream.write(@[])
 
-    # Writing after closeWrite should fail
-    expect QuicError:
-      await clientStream.write(@[4'u8, 5'u8, 6'u8])
+    check (await serverStream.read()) == newData(5)
+    for i in 0 ..< 10:
+      check (await serverStream.read()).len == 0
 
+    # client can still read
+    await serverStream.write(newData(3))
+    check (await clientStream.read()) == newData(3)
+
+    await serverStream.close()
+    await clientStream.close()
+    await simulation.cancelAndWait()
+
+  asyncTest "closeRead() basic test":
+    let simulation = simulateNetwork(client, server)
+    let clientStream = await client.openStream()
+    let serverStreamFuture = server.incomingStream()
+    await clientStream.write(@[]) # Activate stream
+    let serverStream = await serverStreamFuture
+
+    # closed for read
+    await clientStream.closeRead()
+    expect ClosedStreamError:
+      discard await clientStream.read()
+
+    for i in 0 ..< 10:
+      await serverStream.write(newData(3))
+      expect ClosedStreamError:
+        discard await clientStream.read()
+
+    # open for write
+    await clientStream.write(newData(5))
+    check (await serverStream.read()) == newData(5)
+
+    await serverStream.close()
+    await clientStream.close()
     await simulation.cancelAndWait()
 
   asyncTest "closeWrite() sends FIN but allows server to write back":
@@ -822,22 +858,4 @@ suite "streams":
     await clientStream.close()
     await simulation.cancelAndWait()
 
-  asyncTest "closeWrite()":
-    let simulation = simulateNetwork(client, server)
-    let clientStream = await client.openStream()
-    let serverStreamFuture = server.incomingStream()
-    await clientStream.write(@[]) # Activate stream
-    let serverStream = await serverStreamFuture
 
-    await clientStream.write(newData(5))
-    await clientStream.closeWrite()
-    expect ClosedStreamError:
-      await clientStream.write(@[])
-
-    check (await serverStream.read()) == newData(5)
-    for i in 0 ..< 10:
-      check (await serverStream.read()).len == 0
-
-    await serverStream.close()
-    await clientStream.close()
-    await simulation.cancelAndWait()
