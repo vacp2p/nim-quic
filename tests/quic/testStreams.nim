@@ -639,15 +639,9 @@ suite "streams":
     let clientReceivedData = await clientReadTask
     let serverReceivedData = await serverReadTask
 
-    # Verify data sizes
-    check clientReceivedData.len == dataSize
-    check serverReceivedData.len == dataSize
-
-    # Verify data patterns
-    for i in 0 ..< min(dataSize, clientReceivedData.len):
-      check clientReceivedData[i] == 0xBB # Client should receive server pattern
-    for i in 0 ..< min(dataSize, serverReceivedData.len):
-      check serverReceivedData[i] == 0xAA # Server should receive client pattern  
+    # Verify data
+    check clientReceivedData == serverData
+    check serverReceivedData == clientData
 
     # Both sides should be able to detect EOF now
     check (await clientStream.read()).len == 0
@@ -684,15 +678,9 @@ suite "streams":
     let clientReceivedData = await clientReadTask
     let serverReceivedData = await serverReadTask
 
-    # Verify data sizes
-    check clientReceivedData.len == dataSize
-    check serverReceivedData.len == dataSize
-
-    # Verify data patterns
-    for i in 0 ..< min(dataSize, clientReceivedData.len):
-      check clientReceivedData[i] == 0xDD # Client should receive server pattern
-    for i in 0 ..< min(dataSize, serverReceivedData.len):
-      check serverReceivedData[i] == 0xCC # Server should receive client pattern  
+    # Verify data
+    check clientReceivedData == serverData
+    check serverReceivedData == clientData
 
     # Client should get EOF when trying to read (server did full close)
     check (await clientStream.read()).len == 0
@@ -730,10 +718,7 @@ suite "streams":
 
     # Verify data
     check receivedData.len == dataSize
-
-    # Verify data pattern
-    for i in 0 ..< min(dataSize, receivedData.len):
-      check receivedData[i] == 0xEE
+    check receivedData == testData
 
     check (await serverStream.read()).len == 0
 
