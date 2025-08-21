@@ -607,7 +607,7 @@ suite "streams":
     # Wait for server to finish reading
     let receivedData = await serverTask
 
-    check receivedData.len == dataSize
+    check receivedData == testData
 
     await serverStream.close()
     await clientStream.close()
@@ -717,7 +717,6 @@ suite "streams":
     let receivedData = await serverTask
 
     # Verify data
-    check receivedData.len == dataSize
     check receivedData == testData
 
     check (await serverStream.read()).len == 0
