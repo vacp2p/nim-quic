@@ -22,6 +22,7 @@ export incomingStream
 export read
 export write
 export closeWrite
+export closeRead
 export stop
 export drop
 export close
@@ -34,6 +35,7 @@ export CustomCertificateVerifier
 export InsecureCertificateVerifier
 export init
 export TimeOutError
+export ClosedStreamError
 export certificates
 
 type TLSConfig* = object

@@ -1,23 +1,16 @@
+import ../../../errors
 import ../../../basics
 import ../../stream
 import ../../framesorter
-import chronicles
+import ./basestream
 
-logScope:
-  topics = "closed state"
-
-type
-  ClosedStream* = ref object of StreamState
-    remaining: AsyncQueue[seq[byte]]
-    frameSorter: FrameSorter
-    wasReset: bool
-
-  ClosedStreamError* = object of StreamError
+type ClosedStream* = ref object of BaseStream
+  wasReset: bool
 
 proc newClosedStream*(
-    remaining: AsyncQueue[seq[byte]], frameSorter: FrameSorter, wasReset: bool = false
+    incoming: AsyncQueue[seq[byte]], frameSorter: FrameSorter, wasReset: bool = false
 ): ClosedStream =
-  ClosedStream(remaining: remaining, wasReset: wasReset)
+  ClosedStream(incoming: incoming, wasReset: wasReset)
 
 method enter*(state: ClosedStream, stream: Stream) =
   discard
@@ -31,21 +24,23 @@ method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
     raise newException(ClosedStreamError, "stream was reset")
 
   try:
-    return state.remaining.popFirstNoWait()
+    return state.incoming.popFirstNoWait()
   except AsyncQueueEmptyError:
     discard
 
   # When no more data is available, return EOF instead of throwing exception
-  return @[] # Return EOF for closed streams
+  return @[]
 
 method write*(state: ClosedStream, bytes: seq[byte]) {.async.} =
-  trace "cant write, stream is closed"
   raise newException(ClosedStreamError, "stream is closed")
 
 method close*(state: ClosedStream) {.async.} =
   discard
 
 method closeWrite*(state: ClosedStream) {.async.} =
+  discard
+
+method closeRead*(state: ClosedStream) {.async.} =
   discard
 
 method onClose*(state: ClosedStream) =
