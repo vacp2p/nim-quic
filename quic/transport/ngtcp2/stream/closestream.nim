@@ -3,6 +3,7 @@ import ../../../basics
 import ../../stream
 import ../../framesorter
 import ./basestream
+import ./helpers
 
 type ClosedStream* = ref object of BaseStream
   wasReset: bool
