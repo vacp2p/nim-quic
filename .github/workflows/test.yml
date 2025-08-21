@@ -68,6 +68,6 @@ jobs:
         # test command is split into compile binary and run stages
         # because output is written to stdout only after binary finishes.
         run: |
-          nim c ./tests/testAll.nim
+          nim c -d:unittest2Compat=false ./tests/testAll.nim
           ./tests/testAll --output-level=VERBOSE
 
