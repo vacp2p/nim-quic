@@ -18,7 +18,7 @@ proc initFrameSorter*(incoming: AsyncQueue[seq[byte]]): FrameSorter =
 proc isEOF*(fs: FrameSorter): bool =
   if fs.totalBytes.isNone:
     return false
-
+  
   return fs.emitPos >= fs.totalBytes.get()
 
 proc sendEof(fs: var FrameSorter) {.raises: [QuicError].} =
@@ -53,15 +53,18 @@ proc emitBufferedData(fs: var FrameSorter) {.raises: [QuicError].} =
 proc insert*(
     fs: var FrameSorter, offset: uint64, data: seq[byte], isFin: bool
 ) {.raises: [QuicError].} =
-  if isFin and fs.totalBytes.isNone:
+  if isFin:
     fs.totalBytes = Opt.some(offset.int64 + max(data.len - 1, 0))
     defer:
       # send EOF in defer so that it happens after 
       # data is written to incoming queue (if any)
       fs.sendEof()
 
+  if data.len == 0:
+    return
+
   # if offset matches emit position, framesorter can emit entire input in batch
-  if offset.int == fs.emitPos and data.len > 0:
+  if offset.int == fs.emitPos:
     fs.emitPos += data.len
     fs.putToQueue(data)
 
@@ -73,10 +76,9 @@ proc insert*(
   # Insert bytes into sparse buffer
   for i, b in data:
     let pos = offset.int + i
-
+    
     if fs.totalBytes.isSome and pos > fs.totalBytes.unsafeGet:
       continue
-
     if fs.buffer.hasKey(pos):
       try:
         if fs.buffer[pos] != b:
