@@ -194,9 +194,8 @@ suite "streams":
   asyncTest "closeWrite() basic test":
     let simulation = simulateNetwork(client, server)
     let clientStream = await client.openStream()
-    let serverStreamFuture = server.incomingStream()
     await clientStream.write(@[]) # Activate stream
-    let serverStream = await serverStreamFuture
+    let serverStream = await server.incomingStream()
 
     # client sends data and closes write side
     await clientStream.write(newData(5))
@@ -219,9 +218,8 @@ suite "streams":
   asyncTest "closeRead() basic test":
     let simulation = simulateNetwork(client, server)
     let clientStream = await client.openStream()
-    let serverStreamFuture = server.incomingStream()
     await clientStream.write(@[]) # Activate stream
-    let serverStream = await serverStreamFuture
+    let serverStream = await  server.incomingStream()
 
     # closed for read
     await clientStream.closeRead()
@@ -599,13 +597,9 @@ suite "streams":
     let dataSize = 10 * 1024 * 1024 # 10 MB
     var testData = newData(dataSize, uint8(0xAA))
 
-    let clientStream = await client.openStream()
-    let serverStreamFuture = server.incomingStream()
-
-    # Activate stream
-    await clientStream.write(@[])
-
-    let serverStream = await serverStreamFuture
+    let clientStream = await client.openStream()    
+    await clientStream.write(@[]) # Activate stream
+    let serverStream = await server.incomingStream()
 
     # Server starts reading IMMEDIATELY (parallel with client writing)
     proc serverReadData(): Future[seq[uint8]] {.async.} =
@@ -641,13 +635,9 @@ suite "streams":
     var clientData = newData(dataSize, uint8(0xAA))
     var serverData = newData(dataSize, uint8(0xBB))
 
-    let clientStream = await client.openStream()
-    let serverStreamFuture = server.incomingStream()
-
-    # Activate stream
-    await clientStream.write(@[])
-
-    let serverStream = await serverStreamFuture
+    let clientStream = await client.openStream()    
+    await clientStream.write(@[]) # Activate stream
+    let serverStream = await server.incomingStream()
 
     # Start parallel read operations for both directions
     proc clientReadData(): Future[seq[uint8]] {.async.} =
@@ -724,13 +714,9 @@ suite "streams":
     var clientData = newData(dataSize, uint8(0xCC))
     var serverData = newData(dataSize, uint8(0xDD))
 
-    let clientStream = await client.openStream()
-    let serverStreamFuture = server.incomingStream()
-
-    # Activate stream
-    await clientStream.write(@[])
-
-    let serverStream = await serverStreamFuture
+    let clientStream = await client.openStream()    
+    await clientStream.write(@[]) # Activate stream
+    let serverStream = await server.incomingStream()
 
     # Start parallel read operations
     proc clientReadData(): Future[seq[uint8]] {.async.} =
@@ -806,12 +792,8 @@ suite "streams":
     var testData = newData(dataSize, uint8(0xEE))
 
     let clientStream = await client.openStream()
-    let serverStreamFuture = server.incomingStream()
-
-    # Activate stream
-    await clientStream.write(@[])
-
-    let serverStream = await serverStreamFuture
+    await clientStream.write(@[]) # Activate stream
+    let serverStream = await server.incomingStream()
 
     # CLIENT STARTS WRITING FIRST (non-blocking)
     let clientWriteTask = proc() {.async.} =
