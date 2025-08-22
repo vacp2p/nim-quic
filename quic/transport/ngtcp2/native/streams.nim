@@ -4,6 +4,7 @@ import ../../stream
 import ../stream/openstream
 import ./connection
 import chronicles
+import ../../../global
 
 proc newStream(connection: Ngtcp2Connection, id: int64): Stream =
   newStream(id, newOpenStream(connection))
@@ -30,8 +31,12 @@ proc onStreamClose(
     user_data: pointer,
     stream_user_data: pointer,
 ): cint {.cdecl.} =
-  trace "onStreamClose"
   let state = cast[StreamState](stream_user_data)
+  echo "onStreamClose"
+  if not FinSent:
+    echo "close fin not set"
+    echo "flags:" & $flags
+
   if state != nil:
     state.onClose()
 
@@ -49,9 +54,18 @@ proc onReceiveStreamData(
   let state = cast[StreamState](stream_user_data)
   var bytes = newSeqUninitialized[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
+  
   let isFin = (flags and NGTCP2_STREAM_DATA_FLAG_FIN) != 0
+
+  if isFin:
+    FinSent = true
+
+  Flags = flags
+
   if state != nil:
     state.receive(uint64(offset), bytes, isFin)
+  else:
+    echo "!!!!!!!!!!!!!!!!! state is nil"
 
 proc onStreamReset(
     connection: ptr ngtcp2_conn,

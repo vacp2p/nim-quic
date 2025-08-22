@@ -6,6 +6,7 @@ import ../native/connection
 import ./basestream
 import ./closestream
 import ./helpers
+import ../../../global
 
 type ReceiveStream* = ref object of BaseStream
 
@@ -70,8 +71,7 @@ method closeRead*(state: ReceiveStream) {.async.} =
   stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
 method onClose*(state: ReceiveStream) =
-  let stream = state.stream.valueOr:
-    return
+  state.frameSorter.close()
 
   # Wake up pending read() operations before switching states
   # This fixes race condition when ngtcp2 calls onClose() while read() is waiting
@@ -81,12 +81,16 @@ method onClose*(state: ReceiveStream) =
     # Queue is full, that's fine - there's already data to process
     discard
 
+  let stream = state.stream.valueOr:
+    return
   stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
 method isClosed*(state: ReceiveStream): bool =
   false
 
 method receive*(state: ReceiveStream, offset: uint64, bytes: seq[byte], isFin: bool) =
+  if isFin:
+    FinReceived = true
   state.frameSorter.insert(offset, bytes, isFin)
 
   if state.frameSorter.isComplete():

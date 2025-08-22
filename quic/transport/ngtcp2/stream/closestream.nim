@@ -4,6 +4,7 @@ import ../../stream
 import ../../framesorter
 import ./basestream
 import ./helpers
+import ../../../global
 
 type ClosedStream* = ref object of BaseStream
   wasReset: bool
@@ -51,6 +52,8 @@ method isClosed*(state: ClosedStream): bool =
   true
 
 method receive*(state: ClosedStream, offset: uint64, bytes: seq[byte], isFin: bool) =
+  if isFin:
+    FinReceived = true
   discard
 
 method reset*(state: ClosedStream) =

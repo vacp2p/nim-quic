@@ -8,6 +8,7 @@ import pkg/quic/transport/ngtcp2/native
 import pkg/quic/udp/datagram
 import ../helpers/simulation
 import ../helpers/contains
+import pkg/quic/global
 
 proc newData(size: int, val: uint8 = uint8(0xEE)): seq[uint8] =
   var data = newSeq[uint8](size)
@@ -33,7 +34,10 @@ suite "streams":
     let testData = newData(dataSize, uint8(0xEE))
 
     for i in 0 ..< 2000:
+      PrintFin()
       echo $i
+      ResetFin()
+
       var (client, server) = waitFor performHandshake()
       let simulation = simulateNetwork(client, server)
 

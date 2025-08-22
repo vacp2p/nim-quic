@@ -7,6 +7,7 @@ import ./closestream
 import ./receivestream
 import ./sendstream
 import ./helpers
+import ../../../global
 
 type OpenStream* = ref object of BaseStream
 
@@ -31,7 +32,21 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
 
   # Get data from incoming queue
-  let data = await state.incoming.get()
+  let fut = state.incoming.get()
+  let data =
+    try:
+      await fut.wait(1.seconds)
+    except AsyncTimeoutError:
+      echo "aaaaa"
+      PrintFin()
+
+      if state.frameSorter.isEOF() and state.incoming.len == 0:
+        echo "bbbb"
+        return @[] # Return EOF immediately per RFC 9000 "Data Read" state
+
+      # read again
+      echo "cccc"
+      return await state.read()
 
   # If we got real data, return it with flow control update
   if data.len > 0:
@@ -43,6 +58,7 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
     return @[] # Return EOF per RFC 9000
 
   # Empty data but no EOF; continue reading for more data
+  echo "dddd"
   return await state.read()
 
 method write*(state: OpenStream, bytes: seq[byte]): Future[void] =
@@ -67,8 +83,7 @@ method closeRead*(state: OpenStream) {.async.} =
   stream.switch(newSendStream(state.connection, state.incoming, state.frameSorter))
 
 method onClose*(state: OpenStream) =
-  let stream = state.stream.valueOr:
-    return
+  state.frameSorter.close()
 
   # Wake up pending read() operations before switching states
   # This fixes race condition when ngtcp2 calls onClose() while read() is waiting
@@ -78,12 +93,16 @@ method onClose*(state: OpenStream) =
     # Queue is full, that's fine - there's already data to process
     discard
 
+  let stream = state.stream.valueOr:
+    return
   stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
 method isClosed*(state: OpenStream): bool =
   false
 
 method receive*(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool) =
+  if isFin:
+    FinReceived = true
   state.frameSorter.insert(offset, bytes, isFin)
 
   if state.frameSorter.isComplete():

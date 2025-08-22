@@ -50,6 +50,12 @@ proc emitBufferedData(fs: var FrameSorter) {.raises: [QuicError].} =
 
   fs.putToQueue(emitData)
 
+proc close*(fs: var FrameSorter) {.raises: [QuicError].} =
+  if fs.totalBytes.isNone:
+    fs.totalBytes = Opt.some(fs.emitPos)
+    fs.sendEof()
+
+
 proc insert*(
     fs: var FrameSorter, offset: uint64, data: seq[byte], isFin: bool
 ) {.raises: [QuicError].} =

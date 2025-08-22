@@ -6,6 +6,7 @@ import ../native/connection
 import ./basestream
 import ./closestream
 import ./helpers
+import ../../../global
 
 type SendStream* = ref object of BaseStream
 
@@ -53,7 +54,8 @@ method isClosed*(state: SendStream): bool =
   false
 
 method receive*(state: SendStream, offset: uint64, bytes: seq[byte], isFin: bool) =
-  discard
+  if isFin:
+    FinReceived = true
 
 method reset*(state: SendStream) =
   let stream = state.stream.valueOr:
