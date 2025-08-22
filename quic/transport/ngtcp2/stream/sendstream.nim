@@ -34,12 +34,14 @@ method write*(state: SendStream, bytes: seq[byte]) {.async.} =
 
 method close*(state: SendStream) {.async.} =
   let stream = state.stream.valueOr:
+    echo "stream not set"
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
   stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
 method closeWrite*(state: SendStream) {.async.} =
   let stream = state.stream.valueOr:
+    echo "stream not set"
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
   stream.switch(newClosedStream(state.incoming, state.frameSorter))
@@ -59,6 +61,7 @@ method receive*(state: SendStream, offset: uint64, bytes: seq[byte], isFin: bool
 
 method reset*(state: SendStream) =
   let stream = state.stream.valueOr:
+    echo "stream not set"
     return
 
   state.connection.shutdownStream(stream.id)

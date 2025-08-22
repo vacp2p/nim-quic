@@ -67,18 +67,21 @@ method write*(state: OpenStream, bytes: seq[byte]): Future[void] =
 method close*(state: OpenStream) {.async.} =
   # Bidirectional streams, close() only closes the send side of the stream.
   let stream = state.stream.valueOr:
+    echo "stream not set"
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
   stream.switch(newReceiveStream(state.connection, state.incoming, state.frameSorter))
 
 method closeWrite*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
+    echo "stream not set"
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
   stream.switch(newReceiveStream(state.connection, state.incoming, state.frameSorter))
 
 method closeRead*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
+    echo "stream not set"
     return
   stream.switch(newSendStream(state.connection, state.incoming, state.frameSorter))
 
@@ -94,6 +97,7 @@ method onClose*(state: OpenStream) =
     discard
 
   let stream = state.stream.valueOr:
+    echo "stream not set"
     return
   stream.switch(newClosedStream(state.incoming, state.frameSorter))
 
@@ -113,6 +117,7 @@ method receive*(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool
 
 method reset*(state: OpenStream) =
   let stream = state.stream.valueOr:
+    echo "stream not set"
     return
 
   state.connection.shutdownStream(stream.id)
