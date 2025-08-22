@@ -55,7 +55,6 @@ proc close*(fs: var FrameSorter) {.raises: [QuicError].} =
     fs.totalBytes = Opt.some(fs.emitPos)
     fs.sendEof()
 
-
 proc insert*(
     fs: var FrameSorter, offset: uint64, data: seq[byte], isFin: bool
 ) {.raises: [QuicError].} =

@@ -54,7 +54,7 @@ proc onReceiveStreamData(
   let state = cast[StreamState](stream_user_data)
   var bytes = newSeqUninitialized[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
-  
+
   let isFin = (flags and NGTCP2_STREAM_DATA_FLAG_FIN) != 0
 
   if isFin:

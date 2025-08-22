@@ -10,4 +10,4 @@ proc ResetFin*() =
 proc PrintFin*() =
   echo "Sent: " & $FinSent
   echo "Received: " & $FinReceived
-  echo "Flags: " & $Flags 
+  echo "Flags: " & $Flags
