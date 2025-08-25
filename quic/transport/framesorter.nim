@@ -2,20 +2,27 @@ import ../errors
 import std/tables
 import chronos
 
-type FrameSorter* = object
+type FrameSorter* = ref object of RootRef
   buffer*: Table[int64, byte] # sparse byte storage
   emitPos*: int64 # where to emit data from
   incoming*: AsyncQueue[seq[byte]]
   totalBytes*: Opt[int64]
     # contains total bytes for frame; and is known once a FIN is received
+  closed: bool
 
 proc initFrameSorter*(incoming: AsyncQueue[seq[byte]]): FrameSorter =
-  result.incoming = incoming
-  result.buffer = initTable[int64, byte]()
-  result.emitPos = 0
-  result.totalBytes = Opt.none(int64)
+  return FrameSorter(
+    incoming: incoming,
+    buffer: initTable[int64, byte](),
+    emitPos: 0,
+    totalBytes: Opt.none(int64),
+    closed: false,
+  )
 
 proc isEOF*(fs: FrameSorter): bool =
+  if fs.closed:
+    return true
+
   if fs.totalBytes.isNone:
     return false
 
@@ -50,9 +57,18 @@ proc emitBufferedData(fs: var FrameSorter) {.raises: [QuicError].} =
 
   fs.putToQueue(emitData)
 
+proc close*(fs: var FrameSorter) =
+  if fs.closed:
+    return
+  fs.closed = true
+  fs.sendEof()
+
 proc insert*(
     fs: var FrameSorter, offset: uint64, data: seq[byte], isFin: bool
 ) {.raises: [QuicError].} =
+  if fs.closed:
+    return
+
   if isFin:
     fs.totalBytes = Opt.some(offset.int64 + max(data.len - 1, 0))
     defer:
@@ -99,6 +115,9 @@ proc reset*(fs: var FrameSorter) =
   fs.emitPos = 0
 
 proc isComplete*(fs: FrameSorter): bool =
+  if fs.closed:
+    return true
+
   if fs.totalBytes.isNone:
     return false
 

@@ -5,21 +5,18 @@ import ../../framesorter
 import ../native/connection
 import ./basestream
 import ./closestream
-import ./helpers
 
 type ReceiveStream* = ref object of BaseStream
 
-proc newReceiveStream*(
-    connection: Ngtcp2Connection,
-    incoming: AsyncQueue[seq[byte]],
-    frameSorter: FrameSorter,
-): ReceiveStream =
-  ReceiveStream(connection: connection, incoming: incoming, frameSorter: frameSorter)
+proc newReceiveStream*(base: BaseStream): ReceiveStream =
+  ReceiveStream(
+    connection: base.connection, incoming: base.incoming, frameSorter: base.frameSorter
+  )
 
 method enter*(state: ReceiveStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
-  setUserData(state.stream, state.connection, unsafeAddr state[])
+  state.setUserData(stream)
 
 method leave*(state: ReceiveStream) =
   procCall leave(StreamState(state))
@@ -30,7 +27,7 @@ method read*(state: ReceiveStream): Future[seq[byte]] {.async.} =
   if state.frameSorter.isEOF() and state.incoming.len == 0:
     let stream = state.stream.valueOr:
       return @[] # Already closed
-    stream.switch(newClosedStream(state.incoming, state.frameSorter))
+    stream.switch(newClosedStream(state))
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
 
   # Get data from incoming queue
@@ -38,7 +35,7 @@ method read*(state: ReceiveStream): Future[seq[byte]] {.async.} =
 
   # If we got real data, return it with flow control update
   if data.len > 0:
-    allowMoreIncomingBytes(state.stream, state.connection, data.len.uint64)
+    state.allowMoreIncomingBytes(data.len.uint64)
     return data
 
   # If we got empty data (len == 0), check if this is EOF
@@ -47,7 +44,7 @@ method read*(state: ReceiveStream): Future[seq[byte]] {.async.} =
     let stream = state.stream.valueOr:
       return @[] # Already closed
     # If local read is also closed, switch to ClosedStream
-    stream.switch(newClosedStream(state.incoming, state.frameSorter))
+    stream.switch(newClosedStream(state))
     return @[] # Return EOF per RFC 9000
 
   # Empty data but no EOF; continue reading for more data
@@ -59,7 +56,7 @@ method write*(state: ReceiveStream, bytes: seq[byte]) {.async.} =
 method close*(state: ReceiveStream) {.async.} =
   let stream = state.stream.valueOr:
     return
-  stream.switch(newClosedStream(state.incoming, state.frameSorter))
+  stream.switch(newClosedStream(state))
 
 method closeWrite*(state: ReceiveStream) {.async.} =
   discard
@@ -67,7 +64,7 @@ method closeWrite*(state: ReceiveStream) {.async.} =
 method closeRead*(state: ReceiveStream) {.async.} =
   let stream = state.stream.valueOr:
     return
-  stream.switch(newClosedStream(state.incoming, state.frameSorter))
+  stream.switch(newClosedStream(state))
 
 method onClose*(state: ReceiveStream) =
   let stream = state.stream.valueOr:
@@ -81,7 +78,7 @@ method onClose*(state: ReceiveStream) =
     # Queue is full, that's fine - there's already data to process
     discard
 
-  stream.switch(newClosedStream(state.incoming, state.frameSorter))
+  stream.switch(newClosedStream(state))
 
 method isClosed*(state: ReceiveStream): bool =
   false
@@ -93,7 +90,7 @@ method receive*(state: ReceiveStream, offset: uint64, bytes: seq[byte], isFin: b
     let stream = state.stream.valueOr:
       return
     stream.closed.fire()
-    stream.switch(newClosedStream(state.incoming, state.frameSorter))
+    stream.switch(newClosedStream(state))
 
 method reset*(state: ReceiveStream) =
   let stream = state.stream.valueOr:
@@ -102,7 +99,4 @@ method reset*(state: ReceiveStream) =
   state.connection.shutdownStream(stream.id)
   stream.closed.fire()
   state.frameSorter.reset()
-  stream.switch(newClosedStream(state.incoming, state.frameSorter, wasReset = true))
-
-method expire*(state: ReceiveStream) {.raises: [].} =
-  expire(state.stream)
+  stream.switch(newClosedStream(state, wasReset = true))

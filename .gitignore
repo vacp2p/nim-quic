@@ -4,3 +4,8 @@
 # because it appears that vs code is skipping text search is some tests files without these rules.
 tests/**/test*[^.]* 
 !tests/**/*.*
+
+# nimble local setup
+nimble.develop
+nimble.paths
+nimbledeps

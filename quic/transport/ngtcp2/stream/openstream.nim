@@ -6,7 +6,6 @@ import ./basestream
 import ./closestream
 import ./receivestream
 import ./sendstream
-import ./helpers
 
 type OpenStream* = ref object of BaseStream
 
@@ -19,7 +18,7 @@ proc newOpenStream*(connection: Ngtcp2Connection): OpenStream =
 method enter*(state: OpenStream, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
-  setUserData(state.stream, state.connection, unsafeAddr state[])
+  state.setUserData(stream)
 
 method leave*(state: OpenStream) =
   procCall leave(StreamState(state))
@@ -35,7 +34,7 @@ method read*(state: OpenStream): Future[seq[byte]] {.async.} =
 
   # If we got real data, return it with flow control update
   if data.len > 0:
-    allowMoreIncomingBytes(state.stream, state.connection, data.len.uint64)
+    state.allowMoreIncomingBytes(data.len.uint64)
     return data
 
   # If we got empty data (len == 0), check if this is EOF
@@ -53,18 +52,18 @@ method close*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
-  stream.switch(newReceiveStream(state.connection, state.incoming, state.frameSorter))
+  stream.switch(newReceiveStream(state))
 
 method closeWrite*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
-  stream.switch(newReceiveStream(state.connection, state.incoming, state.frameSorter))
+  stream.switch(newReceiveStream(state))
 
 method closeRead*(state: OpenStream) {.async.} =
   let stream = state.stream.valueOr:
     return
-  stream.switch(newSendStream(state.connection, state.incoming, state.frameSorter))
+  stream.switch(newSendStream(state))
 
 method onClose*(state: OpenStream) =
   let stream = state.stream.valueOr:
@@ -78,7 +77,7 @@ method onClose*(state: OpenStream) =
     # Queue is full, that's fine - there's already data to process
     discard
 
-  stream.switch(newClosedStream(state.incoming, state.frameSorter))
+  stream.switch(newClosedStream(state))
 
 method isClosed*(state: OpenStream): bool =
   false
@@ -90,7 +89,7 @@ method receive*(state: OpenStream, offset: uint64, bytes: seq[byte], isFin: bool
     let stream = state.stream.valueOr:
       return
     stream.closed.fire()
-    stream.switch(newClosedStream(state.incoming, state.frameSorter))
+    stream.switch(newClosedStream(state))
 
 method reset*(state: OpenStream) =
   let stream = state.stream.valueOr:
@@ -99,7 +98,4 @@ method reset*(state: OpenStream) =
   state.connection.shutdownStream(stream.id)
   stream.closed.fire()
   state.frameSorter.reset()
-  stream.switch(newClosedStream(state.incoming, state.frameSorter, wasReset = true))
-
-method expire*(state: OpenStream) {.raises: [].} =
-  expire(state.stream)
+  stream.switch(newClosedStream(state, wasReset = true))

@@ -2,19 +2,25 @@ import ../../../errors
 import ../../../basics
 import ../../stream
 import ../../framesorter
+import ../native/connection
 import ./basestream
-import ./helpers
 
 type ClosedStream* = ref object of BaseStream
   wasReset: bool
 
-proc newClosedStream*(
-    incoming: AsyncQueue[seq[byte]], frameSorter: FrameSorter, wasReset: bool = false
-): ClosedStream =
-  ClosedStream(incoming: incoming, wasReset: wasReset)
+proc newClosedStream*(base: BaseStream, wasReset: bool = false): ClosedStream =
+  ClosedStream(
+    connection: base.connection,
+    incoming: base.incoming,
+    frameSorter: base.frameSorter,
+    wasReset: wasReset,
+  )
 
 method enter*(state: ClosedStream, stream: Stream) =
-  setUserData(state.stream, state.connection, nil)
+  procCall enter(StreamState(state), stream)
+  state.stream = Opt.some(stream)
+  state.setUserData(stream)
+  state.frameSorter.close()
 
 method leave*(state: ClosedStream) =
   discard
@@ -54,7 +60,4 @@ method receive*(state: ClosedStream, offset: uint64, bytes: seq[byte], isFin: bo
   discard
 
 method reset*(state: ClosedStream) =
-  discard
-
-method expire*(state: ClosedStream) {.raises: [].} =
   discard
