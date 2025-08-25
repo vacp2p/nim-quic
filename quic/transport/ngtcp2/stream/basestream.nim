@@ -17,9 +17,7 @@ method expire*(state: BaseStream) {.raises: [].} =
     return
   stream.closed.fire()
 
-proc allowMoreIncomingBytes*(
-    state: BaseStream, amount: uint64
-) =
+proc allowMoreIncomingBytes*(state: BaseStream, amount: uint64) =
   let stream = state.stream.valueOr:
     return
   state.connection.extendStreamOffset(stream.id, amount)

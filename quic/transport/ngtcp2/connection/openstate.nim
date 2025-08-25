@@ -105,7 +105,6 @@ method send(state: OpenConnection) =
   state.ngtcp2Connection.send()
 
 method receive(state: OpenConnection, datagram: Datagram) =
-
   var errCode = 0
   var errMsg = ""
   try:
