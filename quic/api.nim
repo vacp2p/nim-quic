@@ -112,8 +112,7 @@ proc dial*(
   )
   var connection: Connection
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-    let datagram = Datagram(data: udp.getMessage())
-    connection.receive(datagram)
+    connection.receive(Datagram(data: udp.getMessage()))
 
   let udp = newDatagramTransport(onReceive)
   connection = newOutgoingConnection(tlsBackend, udp, address, self.rng)

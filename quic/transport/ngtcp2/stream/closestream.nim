@@ -23,7 +23,7 @@ method enter*(state: ClosedStream, stream: Stream) =
   state.frameSorter.close()
 
 method leave*(state: ClosedStream) =
-  discard
+  doAssert false, "ClosedStream state should never leave"
 
 method read*(state: ClosedStream): Future[seq[byte]] {.async.} =
   # If stream was reset, always throw exception
