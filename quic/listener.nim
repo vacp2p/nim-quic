@@ -62,9 +62,9 @@ proc newListener*(
 ): Listener =
   let listener = Listener(incoming: newAsyncQueue[Connection]())
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-    let conn = listener.getOrCreateConnection(udp, remote, rng).valueOr:
-      return
-    conn.receive(Datagram(data: udp.getMessage()))
+    let connection = listener.getOrCreateConnection(udp, remote, rng)
+    if connection.isSome():
+      connection.get().receive(Datagram(data: udp.getMessage()))
 
   listener.tlsBackend = tlsBackend
   listener.udp = newDatagramTransport(onReceive, local = address)
