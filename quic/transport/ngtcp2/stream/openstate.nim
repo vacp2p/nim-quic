@@ -68,15 +68,6 @@ method closeRead*(state: OpenStreamState) {.async.} =
 method onClose*(state: OpenStreamState) =
   let stream = state.stream.valueOr:
     return
-
-  # Wake up pending read() operations before switching states
-  # This fixes race condition when ngtcp2 calls onClose() while read() is waiting
-  try:
-    state.incoming.putNoWait(@[]) # Send EOF marker to wake up pending reads
-  except AsyncQueueFullError:
-    # Queue is full, that's fine - there's already data to process
-    discard
-
   stream.switch(newClosedStreamState(state))
 
 method isClosed*(state: OpenStreamState): bool =
