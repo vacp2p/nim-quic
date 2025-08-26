@@ -1,12 +1,12 @@
 import ngtcp2
 import ../../../helpers/openarray
 import ../../stream
-import ../stream/openstream
+import ../stream/openstate
 import ./connection
 import chronicles
 
 proc newStream(connection: Ngtcp2Connection, id: int64): Stream =
-  newStream(id, newOpenStream(connection))
+  newStream(id, newOpenStreamState(connection))
 
 proc openStream*(connection: Ngtcp2Connection, unidirectional: bool): Stream =
   var id: int64

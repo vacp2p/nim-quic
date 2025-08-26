@@ -3,31 +3,31 @@ import ../../../basics
 import ../../stream
 import ../../framesorter
 import ../native/connection
-import ./basestream
-import ./closestream
+import ./basestate
+import ./closestate
 
-type ReceiveStream* = ref object of BaseStream
+type ReceiveStreamState* = ref object of BaseStreamState
 
-proc newReceiveStream*(base: BaseStream): ReceiveStream =
-  ReceiveStream(
+proc newReceiveStreamState*(base: BaseStreamState): ReceiveStreamState =
+  ReceiveStreamState(
     connection: base.connection, incoming: base.incoming, frameSorter: base.frameSorter
   )
 
-method enter*(state: ReceiveStream, stream: Stream) =
+method enter*(state: ReceiveStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   state.setUserData(stream)
 
-method leave*(state: ReceiveStream) =
+method leave*(state: ReceiveStreamState) =
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
 
-method read*(state: ReceiveStream): Future[seq[byte]] {.async.} =
+method read*(state: ReceiveStreamState): Future[seq[byte]] {.async.} =
   # Check for immediate EOF conditions
   if state.frameSorter.isEOF() and state.incoming.len == 0:
     let stream = state.stream.valueOr:
       return @[] # Already closed
-    stream.switch(newClosedStream(state))
+    stream.switch(newClosedStreamState(state))
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
 
   # Get data from incoming queue
@@ -44,29 +44,29 @@ method read*(state: ReceiveStream): Future[seq[byte]] {.async.} =
     let stream = state.stream.valueOr:
       return @[] # Already closed
     # If local read is also closed, switch to ClosedStream
-    stream.switch(newClosedStream(state))
+    stream.switch(newClosedStreamState(state))
     return @[] # Return EOF per RFC 9000
 
   # Empty data but no EOF; continue reading for more data
   return await state.read()
 
-method write*(state: ReceiveStream, bytes: seq[byte]) {.async.} =
+method write*(state: ReceiveStreamState, bytes: seq[byte]) {.async.} =
   raise newException(ClosedStreamError, "write side is closed")
 
-method close*(state: ReceiveStream) {.async.} =
+method close*(state: ReceiveStreamState) {.async.} =
   let stream = state.stream.valueOr:
     return
-  stream.switch(newClosedStream(state))
+  stream.switch(newClosedStreamState(state))
 
-method closeWrite*(state: ReceiveStream) {.async.} =
+method closeWrite*(state: ReceiveStreamState) {.async.} =
   discard
 
-method closeRead*(state: ReceiveStream) {.async.} =
+method closeRead*(state: ReceiveStreamState) {.async.} =
   let stream = state.stream.valueOr:
     return
-  stream.switch(newClosedStream(state))
+  stream.switch(newClosedStreamState(state))
 
-method onClose*(state: ReceiveStream) =
+method onClose*(state: ReceiveStreamState) =
   let stream = state.stream.valueOr:
     return
 
@@ -78,25 +78,27 @@ method onClose*(state: ReceiveStream) =
     # Queue is full, that's fine - there's already data to process
     discard
 
-  stream.switch(newClosedStream(state))
+  stream.switch(newClosedStreamState(state))
 
-method isClosed*(state: ReceiveStream): bool =
+method isClosed*(state: ReceiveStreamState): bool =
   false
 
-method receive*(state: ReceiveStream, offset: uint64, bytes: seq[byte], isFin: bool) =
+method receive*(
+    state: ReceiveStreamState, offset: uint64, bytes: seq[byte], isFin: bool
+) =
   state.frameSorter.insert(offset, bytes, isFin)
 
   if state.frameSorter.isComplete():
     let stream = state.stream.valueOr:
       return
     stream.closed.fire()
-    stream.switch(newClosedStream(state))
+    stream.switch(newClosedStreamState(state))
 
-method reset*(state: ReceiveStream) =
+method reset*(state: ReceiveStreamState) =
   let stream = state.stream.valueOr:
     return
 
   state.connection.shutdownStream(stream.id)
   stream.closed.fire()
   state.frameSorter.reset()
-  stream.switch(newClosedStream(state, wasReset = true))
+  stream.switch(newClosedStreamState(state, wasReset = true))

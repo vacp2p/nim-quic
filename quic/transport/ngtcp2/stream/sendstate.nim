@@ -3,63 +3,63 @@ import ../../../basics
 import ../../stream
 import ../../framesorter
 import ../native/connection
-import ./basestream
-import ./closestream
+import ./basestate
+import ./closestate
 
-type SendStream* = ref object of BaseStream
+type SendStreamState* = ref object of BaseStreamState
 
-proc newSendStream*(base: BaseStream): SendStream =
-  SendStream(
+proc newSendStreamState*(base: BaseStreamState): SendStreamState =
+  SendStreamState(
     connection: base.connection, incoming: base.incoming, frameSorter: base.frameSorter
   )
 
-method enter*(state: SendStream, stream: Stream) =
+method enter*(state: SendStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   state.setUserData(stream)
   state.frameSorter.close()
 
-method leave*(state: SendStream) =
+method leave*(state: SendStreamState) =
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
 
-method read*(state: SendStream): Future[seq[byte]] {.async.} =
+method read*(state: SendStreamState): Future[seq[byte]] {.async.} =
   raise newException(ClosedStreamError, "read side is closed")
 
-method write*(state: SendStream, bytes: seq[byte]) {.async.} =
+method write*(state: SendStreamState, bytes: seq[byte]) {.async.} =
   await state.connection.send(state.stream.get.id, bytes)
 
-method close*(state: SendStream) {.async.} =
+method close*(state: SendStreamState) {.async.} =
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
-  stream.switch(newClosedStream(state))
+  stream.switch(newClosedStreamState(state))
 
-method closeWrite*(state: SendStream) {.async.} =
+method closeWrite*(state: SendStreamState) {.async.} =
   let stream = state.stream.valueOr:
     return
   discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
-  stream.switch(newClosedStream(state))
+  stream.switch(newClosedStreamState(state))
 
-method closeRead*(stream: SendStream) {.async.} =
+method closeRead*(stream: SendStreamState) {.async.} =
   discard
 
-method onClose*(state: SendStream) =
+method onClose*(state: SendStreamState) =
   let stream = state.stream.valueOr:
     return
-  stream.switch(newClosedStream(state))
+  stream.switch(newClosedStreamState(state))
 
-method isClosed*(state: SendStream): bool =
+method isClosed*(state: SendStreamState): bool =
   false
 
-method receive*(state: SendStream, offset: uint64, bytes: seq[byte], isFin: bool) =
+method receive*(state: SendStreamState, offset: uint64, bytes: seq[byte], isFin: bool) =
   discard
 
-method reset*(state: SendStream) =
+method reset*(state: SendStreamState) =
   let stream = state.stream.valueOr:
     return
 
   state.connection.shutdownStream(stream.id)
   stream.closed.fire()
   state.frameSorter.reset()
-  stream.switch(newClosedStream(state, wasReset = true))
+  stream.switch(newClosedStreamState(state, wasReset = true))
