@@ -1,7 +1,7 @@
 import ngtcp2
 import ../../../helpers/openarray
 import ../../stream
-import ../stream/openstate
+import ../streamstate/openstate
 import ./connection
 import chronicles
 
