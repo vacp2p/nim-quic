@@ -68,6 +68,7 @@ method closeRead*(state: OpenStreamState) {.async.} =
 method onClose*(state: OpenStreamState) =
   let stream = state.stream.valueOr:
     return
+  discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
   stream.switch(newClosedStreamState(state))
 
 method isClosed*(state: OpenStreamState): bool =
@@ -80,6 +81,7 @@ method receive*(state: OpenStreamState, offset: uint64, bytes: seq[byte], isFin:
     let stream = state.stream.valueOr:
       return
     stream.closed.fire()
+    discard state.connection.send(state.stream.get.id, @[], true) # Send FIN
     stream.switch(newClosedStreamState(state))
 
 method reset*(state: OpenStreamState) =
