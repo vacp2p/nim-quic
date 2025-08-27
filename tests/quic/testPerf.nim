@@ -1,11 +1,8 @@
 import std/sequtils
 import pkg/chronos
 import pkg/chronos/unittest2/asynctests
-import pkg/quic/errors
 import pkg/quic/transport/stream
 import pkg/quic/transport/quicconnection
-import pkg/quic/transport/ngtcp2/native
-import pkg/quic/udp/datagram
 import pkg/stew/endians2
 import ../helpers/simulation
 

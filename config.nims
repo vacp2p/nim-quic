@@ -1,0 +1,1 @@
+switch("warningAsError", "UnusedImport:on")

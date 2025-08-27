@@ -7,7 +7,6 @@ import pkg/quic/transport/quicconnection
 import pkg/quic/transport/ngtcp2/native
 import pkg/quic/udp/datagram
 import ../helpers/simulation
-import ../helpers/contains
 
 proc newData(size: int, val: uint8 = uint8(0xEE)): seq[uint8] =
   var data = newSeq[uint8](size)
