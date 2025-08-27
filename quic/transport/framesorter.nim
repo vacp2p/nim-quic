@@ -116,9 +116,6 @@ proc reset*(fs: var FrameSorter) =
   # resetting FS should leave fs.closed (if it was set)
 
 proc isComplete*(fs: FrameSorter): bool =
-  if fs.closed:
-    return true
-
   if fs.totalBytes.isNone:
     return false
 
