@@ -44,7 +44,7 @@ method read*(state: OpenStreamState): Future[seq[byte]] {.async.} =
   return await state.read()
 
 method write*(state: OpenStreamState, bytes: seq[byte]) {.async.} =
-  await state.writeToStream(bytes)
+  await procCall BaseStreamState(state).write(bytes)
 
 method close*(state: OpenStreamState) {.async.} =
   state.switch(newReceiveStreamState(state))

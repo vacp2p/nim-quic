@@ -29,7 +29,7 @@ method read*(state: SendStreamState): Future[seq[byte]] {.async.} =
   raise newException(ClosedStreamError, "read side is closed")
 
 method write*(state: SendStreamState, bytes: seq[byte]) {.async.} =
-  await state.writeToStream(bytes)
+  await procCall BaseStreamState(state).write(bytes)
 
 method close*(state: SendStreamState) {.async.} =
   state.switch(newClosedStreamState(state))

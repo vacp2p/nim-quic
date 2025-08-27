@@ -10,13 +10,18 @@ type BaseStreamState* = ref object of StreamState
   frameSorter*: FrameSorter
   finSent*: bool
 
-proc setUserData*(state: BaseStreamState, stream: stream.Stream) =
-  state.connection.setStreamUserData(stream.id, unsafeAddr state[])
-
 method expire*(state: BaseStreamState) {.raises: [].} =
   let stream = state.stream.valueOr:
     return
   stream.closed.fire()
+
+method write*(state: BaseStreamState, bytes: seq[byte]) {.async.} =
+  let stream = state.stream.valueOr:
+    return
+  await state.connection.send(stream.id, bytes)
+
+proc setUserData*(state: BaseStreamState, stream: stream.Stream) =
+  state.connection.setStreamUserData(stream.id, unsafeAddr state[])
 
 proc allowMoreIncomingBytes*(state: BaseStreamState, amount: uint64) =
   let stream = state.stream.valueOr:
@@ -37,7 +42,3 @@ proc switch*(state: BaseStreamState, newStream: StreamState) =
     return
   stream.switch(newStream)
 
-proc writeToStream*(state: BaseStreamState, bytes: seq[byte]) {.async.} =
-  let stream = state.stream.valueOr:
-    return
-  await state.connection.send(stream.id, bytes)
