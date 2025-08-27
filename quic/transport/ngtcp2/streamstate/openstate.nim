@@ -63,8 +63,6 @@ method isClosed*(state: OpenStreamState): bool =
 
 method receive*(state: OpenStreamState, offset: uint64, bytes: seq[byte], isFin: bool) =
   state.frameSorter.insert(offset, bytes, isFin)
-  if state.frameSorter.isComplete():
-    state.switch(newClosedStreamState(state))
 
 method reset*(state: OpenStreamState) =
   state.switch(newClosedStreamState(state, wasReset = true))
