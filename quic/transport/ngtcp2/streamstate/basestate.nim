@@ -41,4 +41,3 @@ proc switch*(state: BaseStreamState, newStream: StreamState) =
   let stream = state.stream.valueOr:
     return
   stream.switch(newStream)
-
