@@ -2,6 +2,7 @@ import ../../../errors
 import ../../../basics
 import ../../stream
 import ../../framesorter
+import ../native/connection
 import ./basestate
 
 type ClosedStreamState* = ref object of BaseStreamState
@@ -14,6 +15,7 @@ proc newClosedStreamState*(
     connection: base.connection,
     incoming: base.incoming,
     frameSorter: base.frameSorter,
+    finSent: base.finSent,
     wasReset: wasReset,
   )
 
@@ -24,6 +26,10 @@ method enter*(state: ClosedStreamState, stream: Stream) =
   if state.wasReset:
     state.frameSorter.reset()
   state.frameSorter.close()
+  if state.wasReset:
+    state.connection.shutdownStream(stream.id)
+  else:
+    discard state.sendFin(stream)
   stream.closed.fire()
 
 method leave*(state: ClosedStreamState) =

@@ -10,7 +10,10 @@ type SendStreamState* = ref object of BaseStreamState
 
 proc newSendStreamState*(base: BaseStreamState): SendStreamState =
   SendStreamState(
-    connection: base.connection, incoming: base.incoming, frameSorter: base.frameSorter
+    connection: base.connection,
+    incoming: base.incoming,
+    frameSorter: base.frameSorter,
+    finSent: base.finSent,
   )
 
 method enter*(state: SendStreamState, stream: Stream) =
@@ -35,13 +38,11 @@ method close*(state: SendStreamState) {.async.} =
   let stream = state.stream.valueOr:
     return
   stream.switch(newClosedStreamState(state))
-  discard state.sendFin(stream)
 
 method closeWrite*(state: SendStreamState) {.async.} =
   let stream = state.stream.valueOr:
     return
   stream.switch(newClosedStreamState(state))
-  discard state.sendFin(stream)
 
 method closeRead*(stream: SendStreamState) {.async.} =
   discard
@@ -50,7 +51,6 @@ method onClose*(state: SendStreamState) =
   let stream = state.stream.valueOr:
     return
   stream.switch(newClosedStreamState(state))
-  discard state.sendFin(stream)
 
 method isClosed*(state: SendStreamState): bool =
   false
@@ -61,6 +61,4 @@ method receive*(state: SendStreamState, offset: uint64, bytes: seq[byte], isFin:
 method reset*(state: SendStreamState) =
   let stream = state.stream.valueOr:
     return
-
-  state.connection.shutdownStream(stream.id)
   stream.switch(newClosedStreamState(state, wasReset = true))
