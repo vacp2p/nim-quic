@@ -10,13 +10,17 @@ type ReceiveStreamState* = ref object of BaseStreamState
 
 proc newReceiveStreamState*(base: BaseStreamState): ReceiveStreamState =
   ReceiveStreamState(
-    connection: base.connection, incoming: base.incoming, frameSorter: base.frameSorter
+    connection: base.connection,
+    incoming: base.incoming,
+    frameSorter: base.frameSorter,
+    finSent: base.finSent,
   )
 
 method enter*(state: ReceiveStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   state.setUserData(stream)
+  state.sendFin(stream)
 
 method leave*(state: ReceiveStreamState) =
   procCall leave(StreamState(state))
@@ -82,14 +86,9 @@ method receive*(
   if state.frameSorter.isComplete():
     let stream = state.stream.valueOr:
       return
-    stream.closed.fire()
     stream.switch(newClosedStreamState(state))
 
 method reset*(state: ReceiveStreamState) =
   let stream = state.stream.valueOr:
     return
-
-  state.connection.shutdownStream(stream.id)
-  stream.closed.fire()
-  state.frameSorter.reset()
   stream.switch(newClosedStreamState(state, wasReset = true))

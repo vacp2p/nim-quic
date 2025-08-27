@@ -15,6 +15,7 @@ proc newClosedStreamState*(
     connection: base.connection,
     incoming: base.incoming,
     frameSorter: base.frameSorter,
+    finSent: base.finSent,
     wasReset: wasReset,
   )
 
@@ -22,7 +23,14 @@ method enter*(state: ClosedStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   state.setUserData(stream)
+  if state.wasReset:
+    state.frameSorter.reset()
   state.frameSorter.close()
+  if state.wasReset:
+    state.reset(stream)
+  else:
+    state.sendFin(stream)
+  stream.closed.fire()
 
 method leave*(state: ClosedStreamState) =
   doAssert false, "ClosedStreamState state should never leave"
