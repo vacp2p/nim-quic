@@ -82,7 +82,6 @@ method receive*(
   if state.frameSorter.isComplete():
     let stream = state.stream.valueOr:
       return
-    stream.closed.fire()
     stream.switch(newClosedStreamState(state))
 
 method reset*(state: ReceiveStreamState) =
@@ -90,6 +89,4 @@ method reset*(state: ReceiveStreamState) =
     return
 
   state.connection.shutdownStream(stream.id)
-  stream.closed.fire()
-  state.frameSorter.reset()
   stream.switch(newClosedStreamState(state, wasReset = true))

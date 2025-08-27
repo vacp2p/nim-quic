@@ -2,7 +2,6 @@ import ../../../errors
 import ../../../basics
 import ../../stream
 import ../../framesorter
-import ../native/connection
 import ./basestate
 
 type ClosedStreamState* = ref object of BaseStreamState
@@ -22,7 +21,10 @@ method enter*(state: ClosedStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   state.setUserData(stream)
+  if state.wasReset:
+    state.frameSorter.reset()
   state.frameSorter.close()
+  stream.closed.fire()
 
 method leave*(state: ClosedStreamState) =
   doAssert false, "ClosedStreamState state should never leave"

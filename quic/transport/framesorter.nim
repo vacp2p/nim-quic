@@ -113,6 +113,7 @@ proc reset*(fs: var FrameSorter) =
   fs.buffer.clear()
   fs.incoming.clear()
   fs.emitPos = 0
+  # resetting FS should leave fs.closed (if it was set)
 
 proc isComplete*(fs: FrameSorter): bool =
   if fs.closed:
