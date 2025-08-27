@@ -2,7 +2,6 @@ import ../../../errors
 import ../../../basics
 import ../../stream
 import ../../framesorter
-import ../native/connection
 import ./basestate
 import ./closestate
 
@@ -30,27 +29,19 @@ method read*(state: SendStreamState): Future[seq[byte]] {.async.} =
   raise newException(ClosedStreamError, "read side is closed")
 
 method write*(state: SendStreamState, bytes: seq[byte]) {.async.} =
-  let stream = state.stream.valueOr:
-    return
-  await state.connection.send(stream.id, bytes)
+  await state.writeToStream(bytes)
 
 method close*(state: SendStreamState) {.async.} =
-  let stream = state.stream.valueOr:
-    return
-  stream.switch(newClosedStreamState(state))
+  state.switch(newClosedStreamState(state))
 
 method closeWrite*(state: SendStreamState) {.async.} =
-  let stream = state.stream.valueOr:
-    return
-  stream.switch(newClosedStreamState(state))
+  state.switch(newClosedStreamState(state))
 
 method closeRead*(stream: SendStreamState) {.async.} =
   discard
 
 method onClose*(state: SendStreamState) =
-  let stream = state.stream.valueOr:
-    return
-  stream.switch(newClosedStreamState(state))
+  state.switch(newClosedStreamState(state))
 
 method isClosed*(state: SendStreamState): bool =
   false
@@ -59,6 +50,4 @@ method receive*(state: SendStreamState, offset: uint64, bytes: seq[byte], isFin:
   discard
 
 method reset*(state: SendStreamState) =
-  let stream = state.stream.valueOr:
-    return
-  stream.switch(newClosedStreamState(state, wasReset = true))
+  state.switch(newClosedStreamState(state, wasReset = true))

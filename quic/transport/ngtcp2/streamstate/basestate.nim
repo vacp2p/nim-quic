@@ -31,3 +31,13 @@ proc sendFin*(state: BaseStreamState, stream: stream.Stream) =
 
 proc reset*(state: BaseStreamState, stream: stream.Stream) =
   state.connection.shutdownStream(stream.id)
+
+proc switch*(state: BaseStreamState, newStream: StreamState) =
+  let stream = state.stream.valueOr:
+    return
+  stream.switch(newStream)
+
+proc writeToStream*(state: BaseStreamState, bytes: seq[byte]) {.async.} =
+  let stream = state.stream.valueOr:
+    return
+  await state.connection.send(stream.id, bytes)

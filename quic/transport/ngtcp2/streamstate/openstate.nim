@@ -29,58 +29,42 @@ method read*(state: OpenStreamState): Future[seq[byte]] {.async.} =
   if state.frameSorter.isEOF() and state.incoming.len == 0:
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
 
-  # Get data from incoming queue
   let data = await state.incoming.get()
 
-  # If we got real data, return it with flow control update
+  # If we got data, return it with flow control update
   if data.len > 0:
     state.allowMoreIncomingBytes(data.len.uint64)
     return data
 
-  # If we got empty data (len == 0), check if this is EOF
-  if data.len == 0 and state.frameSorter.isEOF():
+  # Empty data (len == 0) and this is EOF
+  if state.frameSorter.isEOF():
     return @[] # Return EOF per RFC 9000
 
   # Empty data but no EOF; continue reading for more data
   return await state.read()
 
-method write*(state: OpenStreamState, bytes: seq[byte]): Future[void] =
-  let stream = state.stream.valueOr:
-    return
-  state.connection.send(stream.id, bytes)
+method write*(state: OpenStreamState, bytes: seq[byte]) {.async.} =
+  await state.writeToStream(bytes)
 
 method close*(state: OpenStreamState) {.async.} =
-  let stream = state.stream.valueOr:
-    return
-  stream.switch(newReceiveStreamState(state))
+  state.switch(newReceiveStreamState(state))
 
 method closeWrite*(state: OpenStreamState) {.async.} =
-  let stream = state.stream.valueOr:
-    return
-  stream.switch(newReceiveStreamState(state))
+  state.switch(newReceiveStreamState(state))
 
 method closeRead*(state: OpenStreamState) {.async.} =
-  let stream = state.stream.valueOr:
-    return
-  stream.switch(newSendStreamState(state))
+  state.switch(newSendStreamState(state))
 
 method onClose*(state: OpenStreamState) =
-  let stream = state.stream.valueOr:
-    return
-  stream.switch(newClosedStreamState(state))
+  state.switch(newClosedStreamState(state))
 
 method isClosed*(state: OpenStreamState): bool =
   false
 
 method receive*(state: OpenStreamState, offset: uint64, bytes: seq[byte], isFin: bool) =
   state.frameSorter.insert(offset, bytes, isFin)
-
   if state.frameSorter.isComplete():
-    let stream = state.stream.valueOr:
-      return
-    stream.switch(newClosedStreamState(state))
+    state.switch(newClosedStreamState(state))
 
 method reset*(state: OpenStreamState) =
-  let stream = state.stream.valueOr:
-    return
-  stream.switch(newClosedStreamState(state, wasReset = true))
+  state.switch(newClosedStreamState(state, wasReset = true))
