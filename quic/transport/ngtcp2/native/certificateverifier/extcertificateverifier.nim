@@ -4,7 +4,6 @@ import sequtils
 import ./certificateverifier
 import ../pointers
 import ../../../../helpers/openarray
-import ../../../../errors
 
 type
   extVerifyCertificateT = object of ptls_verify_certificate_t

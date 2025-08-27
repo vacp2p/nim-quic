@@ -1,5 +1,4 @@
 import std/strutils
-import std/hashes
 import bearssl/rand
 
 type ConnectionId* = seq[byte]

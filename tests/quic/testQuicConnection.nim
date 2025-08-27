@@ -1,4 +1,3 @@
-import bearssl/rand
 import chronos
 import chronos/unittest2/asynctests
 import quic/errors

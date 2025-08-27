@@ -2,7 +2,6 @@ import ../../../errors
 import ../../../basics
 import ../../stream
 import ../../framesorter
-import ../native/connection
 import ./basestate
 
 type ClosedStreamState* = ref object of BaseStreamState
