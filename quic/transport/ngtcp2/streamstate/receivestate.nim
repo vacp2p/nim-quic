@@ -20,7 +20,7 @@ method enter*(state: ReceiveStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   state.setUserData(stream)
-  discard state.sendFin(stream)
+  state.sendFin(stream)
 
 method leave*(state: ReceiveStreamState) =
   procCall leave(StreamState(state))

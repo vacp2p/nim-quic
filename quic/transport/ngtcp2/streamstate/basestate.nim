@@ -24,7 +24,10 @@ proc allowMoreIncomingBytes*(state: BaseStreamState, amount: uint64) =
   state.connection.extendStreamOffset(stream.id, amount)
   state.connection.send()
 
-proc sendFin*(state: BaseStreamState, stream: stream.Stream) {.async.} =
+proc sendFin*(state: BaseStreamState, stream: stream.Stream) =
   if not state.finSent:
     state.finSent = true
-    await state.connection.send(stream.id, @[], true)
+    discard state.connection.send(stream.id, @[], true)
+
+proc reset*(state: BaseStreamState, stream: stream.Stream) =
+  state.connection.shutdownStream(stream.id)

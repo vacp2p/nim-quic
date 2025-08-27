@@ -27,9 +27,9 @@ method enter*(state: ClosedStreamState, stream: Stream) =
     state.frameSorter.reset()
   state.frameSorter.close()
   if state.wasReset:
-    state.connection.shutdownStream(stream.id)
+    state.reset(stream)
   else:
-    discard state.sendFin(stream)
+    state.sendFin(stream)
   stream.closed.fire()
 
 method leave*(state: ClosedStreamState) =
