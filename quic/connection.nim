@@ -173,7 +173,17 @@ proc waitForHandshake*(
   let errFut = connection.quic.error.waitEvents(key)
   let timeoutFut = connection.quic.timeout.wait()
   let handshakeFut = connection.quic.handshake.wait()
-  let raceFut = await race(handshakeFut, timeoutFut, errFut)
+  let raceFut =
+    try:
+      await race(handshakeFut, timeoutFut, errFut)
+    except CancelledError as e:
+      let connCloseFut = connection.close()
+      handshakeFut.cancelSoon()
+      errFut.cancelSoon()
+      timeoutFut.cancelSoon()
+      await connCloseFut
+      raise e
+
   if raceFut == timeoutFut:
     let connCloseFut = connection.close()
     errFut.cancelSoon()
