@@ -119,7 +119,8 @@ proc dial*(
   try:
     connection.startHandshake()
     await connection.waitForHandshake()
-  except TimeOutError as exc:
+  except CatchableError as exc:
+    # whatever error happens we need to destroy tlsBackend to free resources
     tlsBackend.destroy()
     raise exc
 
