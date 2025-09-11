@@ -740,7 +740,7 @@ suite "streams":
     await clientStream.write(@[])
     let serverStream = await server.incomingStream()
 
-    const parallelWrites = 5 # has to be more parallel writes then 2
+    const parallelWrites = 10 # has to be many parallel writes
     for i in 0 ..< parallelWrites:
       # each write has to have unique data
       let data = newData(dataSize, uint8(i + 1))
