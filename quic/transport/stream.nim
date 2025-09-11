@@ -6,6 +6,7 @@ type
     id: int64
     state: StreamState
     closed*: AsyncEvent
+    currentWrite: Future[void]
 
   StreamState* = ref object of RootObj
     entered: bool
@@ -72,7 +73,13 @@ proc read*(stream: Stream): Future[seq[byte]] {.async.} =
   result = await stream.state.read()
 
 proc write*(stream: Stream, bytes: seq[byte]) {.async.} =
-  await stream.state.write(bytes)
+  # Writing has to be serialized on the same stream as otherwise
+  # data might no be sent correctly.
+  if not stream.currentWrite.isNil:
+    await stream.currentWrite
+
+  stream.currentWrite = stream.state.write(bytes)
+  await stream.currentWrite
 
 proc close*(stream: Stream) {.async.} =
   await stream.state.close()
