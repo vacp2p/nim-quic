@@ -740,7 +740,6 @@ suite "streams":
     let receivedData = await readStreamTillEOF(serverStream)
     check (await serverStream.read()).len == 0
 
-
     # Verify data size
     check receivedData.len == dataSize * parallelWrites
 
