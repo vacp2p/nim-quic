@@ -717,9 +717,9 @@ suite "streams":
     await clientStream.close()
     await simulation.cancelAndWait()
 
-  asyncTest "parallel writes":
+  asyncTest "parallel async writes":
     let simulation = simulateNetwork(client, server)
-    let dataSize = 2 * 1024 * 1024 # 2 MB
+    const dataSize = 2 * 1024 * 1024 # 2 MB
 
     let clientStream = await client.openStream()
     await clientStream.write(@[]) # Activate stream
@@ -728,11 +728,11 @@ suite "streams":
     const parallelWrites = 5
     var writeTasksDone: int = 0
     let clientWriteTask = proc() {.async.} =
-      # Each task will send unique data
-      await clientStream.write(newData(dataSize, uint8(writeTasksDone)))
+      # Each task will send unique data, must discard future
+      discard clientStream.write(newData(dataSize, uint8(writeTasksDone)))
       writeTasksDone.inc
       if writeTasksDone == parallelWrites:
-        await clientStream.closeWrite()
+        discard clientStream.closeWrite()
 
     for i in 0 ..< parallelWrites:
       asyncSpawn clientWriteTask()
@@ -741,7 +741,10 @@ suite "streams":
     check (await serverStream.read()).len == 0
 
     # Verify data size
-    check receivedData.len == dataSize * parallelWrites
+    const expectedSize = dataSize * parallelWrites
+    check receivedData.len == expectedSize
+    if receivedData.len != expectedSize:
+      return
 
     # Each task sends unique data, but the arrival order is unpredictable.
     # We verify that all consecutive segments of the data stream contain identical values.
