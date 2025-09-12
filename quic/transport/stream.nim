@@ -1,13 +1,12 @@
 import ../basics
 import ../helpers/bits
-import semaphore
 
 type
   Stream* = ref object
     id: int64
     state: StreamState
     closed*: AsyncEvent
-    sem: AsyncSemaphore
+    lock: AsyncLock
 
   StreamState* = ref object of RootObj
     entered: bool
@@ -59,7 +58,7 @@ method expire*(state: StreamState) {.base, raises: [].} =
 
 proc newStream*(id: int64, state: StreamState): Stream =
   let stream =
-    Stream(state: state, id: id, closed: newAsyncEvent(), sem: newAsyncSemaphore(1))
+    Stream(state: state, id: id, closed: newAsyncEvent(), lock: newAsyncLock())
   state.enter(stream)
   stream
 
@@ -77,9 +76,9 @@ proc read*(stream: Stream): Future[seq[byte]] {.async.} =
 proc write*(stream: Stream, bytes: seq[byte]) {.async.} =
   # Writing has to be serialized on the same stream as otherwise
   # data might no be sent correctly.
-  await stream.sem.acquire()
+  await stream.lock.acquire()
   defer:
-    stream.sem.release()
+    stream.lock.release()
 
   await stream.state.write(bytes)
 
