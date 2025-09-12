@@ -6,6 +6,7 @@ type
     id: int64
     state: StreamState
     closed*: AsyncEvent
+    lock: AsyncLock
 
   StreamState* = ref object of RootObj
     entered: bool
@@ -56,7 +57,8 @@ method expire*(state: StreamState) {.base, raises: [].} =
   doAssert false, "override this method"
 
 proc newStream*(id: int64, state: StreamState): Stream =
-  let stream = Stream(state: state, id: id, closed: newAsyncEvent())
+  let stream =
+    Stream(state: state, id: id, closed: newAsyncEvent(), lock: newAsyncLock())
   state.enter(stream)
   stream
 
@@ -72,6 +74,12 @@ proc read*(stream: Stream): Future[seq[byte]] {.async.} =
   result = await stream.state.read()
 
 proc write*(stream: Stream, bytes: seq[byte]) {.async.} =
+  # Writing has to be serialized on the same stream as otherwise
+  # data might not be sent correctly.
+  await stream.lock.acquire()
+  defer:
+    stream.lock.release()
+
   await stream.state.write(bytes)
 
 proc close*(stream: Stream) {.async.} =

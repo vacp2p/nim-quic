@@ -14,13 +14,19 @@ proc newData(size: int, val: uint8 = uint8(0xEE)): seq[uint8] =
     data[i] = val
   return data
 
-proc readStreamTillEOF(stream: Stream): Future[seq[uint8]] {.async.} =
+proc readStreamTillEOF(
+    stream: Stream, maxBytes: int = int.high
+): Future[seq[uint8]] {.async.} =
+  # Reads from stream until EOF is reached or the received data size meets/exceeds maxBytes
+
   var receivedData: seq[uint8]
   while true:
     let chunk = await stream.read()
     if chunk.len == 0:
       break
     receivedData.add(chunk)
+    if receivedData.len >= maxBytes:
+      break
   return receivedData
 
 suite "streams":
@@ -712,6 +718,51 @@ suite "streams":
     check receivedData == testData
 
     check (await serverStream.read()).len == 0
+
+    await serverStream.close()
+    await clientStream.close()
+    await simulation.cancelAndWait()
+
+  asyncTest "parallel async writes":
+    # this test case asserts that many parallel writes are sent by stream correctly.
+
+    let simulation = simulateNetwork(client, server)
+    # has to be bigger dataSize as smaller data is transmitted instantly - it's hard to 
+    # make multiple writes in parallel.
+    const dataSize = 2 * 1024 * 1024
+
+    let clientStream = await client.openStream()
+    await clientStream.write(@[])
+    let serverStream = await server.incomingStream()
+
+    const parallelWrites = 10 # has to be many parallel writes
+    for i in 0 ..< parallelWrites:
+      # each write has to have unique data
+      let data = newData(dataSize, uint8(i + 1))
+      asyncSpawn clientStream.write(data)
+
+    const expectedSize = dataSize * parallelWrites
+    # reading data till expected size because we are intentionally not closing stream.
+    # if we want to close the stream, then we need to do it after data is sent, which complicates 
+    # synchronization and logic of this test.
+    let receivedData = await readStreamTillEOF(serverStream, expectedSize)
+
+    # verify data size
+    check receivedData.len == expectedSize
+    if receivedData.len != expectedSize:
+      return
+
+    # each task sends unique data, but the arrival order is unpredictable.
+    # we verify that all consecutive segments of the data stream contain identical values.
+    # example: valid → `aaaaabbbbbccccc`; invalid → `aaabbbbbccaaccc`
+    for i in 0 ..< parallelWrites:
+      let offset = i * dataSize
+      let e = receivedData[offset]
+      # all elements of same data have to be the same
+      for j in 0 ..< dataSize:
+        check receivedData[offset + j] == e
+        if receivedData[offset + j] != e:
+          break # stop on first mismatch (not to pollute stdout)
 
     await serverStream.close()
     await clientStream.close()
