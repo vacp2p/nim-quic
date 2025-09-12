@@ -14,23 +14,18 @@ proc newData(size: int, val: uint8 = uint8(0xEE)): seq[uint8] =
     data[i] = val
   return data
 
-proc readStreamTillEOF(stream: Stream): Future[seq[uint8]] {.async.} =
-  var receivedData: seq[uint8]
-  while true:
-    let chunk = await stream.read()
-    if chunk.len == 0:
-      break
-    receivedData.add(chunk)
-  return receivedData
+proc readStreamTillEOF(
+    stream: Stream, maxBytes: int = int.high
+): Future[seq[uint8]] {.async.} =
+  # Reads from stream until EOF is reached or the received data size meets/exceeds maxBytes
 
-proc readStreamTillSizeOrEOF(stream: Stream, size: int): Future[seq[uint8]] {.async.} =
   var receivedData: seq[uint8]
   while true:
     let chunk = await stream.read()
     if chunk.len == 0:
       break
     receivedData.add(chunk)
-    if receivedData.len == size:
+    if receivedData.len >= maxBytes:
       break
   return receivedData
 
@@ -750,7 +745,7 @@ suite "streams":
     # reading data till expected size because we are intentionally not closing stream.
     # if we want to close the stream, then we need to do it after data is sent, which complicates 
     # synchronization and logic of this test.
-    let receivedData = await readStreamTillSizeOrEOF(serverStream, expectedSize)
+    let receivedData = await readStreamTillEOF(serverStream, expectedSize)
 
     # verify data size
     check receivedData.len == expectedSize
