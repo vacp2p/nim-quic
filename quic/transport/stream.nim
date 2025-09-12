@@ -75,7 +75,7 @@ proc read*(stream: Stream): Future[seq[byte]] {.async.} =
 
 proc write*(stream: Stream, bytes: seq[byte]) {.async.} =
   # Writing has to be serialized on the same stream as otherwise
-  # data might no be sent correctly.
+  # data might not be sent correctly.
   await stream.lock.acquire()
   defer:
     stream.lock.release()
