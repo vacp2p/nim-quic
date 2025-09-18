@@ -1,9 +1,11 @@
 import ../errors
 import std/tables
 import chronos
+import heapqueue
 
 type FrameSorter* = ref object of RootRef
-  buffer*: Table[int64, byte] # sparse byte storage
+  buffer*: Table[int64, seq[byte]] # sparse byte storage
+  minHeap: HeapQueue[int64]
   emitPos*: int64 # where to emit data from
   incoming*: AsyncQueue[seq[byte]]
   totalBytes*: Opt[int64]
@@ -13,7 +15,8 @@ type FrameSorter* = ref object of RootRef
 proc initFrameSorter*(incoming: AsyncQueue[seq[byte]]): FrameSorter =
   return FrameSorter(
     incoming: incoming,
-    buffer: initTable[int64, byte](),
+    minHeap: initHeapQueue[int64](),
+    buffer: initTable[int64, seq[byte]](),
     emitPos: 0,
     totalBytes: Opt.none(int64),
     closed: false,
@@ -28,7 +31,7 @@ proc isEOF*(fs: FrameSorter): bool =
 
   return fs.emitPos >= fs.totalBytes.get()
 
-proc sendEof(fs: var FrameSorter) {.raises: [QuicError].} =
+template sendEof(fs: var FrameSorter) =
   if fs.isEOF():
     # empty sequence is sent to unblock reading from incoming queue
     try:
@@ -36,7 +39,7 @@ proc sendEof(fs: var FrameSorter) {.raises: [QuicError].} =
     except AsyncQueueFullError:
       raise newException(QuicError, "Incoming queue is full")
 
-proc putToQueue(fs: var FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
+template putToQueue(fs: var FrameSorter, data: sink seq[byte]) =
   if data.len > 0:
     try:
       fs.incoming.putNoWait(data)
@@ -46,16 +49,43 @@ proc putToQueue(fs: var FrameSorter, data: seq[byte]) {.raises: [QuicError].} =
   fs.sendEof()
 
 proc emitBufferedData(fs: var FrameSorter) {.raises: [QuicError].} =
-  var emitData: seq[byte]
-  while fs.buffer.hasKey(fs.emitPos):
+  let total =
+    if fs.totalBytes.isSome():
+      fs.totalBytes.get()
+    else:
+      int64.high
+
+  while fs.minHeap.len > 0:
+    if fs.emitPos >= total: # all bytes are emitted
+      return
+
+    let min = fs.minHeap[0]
+    var data: seq[byte]
     try:
-      emitData.add fs.buffer[fs.emitPos]
+      data = fs.buffer[min]
     except KeyError:
       doAssert false, "already checked with hasKey"
-    fs.buffer.del(fs.emitPos)
-    inc fs.emitPos
 
-  fs.putToQueue(emitData)
+    if min == fs.emitPos:
+      # next element in buffer is exactly at emit pos -> emit whole chunk
+      fs.putToQueue(data)
+      fs.emitPos += data.len
+      fs.buffer.del(min)
+      discard fs.minHeap.pop()
+    elif fs.emitPos > min and fs.emitPos < (min + data.len):
+      # next element in buffer is partially at emit pos -> emit part of chunk
+      let diff = fs.emitPos - min
+      fs.putToQueue(data[diff .. data.len - 1])
+      fs.emitPos += data.len - diff - 1
+      fs.buffer.del(min)
+      discard fs.minHeap.pop()
+    elif fs.emitPos < min:
+      # next element in buffer is away from emit pos -> we stop here until next
+      return
+    else:
+      # this element was already emitted -> remove element and continue
+      fs.buffer.del(min)
+      discard fs.minHeap.pop()
 
 proc close*(fs: var FrameSorter) =
   if fs.closed:
@@ -63,10 +93,41 @@ proc close*(fs: var FrameSorter) =
   fs.closed = true
   fs.sendEof()
 
-proc insert*(
-    fs: var FrameSorter, offset: uint64, data: seq[byte], isFin: bool
-) {.raises: [QuicError].} =
+proc sumBytesInBuffer(fs: FrameSorter): int =
+  var sum = 0
+  var offset = fs.emitPos
+
+  for min in fs.minHeap:
+    var data: seq[byte]
+    try:
+      data = fs.buffer[min]
+    except KeyError:
+      doAssert false, "already checked with hasKey"
+
+    if offset == min:
+      sum += data.len
+      offset += data.len
+    elif offset > min and offset < (min + data.len):
+      let diff = fs.emitPos - min
+      sum += data.len - diff
+      offset += data.len - diff
+
+  return sum
+
+proc isComplete*(fs: FrameSorter): bool =
   if fs.closed:
+    return true
+
+  if fs.totalBytes.isNone:
+    return false
+
+  let total = fs.totalBytes.get()
+  return fs.emitPos - 1 + fs.sumBytesInBuffer() >= total
+
+proc insert*(
+    fs: var FrameSorter, offset: uint64, data: sink seq[byte], isFin: bool
+) {.raises: [QuicError].} =
+  if fs.isComplete():
     return
 
   if isFin:
@@ -79,31 +140,12 @@ proc insert*(
   if data.len == 0:
     return
 
-  # if offset matches emit position, framesorter can emit entire input in batch
-  if offset.int == fs.emitPos:
-    fs.emitPos += data.len
-    fs.putToQueue(data)
-
-    # in addition check if there is buffered data to emit
-    fs.emitBufferedData()
-
+  if fs.totalBytes.isSome() and fs.totalBytes.get() < offset.int64:
     return
 
-  # Insert bytes into sparse buffer
-  for i, b in data:
-    let pos = offset.int + i
-
-    if fs.totalBytes.isSome and pos > fs.totalBytes.unsafeGet:
-      continue
-    if fs.buffer.hasKey(pos):
-      try:
-        if fs.buffer[pos] != b:
-          raise newException(QuicError, "conflicting byte received. protocol violation")
-        # else: already same value, nothing to do
-      except KeyError:
-        doAssert false, "already checked with hasKey"
-    elif pos >= fs.emitPos: # put data to buffer, avoiding emitted data
-      fs.buffer[pos] = b
+  # Insert bytes into buffer
+  fs.minHeap.push(offset.int64)
+  fs.buffer[offset.int64] = data
 
   # Try to emit contiguous data
   fs.emitBufferedData()
@@ -114,13 +156,3 @@ proc reset*(fs: var FrameSorter) =
   fs.incoming.clear()
   fs.emitPos = 0
   # resetting FS should leave fs.closed (if it was set)
-
-proc isComplete*(fs: FrameSorter): bool =
-  if fs.closed:
-    return true
-
-  if fs.totalBytes.isNone:
-    return false
-
-  let total = fs.totalBytes.unsafeGet
-  return fs.emitPos - 1 + len(fs.buffer) >= total

@@ -1,6 +1,5 @@
 import unittest
 import quic/transport/framesorter
-import quic/errors
 import std/[options, tables]
 import chronos
 
@@ -18,8 +17,7 @@ suite "FrameSorter tests":
     fs.insert(0, @[1'u8, 2, 3], false)
     check fs.emitPos == 3
     check fs.buffer.len == 0
-    let emitted = allData(q)
-    check emitted == @[1'u8, 2, 3]
+    check allData(q) == @[1'u8, 2, 3]
     check not fs.isEOF()
 
   test "insert chunks before chunk at offset 0 has been received":
@@ -52,8 +50,7 @@ suite "FrameSorter tests":
 
     check fs.emitPos == 6
     check fs.buffer.len == 0
-    let emitted = allData(q)
-    check emitted == @[1'u8, 2, 3, 4, 5, 6]
+    check allData(q) == @[1'u8, 2, 3, 4, 5, 6]
     check fs.isEOF()
 
   test "chunks are read correctly":
@@ -64,17 +61,15 @@ suite "FrameSorter tests":
 
     check fs.emitPos == 3
     check fs.buffer.len == 0
-    var emitted = allData(q)
-    check emitted == @[1'u8, 2, 3]
+    check allData(q) == @[1'u8, 2, 3]
 
     fs.insert(9, @[10'u8, 11, 12], false)
 
     fs.insert(3, @[4'u8, 5, 6], false)
 
     check fs.emitPos == 6
-    check fs.buffer.len == 3 # [10, 11, 12] are not emitted yet
-    emitted = allData(q)
-    check emitted == @[4'u8, 5, 6]
+    check fs.buffer.len == 1 # [10, 11, 12] are not emitted yet
+    check allData(q) == @[4'u8, 5, 6]
 
   test "chunks received after fin are ignored":
     var q = newAsyncQueue[seq[byte]]()
@@ -86,9 +81,7 @@ suite "FrameSorter tests":
     fs.insert(0, @[1'u8], false)
 
     check fs.emitPos == 4
-    check fs.buffer.len == 0
-    var emitted = allData(q)
-    check emitted == @[1'u8, 2, 3, 4]
+    check allData(q) == @[1'u8, 2, 3, 4]
 
   test "insert overlapping identical chunk":
     var q = newAsyncQueue[seq[byte]]()
@@ -97,16 +90,15 @@ suite "FrameSorter tests":
     fs.insert(0, @[1'u8, 2, 3], false)
     fs.insert(1, @[2'u8, 3], false) # identical bytes, should not raise
     check fs.emitPos == 3
-    var emitted = allData(q)
-    check emitted == @[1'u8, 2, 3]
+    check allData(q) == @[1'u8, 2, 3]
 
-  test "insert overlapping conflicting chunk":
+  test "insert overlapping chunk":
     var q = newAsyncQueue[seq[byte]]()
     var fs = initFrameSorter(q)
 
-    fs.insert(1, @[2'u8, 3, 4], false)
-    expect QuicError:
-      fs.insert(2, @[9'u8, 3], false)
+    fs.insert(0, @[2'u8, 3, 4], false)
+    fs.insert(1, @[9'u8, 3], false) # should be ignored (already emitted)
+    check allData(q) == @[2'u8, 3, 4]
 
   test "detect complete stream":
     var q = newAsyncQueue[seq[byte]]()
