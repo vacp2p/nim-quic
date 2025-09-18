@@ -1,7 +1,7 @@
 import ../../../basics
-import ../../framesorter
 import ../../stream
 import ../native/connection
+import ./queue
 import ./basestate
 import ./closestate
 import ./receivestate
@@ -10,10 +10,7 @@ import ./sendstate
 type OpenStreamState* = ref object of BaseStreamState
 
 proc newOpenStreamState*(connection: Ngtcp2Connection): OpenStreamState =
-  let incomingQ = newAsyncQueue[seq[byte]]()
-  OpenStreamState(
-    connection: connection, incoming: incomingQ, frameSorter: initFrameSorter(incomingQ)
-  )
+  OpenStreamState(connection: connection, queue: initStreamQueue())
 
 method enter*(state: OpenStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)
@@ -26,10 +23,10 @@ method leave*(state: OpenStreamState) =
 
 method read*(state: OpenStreamState): Future[seq[byte]] {.async.} =
   # Check for immediate EOF conditions
-  if state.frameSorter.isEOF() and state.incoming.len == 0:
+  if state.queue.isEOF() and state.queue.incoming.len == 0:
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
 
-  let data = await state.incoming.get()
+  let data = await state.queue.incoming.get()
 
   # If we got data, return it with flow control update
   if data.len > 0:
@@ -37,7 +34,7 @@ method read*(state: OpenStreamState): Future[seq[byte]] {.async.} =
     return data
 
   # Empty data (len == 0) and this is EOF
-  if state.frameSorter.isEOF():
+  if state.queue.isEOF():
     return @[] # Return EOF per RFC 9000
 
   # Empty data but no EOF; continue reading for more data
@@ -62,7 +59,7 @@ method isClosed*(state: OpenStreamState): bool =
   false
 
 method receive*(state: OpenStreamState, offset: uint64, bytes: seq[byte], isFin: bool) =
-  state.frameSorter.insert(offset, bytes, isFin)
+  state.queue.insert(offset, bytes, isFin)
 
 method reset*(state: OpenStreamState) =
   state.switch(newClosedStreamState(state, wasReset = true))
