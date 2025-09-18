@@ -140,7 +140,12 @@ proc insert*(
   if data.len == 0:
     return
 
-  if fs.totalBytes.isSome() and fs.totalBytes.get() < offset.int64:
+  # fastpath: if offset matches emit position, emit chunk without adding to buffer
+  if offset.int == fs.emitPos:
+    fs.emitPos += data.len
+    fs.putToQueue(data)
+    # in addition check if there is buffered data to emit
+    fs.emitBufferedData()
     return
 
   # Insert bytes into buffer
