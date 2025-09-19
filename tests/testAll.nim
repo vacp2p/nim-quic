@@ -14,7 +14,7 @@ import ./quic/testTimeout
 import ./quic/testQuicConnection
 import ./quic/testListener
 import ./quic/testApi
-import ./quic/testFramesorter
+import ./quic/testStreamQueue
 import ./quic/testPerf
 import ./quic/testIntegrationUsecase
 
