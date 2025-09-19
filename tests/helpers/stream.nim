@@ -11,7 +11,7 @@ proc newData*(size: int, val: uint8 = uint8(0xEE)): seq[uint8] =
 proc readStreamTillEOF*(
     stream: Stream, maxBytes: int = int.high
 ): Future[seq[uint8]] {.async.} =
-  # Reads from stream until EOF is reached or the received data size meets/exceeds maxBytes
+  ## Reads from stream until EOF is reached or the received data size meets/exceeds maxBytes
 
   var receivedData: seq[uint8]
   while true:
