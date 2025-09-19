@@ -13,7 +13,6 @@ suite "Quic integration usecases":
     proc outgoing() {.async.} =
       let client = makeClient()
       let connection = await client.dial(address)
-
       check connection.certificates().len == 1
 
       let stream = await connection.openStream()
@@ -27,8 +26,8 @@ suite "Quic integration usecases":
 
       let connection = await listener.accept()
       check connection.certificates().len == 1
-      let stream = await connection.incomingStream()
 
+      let stream = await connection.incomingStream()
       let receivedData = await readStreamTillEOF(stream)
       checkEqual(message, receivedData)
 
@@ -87,3 +86,4 @@ suite "Quic integration usecases":
     asyncSpawn accept()
     waitFor allSucceeded(serverDone, clientDone)
     await listener.stop()
+    listener.destroy()
