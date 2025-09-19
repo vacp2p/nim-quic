@@ -6,28 +6,7 @@ import pkg/quic/transport/stream
 import pkg/quic/transport/quicconnection
 import pkg/quic/transport/ngtcp2/native
 import pkg/quic/udp/datagram
-import ../helpers/simulation
-
-proc newData(size: int, val: uint8 = uint8(0xEE)): seq[uint8] =
-  var data = newSeq[uint8](size)
-  for i in 0 ..< size:
-    data[i] = val
-  return data
-
-proc readStreamTillEOF(
-    stream: Stream, maxBytes: int = int.high
-): Future[seq[uint8]] {.async.} =
-  # Reads from stream until EOF is reached or the received data size meets/exceeds maxBytes
-
-  var receivedData: seq[uint8]
-  while true:
-    let chunk = await stream.read()
-    if chunk.len == 0:
-      break
-    receivedData.add(chunk)
-    if receivedData.len >= maxBytes:
-      break
-  return receivedData
+import ../helpers/[simulation, stream]
 
 suite "streams":
   setup:
