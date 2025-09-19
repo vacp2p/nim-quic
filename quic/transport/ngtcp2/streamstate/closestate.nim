@@ -1,7 +1,7 @@
 import ../../../errors
 import ../../../basics
 import ../../stream
-import ../../framesorter
+import ./queue
 import ./basestate
 
 type ClosedStreamState* = ref object of BaseStreamState
@@ -12,8 +12,7 @@ proc newClosedStreamState*(
 ): ClosedStreamState =
   ClosedStreamState(
     connection: base.connection,
-    incoming: base.incoming,
-    frameSorter: base.frameSorter,
+    queue: base.queue,
     finSent: base.finSent,
     wasReset: wasReset,
   )
@@ -23,8 +22,8 @@ method enter*(state: ClosedStreamState, stream: Stream) =
   state.stream = Opt.some(stream)
   state.setUserData(stream)
   if state.wasReset:
-    state.frameSorter.reset()
-  state.frameSorter.close()
+    state.queue.reset()
+  state.queue.close()
   if state.wasReset:
     state.reset(stream)
   else:
@@ -40,7 +39,7 @@ method read*(state: ClosedStreamState): Future[seq[byte]] {.async.} =
     raise newException(ClosedStreamError, "stream was reset")
 
   try:
-    return state.incoming.popFirstNoWait()
+    return state.queue.incoming.popFirstNoWait()
   except AsyncQueueEmptyError:
     discard
 

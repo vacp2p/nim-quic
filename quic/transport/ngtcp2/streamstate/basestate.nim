@@ -1,13 +1,12 @@
 import ../../../basics
-import ../../framesorter
 import ../../stream
 import ../native/connection
+import ./queue
 
 type BaseStreamState* = ref object of StreamState
   stream*: Opt[Stream]
-  incoming*: AsyncQueue[seq[byte]]
+  queue*: StreamQueue
   connection*: Ngtcp2Connection
-  frameSorter*: FrameSorter
   finSent*: bool
 
 method expire*(state: BaseStreamState) {.raises: [].} =

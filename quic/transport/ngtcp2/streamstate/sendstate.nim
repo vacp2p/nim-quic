@@ -1,25 +1,20 @@
 import ../../../errors
 import ../../../basics
 import ../../stream
-import ../../framesorter
+import ./queue
 import ./basestate
 import ./closestate
 
 type SendStreamState* = ref object of BaseStreamState
 
 proc newSendStreamState*(base: BaseStreamState): SendStreamState =
-  SendStreamState(
-    connection: base.connection,
-    incoming: base.incoming,
-    frameSorter: base.frameSorter,
-    finSent: base.finSent,
-  )
+  SendStreamState(connection: base.connection, queue: base.queue, finSent: base.finSent)
 
 method enter*(state: SendStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   state.setUserData(stream)
-  state.frameSorter.close()
+  state.queue.close()
 
 method leave*(state: SendStreamState) =
   procCall leave(StreamState(state))

@@ -1,7 +1,7 @@
 import ../../../errors
 import ../../../basics
 import ../../stream
-import ../../framesorter
+import ./queue
 import ./basestate
 import ./closestate
 
@@ -9,10 +9,7 @@ type ReceiveStreamState* = ref object of BaseStreamState
 
 proc newReceiveStreamState*(base: BaseStreamState): ReceiveStreamState =
   ReceiveStreamState(
-    connection: base.connection,
-    incoming: base.incoming,
-    frameSorter: base.frameSorter,
-    finSent: base.finSent,
+    connection: base.connection, queue: base.queue, finSent: base.finSent
   )
 
 method enter*(state: ReceiveStreamState, stream: Stream) =
@@ -27,11 +24,11 @@ method leave*(state: ReceiveStreamState) =
 
 method read*(state: ReceiveStreamState): Future[seq[byte]] {.async.} =
   # Check for immediate EOF conditions
-  if state.frameSorter.isEOF() and state.incoming.len == 0:
+  if state.queue.isEOF() and state.queue.incoming.len == 0:
     state.switch(newClosedStreamState(state))
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
 
-  let data = await state.incoming.get()
+  let data = await state.queue.incoming.get()
 
   # If we got data, return it with flow control update
   if data.len > 0:
@@ -39,7 +36,7 @@ method read*(state: ReceiveStreamState): Future[seq[byte]] {.async.} =
     return data
 
   # Empty data (len == 0) and this is EOF
-  if state.frameSorter.isEOF():
+  if state.queue.isEOF():
     state.switch(newClosedStreamState(state))
     return @[] # Return EOF per RFC 9000
 
@@ -67,8 +64,8 @@ method isClosed*(state: ReceiveStreamState): bool =
 method receive*(
     state: ReceiveStreamState, offset: uint64, bytes: seq[byte], isFin: bool
 ) =
-  state.frameSorter.insert(offset, bytes, isFin)
-  if state.frameSorter.isComplete():
+  state.queue.insert(offset, bytes, isFin)
+  if state.queue.isEOF():
     state.switch(newClosedStreamState(state))
 
 method reset*(state: ReceiveStreamState) =
