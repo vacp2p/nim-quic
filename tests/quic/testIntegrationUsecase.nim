@@ -78,6 +78,8 @@ suite "Quic integration usecases":
       let client = makeClient()
       let connection = await client.dial(address)
 
+      # disable sleep to reproduce issue
+      #await sleepAsync(1.seconds)
       let stream = await connection.openStream()
       await stream.write(message)
       await stream.close()
