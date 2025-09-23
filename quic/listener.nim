@@ -47,7 +47,7 @@ proc getOrCreateConnection*(
     rng: ref HmacDrbgContext,
 ): Opt[Connection] =
   var connection: Connection
-  let destination = parseDatagram(msg).destination
+  let destination = parseDatagramDestination(msg)
   if not listener.hasConnection(destination):
     if not shouldAccept(msg):
       return Opt.none(Connection)

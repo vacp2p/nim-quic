@@ -20,6 +20,13 @@ proc parseDatagram*(datagram: openArray[byte]): PacketInfo =
     version: version.version.uint32,
   )
 
+proc parseDatagramDestination*(datagram: openArray[byte]): ConnectionId =
+  var version: ngtcp2_version_cid
+  checkResult ngtcp2_pkt_decode_version_cid(
+    addr version, unsafeAddr datagram[0], datagram.len.uint, DefaultConnectionIdLength
+  )
+  return toConnectionId(version.dcid, version.dcidlen)
+
 proc shouldAccept*(datagram: openArray[byte]): bool =
   var hd: ngtcp2_pkt_hd
   let ret = ngtcp2_accept(hd.unsafeAddr, datagram[0].unsafeAddr, datagram.len.uint)

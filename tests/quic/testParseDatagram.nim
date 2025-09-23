@@ -22,6 +22,9 @@ suite "parse ngtcp2 packet info":
     let info = parseDatagram(datagram)
     check info.destination == packet.destination
 
+    let destination = parseDatagramDestination(datagram)
+    check info.destination == destination
+
   test "extracts source id":
     let info = parseDatagram(datagram)
     check info.source == packet.source
