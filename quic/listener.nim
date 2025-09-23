@@ -62,7 +62,8 @@ proc newListener*(
 ): Listener =
   let listener = Listener(incoming: newAsyncQueue[Connection]())
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-    let msg = udp.getMessage() # call getMessage() only once to avoid unnecessary allocation
+    let msg = udp.getMessage()
+      # call getMessage() only once to avoid unnecessary allocation
     let connection = listener.getOrCreateConnection(udp, msg, remote, rng)
     if connection.isSome():
       connection.get().receive(Datagram(data: msg))
