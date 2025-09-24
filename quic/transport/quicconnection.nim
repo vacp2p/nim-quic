@@ -40,7 +40,7 @@ method ids*(state: ConnectionState): seq[ConnectionId] {.raises: [].} =
 method send*(state: ConnectionState) =
   doAssert false # override this method
 
-method receive*(state: ConnectionState, datagram: Datagram) =
+method receive*(state: ConnectionState, datagram: sink Datagram) =
   doAssert false # override this method
 
 method openStream*(state: ConnectionState, unidirectional: bool): Future[Stream] =
@@ -82,7 +82,7 @@ proc ids*(connection: QuicConnection): seq[ConnectionId] =
 proc send*(connection: QuicConnection) =
   connection.state.send()
 
-proc receive*(connection: QuicConnection, datagram: Datagram) =
+proc receive*(connection: QuicConnection, datagram: sink Datagram) =
   connection.state.receive(datagram)
 
 proc openStream*(connection: QuicConnection, unidirectional = false): Future[Stream] =

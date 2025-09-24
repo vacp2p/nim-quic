@@ -202,7 +202,7 @@ proc waitForHandshake*(
     errFut.cancelSoon()
     timeoutFut.cancelSoon()
 
-proc receive*(connection: Connection, datagram: Datagram) =
+proc receive*(connection: Connection, datagram: sink Datagram) =
   connection.quic.receive(datagram)
 
 proc remoteAddress*(

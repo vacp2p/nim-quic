@@ -104,7 +104,7 @@ method ids(state: OpenConnection): seq[ConnectionId] {.raises: [].} =
 method send(state: OpenConnection) =
   state.ngtcp2Connection.send()
 
-method receive(state: OpenConnection, datagram: Datagram) =
+method receive(state: OpenConnection, datagram: sink Datagram) =
   var errCode = 0
   var errMsg = ""
   try:

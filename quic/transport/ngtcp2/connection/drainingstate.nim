@@ -56,7 +56,7 @@ method ids(state: DrainingConnection): seq[ConnectionId] {.raises: [].} =
 method send(state: DrainingConnection) =
   raise newException(ClosedConnectionError, "connection is closing")
 
-method receive(state: DrainingConnection, datagram: Datagram) =
+method receive(state: DrainingConnection, datagram: sink Datagram) =
   discard
 
 method openStream(

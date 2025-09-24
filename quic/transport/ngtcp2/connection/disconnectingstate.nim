@@ -45,7 +45,7 @@ method leave(state: DisconnectingConnection) =
 method send(state: DisconnectingConnection) =
   raise newException(ClosedConnectionError, "connection is disconnecting")
 
-method receive(state: DisconnectingConnection, datagram: Datagram) =
+method receive(state: DisconnectingConnection, datagram: sink Datagram) =
   discard
 
 method openStream(
