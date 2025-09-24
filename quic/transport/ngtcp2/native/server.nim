@@ -111,7 +111,7 @@ proc newNgtcp2Server*(
     datagram: openArray[byte],
     rng: ref HmacDrbgContext,
 ): Ngtcp2Connection =
-  let info = parseDatagram(datagram)
+  let info = parseDatagramInfo(datagram)
   newNgtcp2Server(
     tlsContext, local, remote, info.source.toCid, info.destination.toCid, rng
   )

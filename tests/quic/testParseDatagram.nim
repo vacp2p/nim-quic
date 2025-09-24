@@ -19,16 +19,16 @@ suite "parse ngtcp2 packet info":
     datagram.write(packet)
 
   test "extracts destination id":
-    let info = parseDatagram(datagram)
+    let info = parseDatagramInfo(datagram)
     check info.destination == packet.destination
 
     let destination = parseDatagramDestination(datagram)
     check info.destination == destination
 
   test "extracts source id":
-    let info = parseDatagram(datagram)
+    let info = parseDatagramInfo(datagram)
     check info.source == packet.source
 
   test "extracts version":
-    let info = parseDatagram(datagram)
+    let info = parseDatagramInfo(datagram)
     check info.version == packet.initial.version
