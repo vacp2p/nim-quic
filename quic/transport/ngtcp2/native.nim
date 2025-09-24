@@ -7,6 +7,7 @@ import ./native/parsedatagram
 import ./native/picotls
 import ./native/certificateverifier
 
+export writeBufferSize
 export parseDatagramInfo
 export parseDatagramDestination
 export shouldAccept
