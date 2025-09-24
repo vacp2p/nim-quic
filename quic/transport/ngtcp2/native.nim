@@ -8,7 +8,9 @@ import ./native/picotls
 import ./native/certificateverifier
 
 export writeBufferSize
-export parseDatagram
+export parseDatagramInfo
+export parseDatagramDestination
+export shouldAccept
 export Ngtcp2Connection
 export newNgtcp2Client
 export newNgtcp2Server

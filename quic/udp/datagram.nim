@@ -1,6 +1,6 @@
 import ./congestion
 
-type Datagram* = object
+type Datagram* = ref object
   data*: seq[byte]
   ecn*: ECN
 

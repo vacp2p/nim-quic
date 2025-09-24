@@ -112,10 +112,11 @@ proc disconnect(connection: Connection) {.async.} =
 proc newIncomingConnection*(
     tlsBackend: TLSBackend,
     udp: DatagramTransport,
+    msg: seq[byte],
     remote: TransportAddress,
     rng: ref HmacDrbgContext,
 ): Connection =
-  let datagram = Datagram(data: udp.getMessage())
+  let datagram = Datagram(data: msg)
   let quic =
     newQuicServerConnection(tlsBackend, udp.localAddress, remote, datagram, rng)
   let closed = newAsyncEvent()
@@ -201,7 +202,7 @@ proc waitForHandshake*(
     errFut.cancelSoon()
     timeoutFut.cancelSoon()
 
-proc receive*(connection: Connection, datagram: Datagram) =
+proc receive*(connection: Connection, datagram: sink Datagram) =
   connection.quic.receive(datagram)
 
 proc remoteAddress*(
