@@ -88,6 +88,6 @@ suite "perf protocol simulation":
     for i in 0 ..< runs:
       let duration = await runPerf()
       total += duration
-      echo "\trun #" & $(i+1) & " duration: " & $duration
+      echo "\trun #" & $(i + 1) & " duration: " & $duration
 
     echo "\tavrg duration: " & $(total div runs)
