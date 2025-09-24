@@ -26,8 +26,8 @@ suite "perf protocol simulation":
     let clientStream = await client.openStream()
 
     const
-      uploadSize = 100000 # 100KB like in perf test
-      downloadSize = 100000000 # 10MB like in perf test
+      uploadSize = 100000 # 100KB
+      downloadSize = 100000000 # 10M0B
       chunkSize = 65536 # 64KB chunks like perf
 
     proc serverHandler() {.async.} =
