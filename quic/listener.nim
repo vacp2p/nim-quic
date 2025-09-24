@@ -42,16 +42,16 @@ proc addConnection(listener: Listener, connection: Connection, firstId: Connecti
 proc getOrCreateConnection*(
     listener: Listener,
     udp: DatagramTransport,
+    msg: seq[byte],
     remote: TransportAddress,
     rng: ref HmacDrbgContext,
 ): Opt[Connection] =
   var connection: Connection
-  let msg = udp.getMessage()
   let destination = parseDatagram(msg).destination
   if not listener.hasConnection(destination):
     if not shouldAccept(msg):
       return Opt.none(Connection)
-    connection = newIncomingConnection(listener.tlsBackend, udp, remote, rng)
+    connection = newIncomingConnection(listener.tlsBackend, udp, msg, remote, rng)
     listener.addConnection(connection, destination)
   else:
     connection = listener.getConnection(destination)
@@ -62,9 +62,11 @@ proc newListener*(
 ): Listener =
   let listener = Listener(incoming: newAsyncQueue[Connection]())
   proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-    let connection = listener.getOrCreateConnection(udp, remote, rng)
+    let msg = udp.getMessage()
+      # call getMessage() only once to avoid unnecessary allocation
+    let connection = listener.getOrCreateConnection(udp, msg, remote, rng)
     if connection.isSome():
-      connection.get().receive(Datagram(data: udp.getMessage()))
+      connection.get().receive(Datagram(data: msg))
 
   listener.tlsBackend = tlsBackend
   listener.udp = newDatagramTransport(onReceive, local = address)
