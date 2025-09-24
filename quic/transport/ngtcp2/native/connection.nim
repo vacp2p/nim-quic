@@ -17,6 +17,8 @@ import ./pointers
 logScope:
   topics = "ngtcp2 conn"
 
+const writeBufferSize* = 4096
+
 type
   Ngtcp2Connection* = ref object
     conn*: Opt[ptr ngtcp2_conn]
@@ -27,7 +29,6 @@ type
 
     path*: Path
     rng*: ref HmacDrbgContext
-    buffer*: array[4096, byte]
     flowing*: AsyncEvent
     expiryTimer*: Timeout
     onSend*: proc(datagram: Datagram) {.gcsafe, raises: [].}
@@ -115,14 +116,15 @@ proc trySend(
 
   let flags = if isFin: NGTCP2_WRITE_STREAM_FLAG_FIN else: NGTCP2_WRITE_STREAM_FLAG_NONE
 
+  var buffer = newSeqUninitialized[byte](writeBufferSize)
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream_versioned(
     conn,
     connection.path.toPathPtr,
     NGTCP2_PKT_INFO_V1,
     addr packetInfo,
-    addr connection.buffer[0],
-    connection.buffer.len.uint,
+    addr buffer[0],
+    buffer.len.uint,
     cast[ptr ngtcp2_ssize](written),
     flags,
     streamId,
@@ -131,9 +133,9 @@ proc trySend(
     now(),
   )
   checkResult length.cint
-  let data = connection.buffer[0 ..< length]
+  buffer.setLen(length)
   let ecn = ECN(packetInfo.ecn)
-  Datagram(data: data, ecn: ecn)
+  Datagram(data: buffer, ecn: ecn)
 
 proc send*(connection: Ngtcp2Connection) =
   var done = false
@@ -236,20 +238,21 @@ proc close*(connection: Ngtcp2Connection): Datagram =
   ngtcp2_ccerr_default(addr ccerr)
 
   var packetInfo: ngtcp2_pkt_info
+  var buffer = newSeqUninitialized[byte](writeBufferSize)
   let length = ngtcp2_conn_write_connection_close_versioned(
     conn,
     connection.path.toPathPtr,
     NGTCP2_PKT_INFO_V1,
     addr packetInfo,
-    addr connection.buffer[0],
-    connection.buffer.len.uint,
+    addr buffer[0],
+    buffer.len.uint,
     addr ccerr,
     now(),
   )
   checkResult length.cint
-  let data = connection.buffer[0 ..< length]
+  buffer.setLen(length)
   let ecn = ECN(packetInfo.ecn)
-  Datagram(data: data, ecn: ecn)
+  Datagram(data: buffer, ecn: ecn)
 
   # TODO: should stop all event loops
 
