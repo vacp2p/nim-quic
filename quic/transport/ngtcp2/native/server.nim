@@ -105,15 +105,13 @@ proc newNgtcp2Server*(
   nConn.tlsContext = tlsContext
   nConn
 
-proc extractIds(datagram: openArray[byte]): tuple[source, dest: ngtcp2_cid] =
-  let info = parseDatagram(datagram)
-  (source: info.source.toCid, dest: info.destination.toCid)
-
 proc newNgtcp2Server*(
     tlsContext: PicoTLSContext,
     local, remote: TransportAddress,
     datagram: openArray[byte],
     rng: ref HmacDrbgContext,
 ): Ngtcp2Connection =
-  let (source, destination) = extractIds(datagram)
-  newNgtcp2Server(tlsContext, local, remote, source, destination, rng)
+  let info = parseDatagramInfo(datagram)
+  newNgtcp2Server(
+    tlsContext, local, remote, info.source.toCid, info.destination.toCid, rng
+  )

@@ -21,7 +21,7 @@ method ids(state: ClosedConnection): seq[ConnectionId] =
 method send(state: ClosedConnection) =
   raise newException(ClosedConnectionError, "connection is closed")
 
-method receive(state: ClosedConnection, datagram: Datagram) =
+method receive(state: ClosedConnection, datagram: sink Datagram) =
   raise newException(ClosedConnectionError, "connection is closed")
 
 method openStream(
