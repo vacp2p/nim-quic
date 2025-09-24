@@ -27,7 +27,7 @@ suite "perf protocol simulation":
 
     const
       uploadSize = 100000 # 100KB like in perf test
-      downloadSize = 10000000 # 10MB like in perf test
+      downloadSize = 100000000 # 10MB like in perf test
       chunkSize = 65536 # 64KB chunks like perf
 
     proc serverHandler() {.async.} =
@@ -56,6 +56,8 @@ suite "perf protocol simulation":
     # Start server handler
     asyncSpawn serverHandler()
 
+    let startTime = Moment.now()
+
     # Step 1: Send download size, activate stream first
     await clientStream.write(toSeq(downloadSize.uint64.toBytesBE()))
 
@@ -74,6 +76,8 @@ suite "perf protocol simulation":
     while totalDownloaded < downloadSize:
       let chunk = await clientStream.read()
       totalDownloaded += chunk.len
+
+    echo "duration: " & $(Moment.now() - startTime)
 
     await clientStream.close()
     await simulation.cancelAndWait()
