@@ -17,7 +17,7 @@ import ./pointers
 logScope:
   topics = "ngtcp2 conn"
 
-const bufferSize = 4096
+const writeBufferSize* = 4096
 
 type
   Ngtcp2Connection* = ref object
@@ -116,7 +116,7 @@ proc trySend(
 
   let flags = if isFin: NGTCP2_WRITE_STREAM_FLAG_FIN else: NGTCP2_WRITE_STREAM_FLAG_NONE
 
-  var buffer = newSeqUninitialized[byte](bufferSize)
+  var buffer = newSeqUninitialized[byte](writeBufferSize)
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream_versioned(
     conn,
@@ -238,7 +238,7 @@ proc close*(connection: Ngtcp2Connection): Datagram =
   ngtcp2_ccerr_default(addr ccerr)
 
   var packetInfo: ngtcp2_pkt_info
-  var buffer = newSeqUninitialized[byte](bufferSize)
+  var buffer = newSeqUninitialized[byte](writeBufferSize)
   let length = ngtcp2_conn_write_connection_close_versioned(
     conn,
     connection.path.toPathPtr,

@@ -84,7 +84,7 @@ suite "streams":
     let simulation = simulateNetwork(client, server)
 
     let stream = await client.openStream()
-    let message = repeat(42'u8, 100 * sizeof(Ngtcp2Connection.buffer))
+    let message = repeat(42'u8, 100 * writeBufferSize)
     asyncSpawn stream.write(message)
 
     let incoming = await server.incomingStream()
@@ -95,7 +95,7 @@ suite "streams":
 
   asyncTest "halts sender until receiver has caught up":
     let simulation = simulateNetwork(client, server)
-    let message = repeat(42'u8, sizeof(Ngtcp2Connection.buffer))
+    let message = repeat(42'u8, writeBufferSize)
 
     # send until blocked
     let sender = await client.openStream()
