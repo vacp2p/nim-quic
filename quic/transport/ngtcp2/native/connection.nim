@@ -183,7 +183,7 @@ proc send*(
       messageLen = messageLen - written.uint
       done = messageLen == 0
 
-proc tryReceive(connection: Ngtcp2Connection, datagram: openArray[byte], ecn: ECN) =
+proc tryReceive(connection: Ngtcp2Connection, datagram: sink seq[byte], ecn: ECN) =
   let conn = connection.conn.valueOr:
     raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
 
@@ -199,14 +199,14 @@ proc tryReceive(connection: Ngtcp2Connection, datagram: openArray[byte], ecn: EC
     now(),
   )
 
-proc receive*(
-    connection: Ngtcp2Connection, datagram: openArray[byte], ecn = ecnNonCapable
+proc receive(
+    connection: Ngtcp2Connection, datagram: sink seq[byte], ecn = ecnNonCapable
 ) =
   connection.tryReceive(datagram, ecn)
   connection.send()
   connection.flowing.fire()
 
-proc receive*(connection: Ngtcp2Connection, datagram: Datagram) =
+proc receive*(connection: Ngtcp2Connection, datagram: sink Datagram) =
   connection.receive(datagram.data, datagram.ecn)
 
 proc handleTimeout(connection: Ngtcp2Connection) =
