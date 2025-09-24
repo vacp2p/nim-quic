@@ -9,6 +9,7 @@ import ./native/certificateverifier
 
 export parseDatagramInfo
 export parseDatagramDestination
+export shouldAccept
 export Ngtcp2Connection
 export newNgtcp2Client
 export newNgtcp2Server
