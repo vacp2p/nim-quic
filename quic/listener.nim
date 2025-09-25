@@ -59,7 +59,7 @@ proc getOrCreateConnection*(
     let connection = newIncomingConnection(listener.tlsBackend, udp, msg, remote, rng)
     listener.addConnection(connection, destination)
     Opt.some(connection)
-  except CatchableError as e: 
+  except CatchableError as e:
     # catching everything because we don't don't really care what error is.
     # also we don't want to import ngtcp2 errors here.
     error "Could not create connection", errorMsg = e.msg
