@@ -2,7 +2,6 @@ import pkg/ngtcp2
 import bearssl/rand
 import ../../../basics
 import ../../../errors
-import ../../packets
 import ../../version
 import ./encryption
 import ./ids
