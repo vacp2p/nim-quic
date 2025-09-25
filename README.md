@@ -29,8 +29,6 @@ import quic
 import chronos
 ```
 
-### Outgoing connections
-
 Create server:
 ```nim
 let tlsConfig = TLSConfig.init(cert, certPrivateKey, @["alpn"], Opt.none(CertificateVerifier))
