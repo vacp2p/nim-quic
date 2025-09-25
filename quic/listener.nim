@@ -24,7 +24,7 @@ proc getConnection(listener: Listener, id: ConnectionId): Connection =
 
 proc localAddress*(
     listener: Listener
-): TransportAddress {.raises: [Defect, TransportOsError].} =
+): TransportAddress {.raises: [TransportOsError].} =
   listener.udp.localAddress()
 
 proc addConnection(listener: Listener, connection: Connection, firstId: ConnectionId) =

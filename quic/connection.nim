@@ -207,12 +207,12 @@ proc receive*(connection: Connection, datagram: sink Datagram) =
 
 proc remoteAddress*(
     connection: Connection
-): TransportAddress {.raises: [Defect, TransportOsError].} =
+): TransportAddress {.raises: [].} =
   connection.remote
 
 proc localAddress*(
     connection: Connection
-): TransportAddress {.raises: [Defect, TransportOsError].} =
+): TransportAddress {.raises: [TransportOsError].} =
   connection.udp.localAddress()
 
 proc openStream*(
