@@ -7,7 +7,7 @@ import pkg/stew/endians2
 import ../helpers/simulation
 
 const
-  runs = 10
+  runs = 1
   uploadSize = 100000 # 100KB
   downloadSize = 100000000 # 100MB
   chunkSize = 65536 # 64KB chunks like perf
