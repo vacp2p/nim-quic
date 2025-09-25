@@ -1,7 +1,7 @@
 QUIC for Nim
 ============
 
-We're working towards an implementation of the [QUIC](https://datatracker.ietf.org/wg/quic/about/) protocol for [Nim](https://nim-lang.org/).
+An implementation of the [QUIC](https://datatracker.ietf.org/wg/quic/about/) protocol in [Nim](https://nim-lang.org/).
 
 Building and testing
 --------------------
