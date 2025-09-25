@@ -56,14 +56,15 @@ proc getOrCreateConnection*(
     if not shouldAccept(msg):
       return Opt.none(Connection)
 
-    let connection = newIncomingConnection(listener.tlsBackend, udp, msg, remote, rng)
-    listener.addConnection(connection, destination)
-    Opt.some(connection)
+    let conn = newIncomingConnection(listener.tlsBackend, udp, msg, remote, rng)
+    listener.addConnection(conn, destination)
+    return Opt.some(conn)
   except CatchableError as e:
-    # catching everything because we don't don't really care what error is.
+    # catching everything because we don't don't really care about error here - if 
+    # error occurred for whichever reason `Opt.none` is returned.
     # also we don't want to import ngtcp2 errors here.
     error "Could not create connection", errorMsg = e.msg
-    Opt.none(Connection)
+    return Opt.none(Connection)
 
 proc newListener*(
     tlsBackend: TLSBackend, address: TransportAddress, rng: ref HmacDrbgContext
