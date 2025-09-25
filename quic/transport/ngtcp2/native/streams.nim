@@ -1,5 +1,5 @@
 import ngtcp2
-import ../../../helpers/openarray
+import ../../../helpers/[openarray, sequninit]
 import ../../stream
 import ../streamstate/openstate
 import ./connection
@@ -47,7 +47,7 @@ proc onReceiveStreamData(
 ): cint {.cdecl.} =
   trace "onReceiveStreamData"
   let state = cast[StreamState](stream_user_data)
-  var bytes = newSeqUninitialized[byte](datalen)
+  var bytes = newSeqUninit[byte](datalen)
   copyMem(bytes.toUnsafePtr, data, datalen)
   let isFin = (flags and NGTCP2_STREAM_DATA_FLAG_FIN) != 0
   if state != nil:

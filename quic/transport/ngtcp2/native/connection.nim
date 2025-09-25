@@ -4,7 +4,7 @@ import bearssl/rand
 import chronicles
 import ../../../basics
 import ../../../udp/congestion
-import ../../../helpers/openarray
+import ../../../helpers/[openarray, sequninit]
 import ../../stream
 import ../../timeout
 import ../../connectionid
@@ -116,7 +116,7 @@ proc trySend(
 
   let flags = if isFin: NGTCP2_WRITE_STREAM_FLAG_FIN else: NGTCP2_WRITE_STREAM_FLAG_NONE
 
-  var buffer = newSeqUninitialized[byte](writeBufferSize)
+  var buffer = newSeqUninit[byte](writeBufferSize)
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream_versioned(
     conn,
@@ -238,7 +238,7 @@ proc close*(connection: Ngtcp2Connection): Datagram =
   ngtcp2_ccerr_default(addr ccerr)
 
   var packetInfo: ngtcp2_pkt_info
-  var buffer = newSeqUninitialized[byte](writeBufferSize)
+  var buffer = newSeqUninit[byte](writeBufferSize)
   let length = ngtcp2_conn_write_connection_close_versioned(
     conn,
     connection.path.toPathPtr,
