@@ -22,7 +22,7 @@ method send(state: ClosedConnection) =
   raise newException(ClosedConnectionError, "connection is closed")
 
 method receive(state: ClosedConnection, datagram: sink Datagram) =
-  discard
+  warn "Receive ClosedConnection state"
 
 method openStream(
     state: ClosedConnection, unidirectional: bool
