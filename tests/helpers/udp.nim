@@ -15,7 +15,9 @@ proc exampleQuicDatagram*(): seq[byte] =
   result.write(packet)
 
 proc newDatagramTransport*(): DatagramTransport =
-  proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
+  proc onReceive(
+      udp: DatagramTransport, remote: TransportAddress
+  ) {.async: (raises: []).} =
     discard
 
   newDatagramTransport(onReceive)

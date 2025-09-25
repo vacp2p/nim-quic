@@ -205,14 +205,12 @@ proc waitForHandshake*(
 proc receive*(connection: Connection, datagram: sink Datagram) =
   connection.quic.receive(datagram)
 
-proc remoteAddress*(
-    connection: Connection
-): TransportAddress {.raises: [Defect, TransportOsError].} =
+proc remoteAddress*(connection: Connection): TransportAddress {.raises: [].} =
   connection.remote
 
 proc localAddress*(
     connection: Connection
-): TransportAddress {.raises: [Defect, TransportOsError].} =
+): TransportAddress {.raises: [TransportOsError].} =
   connection.udp.localAddress()
 
 proc openStream*(

@@ -1,6 +1,8 @@
+import chronicles
 import std/tables
 import bearssl/rand
 import ./basics
+import ./errors
 import ./connection
 import ./transport/connectionid
 import ./transport/parsedatagram
@@ -24,7 +26,7 @@ proc getConnection(listener: Listener, id: ConnectionId): Connection =
 
 proc localAddress*(
     listener: Listener
-): TransportAddress {.raises: [Defect, TransportOsError].} =
+): TransportAddress {.raises: [TransportOsError].} =
   listener.udp.localAddress()
 
 proc addConnection(listener: Listener, connection: Connection, firstId: ConnectionId) =
@@ -45,28 +47,42 @@ proc getOrCreateConnection*(
     msg: seq[byte],
     remote: TransportAddress,
     rng: ref HmacDrbgContext,
-): Opt[Connection] =
-  var connection: Connection
-  let destination = parseDatagramDestination(msg)
-  if not listener.hasConnection(destination):
+): Opt[Connection] {.raises: [].} =
+  try:
+    let destination = parseDatagramDestination(msg)
+    if listener.hasConnection(destination):
+      return Opt.some(listener.getConnection(destination))
+
     if not shouldAccept(msg):
       return Opt.none(Connection)
-    connection = newIncomingConnection(listener.tlsBackend, udp, msg, remote, rng)
-    listener.addConnection(connection, destination)
-  else:
-    connection = listener.getConnection(destination)
-  Opt.some(connection)
+
+    let conn = newIncomingConnection(listener.tlsBackend, udp, msg, remote, rng)
+    listener.addConnection(conn, destination)
+    return Opt.some(conn)
+  except CatchableError as e:
+    # catching everything because we don't don't really care about error here - if 
+    # error occurred for whichever reason `Opt.none` is returned.
+    # also we don't want to import ngtcp2 errors here.
+    error "Could not create connection", errorMsg = e.msg
+    return Opt.none(Connection)
 
 proc newListener*(
     tlsBackend: TLSBackend, address: TransportAddress, rng: ref HmacDrbgContext
 ): Listener =
   let listener = Listener(incoming: newAsyncQueue[Connection]())
-  proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-    let msg = udp.getMessage()
-      # call getMessage() only once to avoid unnecessary allocation
-    let connection = listener.getOrCreateConnection(udp, msg, remote, rng)
-    if connection.isSome():
-      connection.get().receive(Datagram(data: msg))
+  proc onReceive(
+      udp: DatagramTransport, remote: TransportAddress
+  ) {.async: (raises: []).} =
+    try:
+      let msg = udp.getMessage()
+        # call getMessage() only once to avoid unnecessary allocation
+      let connection = listener.getOrCreateConnection(udp, msg, remote, rng)
+      if connection.isSome():
+        connection.get().receive(Datagram(data: msg))
+    except TransportError as e:
+      error "Unexpect transport error", errorMsg = e.msg
+    except QuicError as e:
+      error "Failed to receive datagram", errorMsg = e.msg
 
   listener.tlsBackend = tlsBackend
   listener.udp = newDatagramTransport(onReceive, local = address)
