@@ -22,7 +22,7 @@ method send(state: ClosedConnection) =
   raise newException(ClosedConnectionError, "connection is closed")
 
 method receive(state: ClosedConnection, datagram: sink Datagram) =
-  raise newException(ClosedConnectionError, "connection is closed")
+  discard
 
 method openStream(
     state: ClosedConnection, unidirectional: bool
@@ -33,6 +33,4 @@ method close(state: ClosedConnection) {.async.} =
   discard
 
 method drop(state: ClosedConnection) {.async.} =
-  trace "Dropping ClosedConnection state"
-  discard
-  trace "Dropped ClosedConnection state"
+  trace "Drop ClosedConnection state"
