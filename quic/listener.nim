@@ -1,3 +1,4 @@
+import chronicles
 import std/tables
 import bearssl/rand
 import ./basics
@@ -64,7 +65,12 @@ proc newListener*(
   proc onReceive(
       udp: DatagramTransport, remote: TransportAddress
   ) {.async: (raises: []).} =
-    let msg = udp.getMessage()
+    let msg =
+      try:
+        udp.getMessage()
+      except TransportError as e:
+        error "Unexpect transport error", errorMsg = e.msg
+
       # call getMessage() only once to avoid unnecessary allocation
     let connection = listener.getOrCreateConnection(udp, msg, remote, rng)
     if connection.isSome():
