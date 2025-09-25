@@ -111,7 +111,9 @@ proc dial*(
     self.tlsConfig.certificateVerifier,
   )
   var connection: Connection
-  proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
+  proc onReceive(
+      udp: DatagramTransport, remote: TransportAddress
+  ) {.async: (raises: []).} =
     connection.receive(Datagram(data: udp.getMessage()))
 
   let udp = newDatagramTransport(onReceive)

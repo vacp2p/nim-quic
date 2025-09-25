@@ -61,7 +61,9 @@ proc newListener*(
     tlsBackend: TLSBackend, address: TransportAddress, rng: ref HmacDrbgContext
 ): Listener =
   let listener = Listener(incoming: newAsyncQueue[Connection]())
-  proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
+  proc onReceive(
+      udp: DatagramTransport, remote: TransportAddress
+  ) {.async: (raises: []).} =
     let msg = udp.getMessage()
       # call getMessage() only once to avoid unnecessary allocation
     let connection = listener.getOrCreateConnection(udp, msg, remote, rng)
