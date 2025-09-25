@@ -4,6 +4,7 @@ import ../../../basics
 import ../../../errors
 import ../../version
 import ./encryption
+import ../../connectionid
 import ./ids
 import ./settings
 import ./connection
