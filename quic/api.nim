@@ -1,4 +1,5 @@
 import chronos
+import chronicles
 import results
 import std/sets
 import bearssl/rand
@@ -111,8 +112,15 @@ proc dial*(
     self.tlsConfig.certificateVerifier,
   )
   var connection: Connection
-  proc onReceive(udp: DatagramTransport, remote: TransportAddress) {.async.} =
-    connection.receive(Datagram(data: udp.getMessage()))
+  proc onReceive(
+      udp: DatagramTransport, remote: TransportAddress
+  ) {.async: (raises: []).} =
+    try:
+      connection.receive(Datagram(data: udp.getMessage()))
+    except TransportError as e:
+      error "Unexpect transport error", errorMsg = e.msg
+    except QuicError as e:
+      error "Failed to receive datagram", errorMsg = e.msg
 
   let udp = newDatagramTransport(onReceive)
   connection = newOutgoingConnection(tlsBackend, udp, address, self.rng)
