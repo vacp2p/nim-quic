@@ -1,11 +1,11 @@
 import pkg/ngtcp2
-import ../../../helpers/openarray
+import ../../../helpers/[openarray, sequninit]
 import ../../packetinfo
 import ../../connectionid
 import ./errors
 
 proc toConnectionId(p: ptr byte, length: uint): ConnectionId =
-  var bytes = newSeqUninitialized[byte](length)
+  var bytes = newSeqUninit[byte](length)
   copyMem(bytes.toPtr, p, length)
   ConnectionId(bytes)
 
