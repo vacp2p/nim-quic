@@ -205,9 +205,7 @@ proc waitForHandshake*(
 proc receive*(connection: Connection, datagram: sink Datagram) =
   connection.quic.receive(datagram)
 
-proc remoteAddress*(
-    connection: Connection
-): TransportAddress {.raises: [].} =
+proc remoteAddress*(connection: Connection): TransportAddress {.raises: [].} =
   connection.remote
 
 proc localAddress*(
