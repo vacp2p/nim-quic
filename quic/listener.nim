@@ -73,19 +73,16 @@ proc newListener*(
   proc onReceive(
       udp: DatagramTransport, remote: TransportAddress
   ) {.async: (raises: []).} =
-    let msg =
-      try:
-        udp.getMessage() # call getMessage() only once to avoid unnecessary allocation
-      except TransportError as e:
-        error "Unexpect transport error", errorMsg = e.msg
-        return
-
-    let connection = listener.getOrCreateConnection(udp, msg, remote, rng)
-    if connection.isSome():
-      try:
+    try:
+      let msg = udp.getMessage()
+        # call getMessage() only once to avoid unnecessary allocation
+      let connection = listener.getOrCreateConnection(udp, msg, remote, rng)
+      if connection.isSome():
         connection.get().receive(Datagram(data: msg))
-      except QuicError as e:
-        error "Failed to receive datagram", errorMsg = e.msg
+    except TransportError as e:
+      error "Unexpect transport error", errorMsg = e.msg
+    except QuicError as e:
+      error "Failed to receive datagram", errorMsg = e.msg
 
   listener.tlsBackend = tlsBackend
   listener.udp = newDatagramTransport(onReceive, local = address)
