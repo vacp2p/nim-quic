@@ -60,11 +60,8 @@ method close(state: DisconnectingConnection) {.async.} =
   connection.switch(newClosedConnection(state.derCertificates))
 
 method drop(state: DisconnectingConnection) {.async.} =
-  trace "Dropping DisconnectingConnection state"
-  trace "Awaiting quic disconnecton"
+  trace "Drop DisconnectingConnection state"
   await state.disconnect
-  trace "Quic disconnecton finished"
   let connection = state.connection.valueOr:
     return
   connection.switch(newClosedConnection(state.derCertificates))
-  trace "dropped DisconnectingConnection state"
