@@ -55,7 +55,7 @@ suite "Quic integration usecases":
     waitFor allSucceeded(incoming(), outgoing())
 
   asyncTest "connect many clients to single server":
-    const count = 2 # should be increased when bug is fixed
+    const count = 20 # should be increased when bug is fixed
     let serverWg = newWaitGroup(count)
     let clientWg = newWaitGroup(count)
     let address = initTAddress("127.0.0.1:12345")
