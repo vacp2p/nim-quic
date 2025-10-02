@@ -201,35 +201,33 @@ proc localAddress*(
 ): TransportAddress {.raises: [TransportOsError].} =
   connection.udp.localAddress()
 
-proc openStream*(
-    connection: Connection, unidirectional = false
-): Future[Stream] {.async: (raises: [CancelledError, QuicError, CatchableError]).} =
-  # throws CatchableError because incomingStream() has not specified all errors.
-  # in order fix this, refactoring almost all methods is required.
-
+proc handleNewStream(
+    connection: Connection, streamFut: Future[Stream]
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
   let closedFut = connection.closed.wait()
-  let streamFut = connection.quic.openStream(unidirectional = unidirectional)
-
   let raceFut = await race(streamFut, closedFut)
   if raceFut == closedFut:
     raise newException(QuicError, "connection closed")
 
-  return (await streamFut)
+  # Note: this try will not be needed once quic.openStream() and 
+  # quic.incomingStream() methods list all exceptions. Even now this is not needed
+  # but it is here to make compiler happy and to avoid throwing CatchableError.
+  try:
+    return await streamFut
+  except CancelledError as e:
+    raise e
+  except CatchableError as e:
+    raise newException(QuicError, "opening stream: " & $e.msg)
+
+proc openStream*(
+    connection: Connection, unidirectional = false
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
+  return await connection.handleNewStream(connection.quic.openStream(unidirectional))
 
 proc incomingStream*(
     connection: Connection
-): Future[Stream] {.async: (raises: [CancelledError, QuicError, CatchableError]).} =
-  # throws CatchableError because incomingStream() has not specified all errors.
-  # in order fix this, refactoring almost all methods is required.
-
-  let closedFut = connection.closed.wait()
-  let streamFut = connection.quic.incomingStream()
-
-  let raceFut = await race(streamFut, closedFut)
-  if raceFut == closedFut:
-    raise newException(QuicError, "connection closed")
-
-  return (await streamFut)
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
+  return await connection.handleNewStream(connection.quic.incomingStream())
 
 proc certificates*(connection: Connection): seq[seq[byte]] =
   connection.quic.certificates()
