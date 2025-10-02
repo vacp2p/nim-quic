@@ -59,7 +59,7 @@ suite "Quic integration usecases":
     let listener = server.listen(address)
     let message = newData(50 * 1024)
 
-    proc handleConn(connection: Connection) {.async.} =
+    proc handleServerConn(connection: Connection) {.async.} =
       let stream = await connection.incomingStream()
       let receivedData = await readStreamTillEOF(stream)
       checkEqual(message, receivedData)
@@ -82,12 +82,12 @@ suite "Quic integration usecases":
     for i in 0 ..< count:
       asyncSpawn runClient()
 
-    asyncSpawn accept(listener, handleConn)
+    asyncSpawn accept(listener, handleServerConn)
     waitFor allSucceeded(serverDone.wait(), clientDone.wait())
     await listener.stop()
     listener.destroy()
 
-  asyncTest "incomingStream returns error when client disconnects":
+  asyncTest "incomingStream throws error when client disconnects":
     const count = 20
     let serverDone = newWaitGroup(count)
     let clientDone = newWaitGroup(count)
@@ -96,12 +96,9 @@ suite "Quic integration usecases":
     let listener = server.listen(address)
     let message = newData(50 * 1024)
 
-    proc handleConn(connection: Connection) {.async.} =
-      try:
-        let stream = await connection.incomingStream()
-        doAssert false, "should not open stream"
-      except QuicError as e:
-        discard
+    proc handleServerConn(connection: Connection) {.async.} =
+      expect QuicError:
+        discard await connection.incomingStream()
 
       await connection.close()
       serverDone.done()
@@ -116,12 +113,12 @@ suite "Quic integration usecases":
     for i in 0 ..< count:
       asyncSpawn runClient()
 
-    asyncSpawn accept(listener, handleConn)
+    asyncSpawn accept(listener, handleServerConn)
     waitFor allSucceeded(serverDone.wait(), clientDone.wait())
     await listener.stop()
     listener.destroy()
 
-  asyncTest "openStream returns error when server disconnects":
+  asyncTest "openStream throws error when server disconnects":
     const count = 20
     let serverDone = newWaitGroup(count)
     let clientDone = newWaitGroup(count)
@@ -130,7 +127,7 @@ suite "Quic integration usecases":
     let listener = server.listen(address)
     let message = newData(50 * 1024)
 
-    proc handleConn(connection: Connection) {.async.} =
+    proc handleServerConn(connection: Connection) {.async.} =
       await connection.close()
       serverDone.done()
 
@@ -140,11 +137,9 @@ suite "Quic integration usecases":
 
       # wait for server to disconnect
       await serverDone.wait()
-      try:
-        let stream = await connection.openStream()
-        doAssert false, "should not open stream"
-      except QuicError as e:
-        discard
+
+      expect QuicError:
+        discard await connection.openStream()
 
       await connection.close()
       clientDone.done()
@@ -152,7 +147,7 @@ suite "Quic integration usecases":
     for i in 0 ..< count:
       asyncSpawn runClient()
 
-    asyncSpawn accept(listener, handleConn)
+    asyncSpawn accept(listener, handleServerConn)
     waitFor allSucceeded(serverDone.wait(), clientDone.wait())
     await listener.stop()
     listener.destroy()
