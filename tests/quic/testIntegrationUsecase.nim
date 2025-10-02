@@ -98,6 +98,7 @@ suite "Quic integration usecases":
 
     proc handleServerConn(connection: Connection) {.async.} =
       expect QuicError:
+        # should not be able to open stream as client has disconnected
         discard await connection.incomingStream()
 
       await connection.close()
@@ -139,6 +140,7 @@ suite "Quic integration usecases":
       await serverDone.wait()
 
       expect QuicError:
+        # should not be able to open stream as server has disconnected
         discard await connection.openStream()
 
       await connection.close()
