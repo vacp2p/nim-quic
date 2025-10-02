@@ -45,7 +45,6 @@ proc `onClose=`*(connection: Connection, callback: proc() {.gcsafe, raises: [].}
 proc drop*(connection: Connection) {.async.} =
   trace "Dropping connection"
   await connection.quic.drop()
-  trace "Dropped connection"
 
 proc close*(connection: Connection) {.async.} =
   await connection.quic.close()
@@ -65,27 +64,26 @@ proc waitClosed*(connection: Connection) {.async.} =
 
 proc startSending(connection: Connection, remote: TransportAddress) =
   trace "Starting sending loop"
+  proc onStop(e: ref CatchableError) {.async.} =
+    if not connection.loop.finished:
+      connection.loop.fail(e)
+    await connection.drop()
+
   proc send() {.async.} =
     try:
-      trace "Getting datagram"
       let datagram = await connection.quic.outgoing.get()
-      trace "Sending datagram"
       await connection.udp.sendTo(remote, datagram.data)
-      trace "Sent datagram"
+    except CancelledError as e:
+      await onStop(e)
     except TransportError as e:
       trace "Failed to send datagram", errorMsg = e.msg
-      trace "Failing connection loop future with error"
-      if not connection.loop.finished:
-        connection.loop.fail(e)
-          # This might need to be revisited, see https://github.com/status-im/nim-quic/pull/41 for more details
-      await connection.drop()
+      await onStop(e)
 
   connection.loop = asyncLoop(send)
 
 proc stopSending(connection: Connection) {.async.} =
   trace "Stopping sending loop"
   await connection.loop.cancelAndWait()
-  trace "Stopped sending loop"
 
 method closeUdp(connection: Connection) {.async: (raises: []), base.} =
   discard
@@ -95,19 +93,11 @@ method closeUdp(connection: OutgoingConnection) {.async: (raises: []).} =
 
 proc disconnect(connection: Connection) {.async.} =
   trace "Disconnecting connection"
-  trace "Stop sending in the connection"
   await connection.stopSending()
-  trace "Stopped sending in the connection"
-  trace "Closing udp"
   await connection.closeUdp()
-  trace "Closed udp"
   if connection.onClose.isSome():
-    trace "Calling onClose"
     (connection.onClose.unsafeGet())()
-    trace "Called onClose"
-  trace "Firing closed event"
   connection.closed.fire()
-  trace "Fired closed event"
 
 proc newIncomingConnection*(
     tlsBackend: TLSBackend,
@@ -124,7 +114,6 @@ proc newIncomingConnection*(
   proc onDisconnect() {.async.} =
     trace "Calling onDisconnect for newIncomingConnection"
     await connection.disconnect()
-    trace "Called onDisconnect for newIncomingConnection"
 
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
@@ -151,7 +140,6 @@ proc newOutgoingConnection*(
   proc onDisconnect() {.async.} =
     trace "Calling onDisconnect for newOutgoingConnection"
     await connection.disconnect()
-    trace "Called onDisconnect for newOutgoingConnection"
 
   connection.remote = remote
   quic.disconnect = Opt.some(onDisconnect)
@@ -213,13 +201,35 @@ proc localAddress*(
 ): TransportAddress {.raises: [TransportOsError].} =
   connection.udp.localAddress()
 
+proc handleNewStream(
+    connection: Connection, streamFut: Future[Stream]
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
+  let closedFut = connection.closed.wait()
+  let raceFut = await race(streamFut, closedFut)
+  if raceFut == closedFut:
+    raise newException(QuicError, "connection closed")
+
+  # Note: this try will not be needed once quic.openStream() and 
+  # quic.incomingStream() methods list all exceptions. Even now this is not needed
+  # but it is here to make compiler happy and to avoid throwing CatchableError.
+  try:
+    return await streamFut
+  except CancelledError as e:
+    raise e
+  except QuicError as e:
+    raise e
+  except CatchableError as e:
+    raise newException(QuicError, "opening stream: " & $e.msg)
+
 proc openStream*(
     connection: Connection, unidirectional = false
-): Future[Stream] {.async.} =
-  await connection.quic.openStream(unidirectional = unidirectional)
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
+  return await connection.handleNewStream(connection.quic.openStream(unidirectional))
 
-proc incomingStream*(connection: Connection): Future[Stream] {.async.} =
-  await connection.quic.incomingStream()
+proc incomingStream*(
+    connection: Connection
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
+  return await connection.handleNewStream(connection.quic.incomingStream())
 
 proc certificates*(connection: Connection): seq[seq[byte]] =
   connection.quic.certificates()
