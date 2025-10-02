@@ -17,6 +17,11 @@ proc accept(listener: Listener, handleConn: handler) {.async.} =
 
     asyncSpawn handleConn(connection)
 
+template deferStop(listener: Listener) =
+  defer:
+    await listener.stop()
+    listener.destroy()
+
 suite "Quic integration usecases":
   test "client to server send and receive message":
     let message = newData(50 * 1024)
@@ -35,6 +40,7 @@ suite "Quic integration usecases":
     proc incoming() {.async.} =
       let server = makeServer()
       let listener = server.listen(address)
+      listener.deferStop()
 
       let connection = await listener.accept()
       check connection.certificates().len == 1
@@ -45,8 +51,6 @@ suite "Quic integration usecases":
 
       await stream.close()
       await connection.close()
-      await listener.stop()
-      listener.destroy()
 
     waitFor allSucceeded(incoming(), outgoing())
 
@@ -57,6 +61,8 @@ suite "Quic integration usecases":
     let address = initTAddress("127.0.0.1:12345")
     let server = makeServer()
     let listener = server.listen(address)
+    listener.deferStop()
+
     let message = newData(50 * 1024)
 
     proc handleServerConn(connection: Connection) {.async.} =
@@ -79,13 +85,10 @@ suite "Quic integration usecases":
 
       clientWg.done()
 
+    asyncSpawn accept(listener, handleServerConn)
     for i in 0 ..< count:
       asyncSpawn runClient()
-
-    asyncSpawn accept(listener, handleServerConn)
     waitFor allSucceeded(serverWg.wait(), clientWg.wait())
-    await listener.stop()
-    listener.destroy()
 
   asyncTest "incomingStream throws error when client disconnects":
     const count = 20
@@ -94,7 +97,7 @@ suite "Quic integration usecases":
     let address = initTAddress("127.0.0.1:12345")
     let server = makeServer()
     let listener = server.listen(address)
-    let message = newData(50 * 1024)
+    listener.deferStop()
 
     proc handleServerConn(connection: Connection) {.async.} =
       expect QuicError:
@@ -111,13 +114,10 @@ suite "Quic integration usecases":
       await connection.close()
       clientWg.done()
 
+    asyncSpawn accept(listener, handleServerConn)
     for i in 0 ..< count:
       asyncSpawn runClient()
-
-    asyncSpawn accept(listener, handleServerConn)
     waitFor allSucceeded(serverWg.wait(), clientWg.wait())
-    await listener.stop()
-    listener.destroy()
 
   asyncTest "openStream throws error when server disconnects":
     const count = 20
@@ -126,7 +126,7 @@ suite "Quic integration usecases":
     let address = initTAddress("127.0.0.1:12345")
     let server = makeServer()
     let listener = server.listen(address)
-    let message = newData(50 * 1024)
+    listener.deferStop()
 
     proc handleServerConn(connection: Connection) {.async.} =
       await connection.close()
@@ -146,10 +146,7 @@ suite "Quic integration usecases":
       await connection.close()
       clientWg.done()
 
+    asyncSpawn accept(listener, handleServerConn)
     for i in 0 ..< count:
       asyncSpawn runClient()
-
-    asyncSpawn accept(listener, handleServerConn)
     waitFor allSucceeded(serverWg.wait(), clientWg.wait())
-    await listener.stop()
-    listener.destroy()
