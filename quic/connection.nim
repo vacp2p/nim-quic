@@ -216,6 +216,8 @@ proc handleNewStream(
     return await streamFut
   except CancelledError as e:
     raise e
+  except QuicError as e:
+    raise e
   except CatchableError as e:
     raise newException(QuicError, "opening stream: " & $e.msg)
 
