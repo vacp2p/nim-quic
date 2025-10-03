@@ -25,7 +25,7 @@ type
   IdCallback* = proc(id: ConnectionId) {.gcsafe, raises: [].}
   ConnectionError* = object of QuicError
 
-{.push base, locks: "unknown", raises: [QuicError].}
+{.push base, raises: [QuicError].}
 
 method enter*(state: ConnectionState, connection: QuicConnection) =
   doAssert not state.entered # states are not reentrant

@@ -5,8 +5,6 @@ import ./varints
 import ./packet
 import ./reader
 
-{.push raises: [QuicError].}
-
 export reader
 
 proc readForm*(reader: var PacketReader, datagram: openArray[byte]) =
