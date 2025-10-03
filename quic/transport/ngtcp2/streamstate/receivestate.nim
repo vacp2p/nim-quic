@@ -22,7 +22,9 @@ method leave*(state: ReceiveStreamState) =
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
 
-method read*(state: ReceiveStreamState): Future[seq[byte]] {.async.} =
+method read*(
+    state: ReceiveStreamState
+): Future[seq[byte]] {.async: (raises: [CancelledError, QuicError]).} =
   # Check for immediate EOF conditions
   if state.queue.isEOF() and state.queue.incoming.len == 0:
     state.switch(newClosedStreamState(state))
@@ -43,16 +45,24 @@ method read*(state: ReceiveStreamState): Future[seq[byte]] {.async.} =
   # Empty data but no EOF; continue reading for more data
   return await state.read()
 
-method write*(state: ReceiveStreamState, bytes: seq[byte]) {.async.} =
+method write*(
+    state: ReceiveStreamState, bytes: seq[byte]
+) {.async: (raises: [CancelledError, QuicError]).} =
   raise newException(ClosedStreamError, "write side is closed")
 
-method close*(state: ReceiveStreamState) {.async.} =
+method close*(
+    state: ReceiveStreamState
+) {.async: (raises: [CancelledError, QuicError]).} =
   state.switch(newClosedStreamState(state))
 
-method closeWrite*(state: ReceiveStreamState) {.async.} =
+method closeWrite*(
+    state: ReceiveStreamState
+) {.async: (raises: [CancelledError, QuicError]).} =
   discard
 
-method closeRead*(state: ReceiveStreamState) {.async.} =
+method closeRead*(
+    state: ReceiveStreamState
+) {.async: (raises: [CancelledError, QuicError]).} =
   state.switch(newClosedStreamState(state))
 
 method onClose*(state: ReceiveStreamState) =
@@ -68,5 +78,5 @@ method receive*(
   if state.queue.isEOF():
     state.switch(newClosedStreamState(state))
 
-method reset*(state: ReceiveStreamState) =
+method reset*(state: ReceiveStreamState) {.raises: [QuicError].} =
   state.switch(newClosedStreamState(state, wasReset = true))

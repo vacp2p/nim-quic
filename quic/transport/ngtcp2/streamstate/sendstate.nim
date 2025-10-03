@@ -10,7 +10,7 @@ type SendStreamState* = ref object of BaseStreamState
 proc newSendStreamState*(base: BaseStreamState): SendStreamState =
   SendStreamState(connection: base.connection, queue: base.queue, finSent: base.finSent)
 
-method enter*(state: SendStreamState, stream: Stream) =
+method enter*(state: SendStreamState, stream: Stream) {.raises: [QuicError].} =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   state.setUserData(stream)
@@ -20,19 +20,27 @@ method leave*(state: SendStreamState) =
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
 
-method read*(state: SendStreamState): Future[seq[byte]] {.async.} =
+method read*(
+    state: SendStreamState
+): Future[seq[byte]] {.async: (raises: [CancelledError, QuicError]).} =
   raise newException(ClosedStreamError, "read side is closed")
 
-method write*(state: SendStreamState, bytes: seq[byte]) {.async.} =
+method write*(
+    state: SendStreamState, bytes: seq[byte]
+) {.async: (raises: [CancelledError, QuicError]).} =
   await procCall BaseStreamState(state).write(bytes)
 
-method close*(state: SendStreamState) {.async.} =
+method close*(state: SendStreamState) {.async: (raises: [CancelledError, QuicError]).} =
   state.switch(newClosedStreamState(state))
 
-method closeWrite*(state: SendStreamState) {.async.} =
+method closeWrite*(
+    state: SendStreamState
+) {.async: (raises: [CancelledError, QuicError]).} =
   state.switch(newClosedStreamState(state))
 
-method closeRead*(stream: SendStreamState) {.async.} =
+method closeRead*(
+    stream: SendStreamState
+) {.async: (raises: [CancelledError, QuicError]).} =
   discard
 
 method onClose*(state: SendStreamState) =
@@ -44,5 +52,5 @@ method isClosed*(state: SendStreamState): bool =
 method receive*(state: SendStreamState, offset: uint64, bytes: seq[byte], isFin: bool) =
   discard
 
-method reset*(state: SendStreamState) =
+method reset*(state: SendStreamState) {.raises: [QuicError].} =
   state.switch(newClosedStreamState(state, wasReset = true))
