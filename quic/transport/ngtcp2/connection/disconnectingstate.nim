@@ -50,7 +50,7 @@ method receive(state: DisconnectingConnection, datagram: sink Datagram) =
 
 method openStream(
     state: DisconnectingConnection, unidirectional: bool
-): Future[Stream] {.async.} =
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
   raise newException(ClosedConnectionError, "connection is disconnecting")
 
 method close(state: DisconnectingConnection) {.async.} =

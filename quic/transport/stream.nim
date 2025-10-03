@@ -13,34 +13,42 @@ type
 
   StreamError* = object of QuicError
 
-{.push raises: [QuicError].}
-
-method enter*(state: StreamState, stream: Stream) {.base.} =
+method enter*(state: StreamState, stream: Stream) {.base, raises: [QuicError].} =
   doAssert not state.entered # states are not reentrant
   state.entered = true
 
-method leave*(state: StreamState) {.base.} =
+method leave*(state: StreamState) {.base, raises: [QuicError].} =
   discard
 
-method read*(state: StreamState): Future[seq[byte]] {.base, async.} =
+method read*(
+    state: StreamState
+): Future[seq[byte]] {.base, async: (raises: [CancelledError, QuicError]).} =
   doAssert false, "override this method"
 
-method write*(state: StreamState, bytes: seq[byte]) {.base, async.} =
+method write*(
+    state: StreamState, bytes: seq[byte]
+) {.base, async: (raises: [CancelledError, QuicError]).} =
   doAssert false, "override this method"
 
-method close*(state: StreamState) {.base, async.} =
+method close*(
+    state: StreamState
+) {.base, async: (raises: [CancelledError, QuicError]).} =
   doAssert false, "override this method"
 
-method closeWrite*(state: StreamState) {.base, async.} =
+method closeWrite*(
+    state: StreamState
+) {.base, async: (raises: [CancelledError, QuicError]).} =
   doAssert false, "override this method"
 
-method closeRead*(state: StreamState) {.base, async.} =
+method closeRead*(
+    state: StreamState
+) {.base, async: (raises: [CancelledError, QuicError]).} =
   doAssert false, "override this method"
 
-method reset*(state: StreamState) {.base.} =
+method reset*(state: StreamState) {.base, raises: [QuicError].} =
   doAssert false, "override this method"
 
-method onClose*(state: StreamState) {.base.} =
+method onClose*(state: StreamState) {.base, raises: [QuicError].} =
   doAssert false, "override this method"
 
 method isClosed*(state: StreamState): bool {.base, raises: [].} =
@@ -48,21 +56,19 @@ method isClosed*(state: StreamState): bool {.base, raises: [].} =
 
 method receive*(
     state: StreamState, offset: uint64, bytes: seq[byte], isFin: bool
-) {.base.} =
+) {.base, raises: [QuicError].} =
   doAssert false, "override this method"
-
-{.pop.}
 
 method expire*(state: StreamState) {.base, raises: [].} =
   doAssert false, "override this method"
 
-proc newStream*(id: int64, state: StreamState): Stream =
+proc newStream*(id: int64, state: StreamState): Stream {.raises: [QuicError].} =
   let stream =
     Stream(state: state, id: id, closed: newAsyncEvent(), lock: newAsyncLock())
   state.enter(stream)
   stream
 
-proc switch*(stream: Stream, newState: StreamState) =
+proc switch*(stream: Stream, newState: StreamState) {.raises: [QuicError].} =
   stream.state.leave()
   stream.state = newState
   stream.state.enter(stream)

@@ -21,7 +21,9 @@ method leave*(state: OpenStreamState) =
   procCall leave(StreamState(state))
   state.stream = Opt.none(Stream)
 
-method read*(state: OpenStreamState): Future[seq[byte]] {.async.} =
+method read*(
+    state: OpenStreamState
+): Future[seq[byte]] {.async: (raises: [CancelledError, QuicError]).} =
   # Check for immediate EOF conditions
   if state.queue.isEOF() and state.queue.incoming.len == 0:
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
@@ -40,16 +42,22 @@ method read*(state: OpenStreamState): Future[seq[byte]] {.async.} =
   # Empty data but no EOF; continue reading for more data
   return await state.read()
 
-method write*(state: OpenStreamState, bytes: seq[byte]) {.async.} =
+method write*(
+    state: OpenStreamState, bytes: seq[byte]
+) {.async: (raises: [CancelledError, QuicError]).} =
   await procCall BaseStreamState(state).write(bytes)
 
-method close*(state: OpenStreamState) {.async.} =
+method close*(state: OpenStreamState) {.async: (raises: [CancelledError, QuicError]).} =
   state.switch(newReceiveStreamState(state))
 
-method closeWrite*(state: OpenStreamState) {.async.} =
+method closeWrite*(
+    state: OpenStreamState
+) {.async: (raises: [CancelledError, QuicError]).} =
   state.switch(newReceiveStreamState(state))
 
-method closeRead*(state: OpenStreamState) {.async.} =
+method closeRead*(
+    state: OpenStreamState
+) {.async: (raises: [CancelledError, QuicError]).} =
   state.switch(newSendStreamState(state))
 
 method onClose*(state: OpenStreamState) =
@@ -61,5 +69,5 @@ method isClosed*(state: OpenStreamState): bool =
 method receive*(state: OpenStreamState, offset: uint64, bytes: seq[byte], isFin: bool) =
   state.queue.insert(offset, bytes, isFin)
 
-method reset*(state: OpenStreamState) =
+method reset*(state: OpenStreamState) {.raises: [QuicError].} =
   state.switch(newClosedStreamState(state, wasReset = true))

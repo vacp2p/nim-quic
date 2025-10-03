@@ -14,12 +14,16 @@ method expire*(state: BaseStreamState) {.raises: [].} =
     return
   stream.closed.fire()
 
-method write*(state: BaseStreamState, bytes: seq[byte]) {.async.} =
+method write*(
+    state: BaseStreamState, bytes: seq[byte]
+) {.async: (raises: [CancelledError, QuicError]).} =
   let stream = state.stream.valueOr:
     return
   await state.connection.send(stream.id, bytes)
 
-proc setUserData*(state: BaseStreamState, stream: stream.Stream) =
+proc setUserData*(
+    state: BaseStreamState, stream: stream.Stream
+) {.raises: [QuicError].} =
   state.connection.setStreamUserData(stream.id, unsafeAddr state[])
 
 proc allowMoreIncomingBytes*(state: BaseStreamState, amount: uint64) =
@@ -33,10 +37,10 @@ proc sendFin*(state: BaseStreamState, stream: stream.Stream) =
     state.finSent = true
     discard state.connection.send(stream.id, @[], true)
 
-proc reset*(state: BaseStreamState, stream: stream.Stream) =
+proc reset*(state: BaseStreamState, stream: stream.Stream) {.raises: [QuicError].} =
   state.connection.shutdownStream(stream.id)
 
-proc switch*(state: BaseStreamState, newStream: StreamState) =
+proc switch*(state: BaseStreamState, newStream: StreamState) {.raises: [QuicError].} =
   let stream = state.stream.valueOr:
     return
   stream.switch(newStream)

@@ -17,7 +17,7 @@ proc newClosedStreamState*(
     wasReset: wasReset,
   )
 
-method enter*(state: ClosedStreamState, stream: Stream) =
+method enter*(state: ClosedStreamState, stream: Stream) {.raises: [QuicError].} =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
   state.setUserData(stream)
@@ -33,7 +33,9 @@ method enter*(state: ClosedStreamState, stream: Stream) =
 method leave*(state: ClosedStreamState) =
   doAssert false, "ClosedStreamState state should never leave"
 
-method read*(state: ClosedStreamState): Future[seq[byte]] {.async.} =
+method read*(
+    state: ClosedStreamState
+): Future[seq[byte]] {.async: (raises: [CancelledError, QuicError]).} =
   # If stream was reset, always throw exception
   if state.wasReset:
     raise newException(ClosedStreamError, "stream was reset")
@@ -46,16 +48,24 @@ method read*(state: ClosedStreamState): Future[seq[byte]] {.async.} =
   # When no more data is available, return EOF instead of throwing exception
   return @[]
 
-method write*(state: ClosedStreamState, bytes: seq[byte]) {.async.} =
+method write*(
+    state: ClosedStreamState, bytes: seq[byte]
+) {.async: (raises: [CancelledError, QuicError]).} =
   raise newException(ClosedStreamError, "stream is closed")
 
-method close*(state: ClosedStreamState) {.async.} =
+method close*(
+    state: ClosedStreamState
+) {.async: (raises: [CancelledError, QuicError]).} =
   discard
 
-method closeWrite*(state: ClosedStreamState) {.async.} =
+method closeWrite*(
+    state: ClosedStreamState
+) {.async: (raises: [CancelledError, QuicError]).} =
   discard
 
-method closeRead*(state: ClosedStreamState) {.async.} =
+method closeRead*(
+    state: ClosedStreamState
+) {.async: (raises: [CancelledError, QuicError]).} =
   discard
 
 method onClose*(state: ClosedStreamState) =
@@ -69,5 +79,5 @@ method receive*(
 ) =
   discard
 
-method reset*(state: ClosedStreamState) =
+method reset*(state: ClosedStreamState) {.raises: [QuicError].} =
   discard

@@ -137,7 +137,7 @@ proc trySend(
   let ecn = ECN(packetInfo.ecn)
   Datagram(data: buffer, ecn: ecn)
 
-proc send*(connection: Ngtcp2Connection) =
+proc send*(connection: Ngtcp2Connection) {.raises: [QuicError].} =
   var done = false
   while not done:
     let datagram = connection.trySend()
@@ -153,7 +153,7 @@ proc send(
     messagePtr: ptr byte,
     messageLen: uint,
     isFin: bool = false,
-): Future[int] {.async.} =
+): Future[int] {.async: (raises: [CancelledError, QuicError]).} =
   let written = addr result
   var datagram = trySend(connection, streamId, messagePtr, messageLen, written, isFin)
 
@@ -174,7 +174,7 @@ proc send(
 
 proc send*(
     connection: Ngtcp2Connection, streamId: int64, bytes: seq[byte], isFin: bool = false
-) {.async.} =
+) {.async: (raises: [CancelledError, QuicError]).} =
   var messagePtr = bytes.toUnsafePtr
   var messageLen = bytes.len.uint
   var done = false

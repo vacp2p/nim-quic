@@ -1,5 +1,6 @@
 import ngtcp2
 import ../../../helpers/[openarray, sequninit]
+import ../../../errors
 import ../../stream
 import ../streamstate/openstate
 import ./connection
@@ -8,7 +9,9 @@ import chronicles
 proc newStream(connection: Ngtcp2Connection, id: int64): Stream =
   newStream(id, newOpenStreamState(connection))
 
-proc openStream*(connection: Ngtcp2Connection, unidirectional: bool): Stream =
+proc openStream*(
+    connection: Ngtcp2Connection, unidirectional: bool
+): Stream {.raises: [QuicError].} =
   var id: int64
   if unidirectional:
     id = connection.openUniStream()

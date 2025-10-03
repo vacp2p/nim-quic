@@ -43,7 +43,9 @@ method send*(state: ConnectionState) =
 method receive*(state: ConnectionState, datagram: sink Datagram) =
   doAssert false # override this method
 
-method openStream*(state: ConnectionState, unidirectional: bool): Future[Stream] =
+method openStream*(
+    state: ConnectionState, unidirectional: bool
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
   doAssert false # override this method
 
 method drop*(state: ConnectionState): Future[void] {.gcsafe.} =
@@ -85,11 +87,15 @@ proc send*(connection: QuicConnection) =
 proc receive*(connection: QuicConnection, datagram: sink Datagram) =
   connection.state.receive(datagram)
 
-proc openStream*(connection: QuicConnection, unidirectional = false): Future[Stream] =
-  connection.state.openStream(unidirectional = unidirectional)
+proc openStream*(
+    connection: QuicConnection, unidirectional = false
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
+  await connection.state.openStream(unidirectional = unidirectional)
 
-proc incomingStream*(connection: QuicConnection): Future[Stream] =
-  connection.incoming.get()
+proc incomingStream*(
+    connection: QuicConnection
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
+  await connection.incoming.get()
 
 proc close*(connection: QuicConnection): Future[void] =
   connection.state.close()
