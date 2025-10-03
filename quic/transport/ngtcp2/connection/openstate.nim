@@ -135,7 +135,7 @@ method receive(state: OpenConnection, datagram: sink Datagram) =
 
 method openStream(
     state: OpenConnection, unidirectional: bool
-): Future[Stream] {.async.} =
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
   let quicConnection = state.quicConnection.valueOr:
     raise newException(QuicError, "connection is closed")
   await quicConnection.handshake.wait()

@@ -202,34 +202,25 @@ proc localAddress*(
   connection.udp.localAddress()
 
 proc handleNewStream(
-    connection: Connection, streamFut: Future[Stream]
+    connection: Connection,
+    streamFut: Future[Stream].Raising([CancelledError, QuicError]),
 ): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
   let closedFut = connection.closed.wait()
   let raceFut = await race(streamFut, closedFut)
   if raceFut == closedFut:
     raise newException(QuicError, "connection closed")
 
-  # Note: this try will not be needed once quic.openStream() and 
-  # quic.incomingStream() methods list all exceptions. Even now this is not needed
-  # but it is here to make compiler happy and to avoid throwing CatchableError.
-  try:
-    return await streamFut
-  except CancelledError as e:
-    raise e
-  except QuicError as e:
-    raise e
-  except CatchableError as e:
-    raise newException(QuicError, "opening stream: " & $e.msg)
-
-proc openStream*(
-    connection: Connection, unidirectional = false
-): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
-  return await connection.handleNewStream(connection.quic.openStream(unidirectional))
+  return await streamFut
 
 proc incomingStream*(
     connection: Connection
 ): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
   return await connection.handleNewStream(connection.quic.incomingStream())
+
+proc openStream*(
+    connection: Connection, unidirectional = false
+): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
+  return await connection.handleNewStream(connection.quic.openStream(unidirectional))
 
 proc certificates*(connection: Connection): seq[seq[byte]] =
   connection.quic.certificates()
