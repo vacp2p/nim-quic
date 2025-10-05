@@ -50,10 +50,14 @@ method openStream*(
 ): Future[Stream] {.base, async: (raises: [CancelledError, QuicError]).} =
   doAssert false # override this method
 
-method drop*(state: ConnectionState): Future[void] {.base, gcsafe, raises: [QuicError].} =
+method drop*(
+    state: ConnectionState
+): Future[void] {.base, gcsafe, raises: [QuicError].} =
   doAssert false # override this method
 
-method close*(state: ConnectionState): Future[void] {.base, gcsafe, raises: [QuicError].} =
+method close*(
+    state: ConnectionState
+): Future[void] {.base, gcsafe, raises: [QuicError].} =
   doAssert false # override this method
 
 proc certificates*(state: ConnectionState): seq[seq[byte]] {.raises: [].} =
