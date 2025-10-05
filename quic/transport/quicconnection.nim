@@ -25,39 +25,39 @@ type
   IdCallback* = proc(id: ConnectionId) {.gcsafe, raises: [].}
   ConnectionError* = object of QuicError
 
-{.push base, raises: [QuicError].}
-
-method enter*(state: ConnectionState, connection: QuicConnection) =
+method enter*(
+    state: ConnectionState, connection: QuicConnection
+) {.base, raises: [QuicError].} =
   doAssert not state.entered # states are not reentrant
   state.entered = true
 
-method leave*(state: ConnectionState) =
+method leave*(state: ConnectionState) {.base, raises: [QuicError].} =
   discard
 
-method ids*(state: ConnectionState): seq[ConnectionId] {.raises: [].} =
+method ids*(state: ConnectionState): seq[ConnectionId] {.base, raises: [].} =
   doAssert false # override this method
 
-method send*(state: ConnectionState) =
+method send*(state: ConnectionState) {.base, raises: [QuicError].} =
   doAssert false # override this method
 
-method receive*(state: ConnectionState, datagram: sink Datagram) =
+method receive*(
+    state: ConnectionState, datagram: sink Datagram
+) {.base, raises: [QuicError].} =
   doAssert false # override this method
 
 method openStream*(
     state: ConnectionState, unidirectional: bool
-): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
+): Future[Stream] {.base, async: (raises: [CancelledError, QuicError]).} =
   doAssert false # override this method
 
-method drop*(state: ConnectionState): Future[void] {.gcsafe.} =
+method drop*(state: ConnectionState): Future[void] {.base, gcsafe, raises: [QuicError].} =
   doAssert false # override this method
 
-method close*(state: ConnectionState): Future[void] {.gcsafe.} =
+method close*(state: ConnectionState): Future[void] {.base, gcsafe, raises: [QuicError].} =
   doAssert false # override this method
 
 proc certificates*(state: ConnectionState): seq[seq[byte]] {.raises: [].} =
   state.derCertificates
-
-{.pop.}
 
 proc newQuicConnection*(state: ConnectionState): QuicConnection =
   let connection = QuicConnection(

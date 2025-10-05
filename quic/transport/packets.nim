@@ -4,8 +4,6 @@ import ./packets/length
 import ./packets/read
 import ./packets/write
 
-{.push raises: [QuicError].}
-
 export packet
 export length
 
