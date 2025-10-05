@@ -34,7 +34,7 @@ proc newDrainingConnection*(
 proc onTimeout(state: DrainingConnection) {.raises: [].} =
   state.done.fire()
 
-{.push locks: "unknown", raises: [QuicError].}
+{.push raises: [QuicError].}
 
 method enter*(state: DrainingConnection, connection: QuicConnection) =
   procCall enter(ConnectionState(state), connection)

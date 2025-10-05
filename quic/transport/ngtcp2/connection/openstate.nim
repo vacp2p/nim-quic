@@ -46,8 +46,6 @@ proc openServerConnection*(
     newNgtcp2Server(tlsBackend.picoTLS, local, remote, datagram.data, rng)
   )
 
-{.push locks: "unknown".}
-
 method close(state: OpenConnection) {.async.}
 
 method enter(state: OpenConnection, connection: QuicConnection) =
@@ -104,7 +102,7 @@ method ids(state: OpenConnection): seq[ConnectionId] {.raises: [].} =
 method send(state: OpenConnection) =
   state.ngtcp2Connection.send()
 
-method receive(state: OpenConnection, datagram: sink Datagram) =
+method receive(state: OpenConnection, datagram: sink Datagram) {.raises: [QuicError].} =
   var errCode = 0
   var errMsg = ""
   try:
@@ -161,5 +159,3 @@ method drop(state: OpenConnection) {.async.} =
   quicConnection.switch(disconnecting)
   await disconnecting.drop()
   trace "Dropped OpenConnection state"
-
-{.pop.}

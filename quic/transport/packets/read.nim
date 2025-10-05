@@ -5,8 +5,6 @@ import ./varints
 import ./packet
 import ./reader
 
-{.push raises: [QuicError].}
-
 export reader
 
 proc readForm*(reader: var PacketReader, datagram: openArray[byte]) =
@@ -68,10 +66,7 @@ proc readRetryToken*(reader: var PacketReader, datagram: openArray[byte]) =
   reader.packet.retry.token = reader.read(datagram, length)
 
 proc readIntegrity*(reader: var PacketReader, datagram: openArray[byte]) =
-  try:
-    reader.packet.retry.integrity[0 ..< 16] = reader.read(datagram, 16)
-  except RangeError:
-    doAssert false, "programmer error: assignment ranges do not match"
+  reader.packet.retry.integrity[0 ..< 16] = reader.read(datagram, 16)
 
 proc readVarInt(reader: var PacketReader, datagram: openArray[byte]): VarIntCompatible =
   result = fromVarInt(datagram.toOpenArray(reader.next, datagram.len - 1))
@@ -102,10 +97,7 @@ proc readPacketNumber(
 ) =
   let bytes = reader.read(datagram, length)
   var padded: array[4, byte]
-  try:
-    padded[padded.len - bytes.len ..< padded.len] = bytes
-  except RangeError:
-    doAssert false, "programmer error: assignment ranges do not match"
+  padded[padded.len - bytes.len ..< padded.len] = bytes
   reader.packet.packetnumber = fromBytesBE(uint32, padded).int64
 
 proc `payload=`(packet: var Packet, payload: seq[byte]) =
