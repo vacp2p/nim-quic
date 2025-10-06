@@ -8,8 +8,7 @@ import ./connstate/openstate
 proc openClientConnection*(
     tlsBackend: TLSBackend, local, remote: TransportAddress, rng: ref HmacDrbgContext
 ): OpenConnection =
-  let ngtcp2Conn = newNgtcp2Client(tlsBackend.picoTLS, local, remote, rng)
-  newOpenConnection(ngtcp2Conn)
+  newOpenConnection(newNgtcp2Client(tlsBackend.picoTLS, local, remote, rng))
 
 proc openServerConnection*(
     tlsBackend: TLSBackend,
