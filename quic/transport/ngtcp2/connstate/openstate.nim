@@ -1,5 +1,4 @@
 import chronicles
-import bearssl/rand
 import ngtcp2
 
 import ../../../basics
@@ -9,8 +8,6 @@ import ../../stream
 import ../../tlsbackend
 import ../native/connection
 import ../native/streams
-import ../native/client
-import ../native/server
 import ../native/errors
 import ./closingstate
 import ./drainingstate
@@ -29,22 +26,6 @@ type OpenConnection* = ref object of ConnectionState
 
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
   OpenConnection(ngtcp2Connection: ngtcp2Connection, streams: OpenStreams.new)
-
-proc openClientConnection*(
-    tlsBackend: TLSBackend, local, remote: TransportAddress, rng: ref HmacDrbgContext
-): OpenConnection =
-  let ngtcp2Conn = newNgtcp2Client(tlsBackend.picoTLS, local, remote, rng)
-  newOpenConnection(ngtcp2Conn)
-
-proc openServerConnection*(
-    tlsBackend: TLSBackend,
-    local, remote: TransportAddress,
-    datagram: Datagram,
-    rng: ref HmacDrbgContext,
-): OpenConnection =
-  newOpenConnection(
-    newNgtcp2Server(tlsBackend.picoTLS, local, remote, datagram.data, rng)
-  )
 
 method close(state: OpenConnection) {.async.}
 
