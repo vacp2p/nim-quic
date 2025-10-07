@@ -1,5 +1,6 @@
 import std/strutils
 import bearssl/rand
+import ../helpers/sequninit
 
 type ConnectionId* = seq[byte]
 
@@ -14,6 +15,6 @@ proc randomConnectionId*(
   if rng.isNil:
     raiseAssert "no rng setup"
 
-  var bytes = newSeq[byte](len)
+  var bytes = newSeqUninit[byte](len)
   hmacDrbgGenerate(rng[], bytes)
   ConnectionId(bytes)
