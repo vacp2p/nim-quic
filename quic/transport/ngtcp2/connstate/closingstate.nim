@@ -30,5 +30,5 @@ method enter(
   procCall enter(DrainingConnection(state), connection)
   state.sendFinalDatagram()
 
-method receive(state: ClosingConnection, datagram: Datagram) {.raises: [QuicError].} =
+method receive(state: ClosingConnection, datagram: sink Datagram) {.raises: [QuicError].} =
   state.sendFinalDatagram()
