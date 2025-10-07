@@ -28,37 +28,37 @@ type
 method enter*(
     state: ConnectionState, connection: QuicConnection
 ) {.base, raises: [QuicError].} =
-  doAssert not state.entered # states are not reentrant
+  doAssert not state.entered, "states are not reentrant"
   state.entered = true
 
 method leave*(state: ConnectionState) {.base, raises: [QuicError].} =
   discard
 
 method ids*(state: ConnectionState): seq[ConnectionId] {.base, raises: [].} =
-  doAssert false # override this method
+  raiseAssert "must override method: ids"
 
 method send*(state: ConnectionState) {.base, raises: [QuicError].} =
-  doAssert false # override this method
+  raiseAssert "must override method: send"
 
 method receive*(
     state: ConnectionState, datagram: sink Datagram
 ) {.base, raises: [QuicError].} =
-  doAssert false # override this method
+  raiseAssert "must override method: receive"
 
 method openStream*(
     state: ConnectionState, unidirectional: bool
 ): Future[Stream] {.base, async: (raises: [CancelledError, QuicError]).} =
-  doAssert false # override this method
+  raiseAssert "must override method: openStream"
 
 method drop*(
     state: ConnectionState
-): Future[void] {.base, gcsafe, raises: [QuicError].} =
-  doAssert false # override this method
+): Future[void] {.base, async: (raises: [CancelledError, QuicError]).} =
+  raiseAssert "must override method: drop"
 
 method close*(
     state: ConnectionState
-): Future[void] {.base, gcsafe, raises: [QuicError].} =
-  doAssert false # override this method
+): Future[void] {.base, async: (raises: [CancelledError, QuicError]).} =
+  raiseAssert "must override method: close"
 
 proc certificates*(state: ConnectionState): seq[seq[byte]] {.raises: [].} =
   state.derCertificates
@@ -80,7 +80,6 @@ proc switch*(connection: QuicConnection, newState: ConnectionState) =
   connection.state.leave()
   connection.state = newState
   connection.state.enter(connection)
-  trace "Switched quic connection state"
 
 proc ids*(connection: QuicConnection): seq[ConnectionId] =
   connection.state.ids()
@@ -101,13 +100,16 @@ proc incomingStream*(
 ): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
   await connection.incoming.get()
 
-proc close*(connection: QuicConnection): Future[void] =
-  connection.state.close()
+proc close*(
+    connection: QuicConnection
+): Future[void] {.async: (raises: [CancelledError, QuicError]).} =
+  await connection.state.close()
 
-proc drop*(connection: QuicConnection): Future[void] {.async.} =
+proc drop*(
+    connection: QuicConnection
+): Future[void] {.async: (raises: [CancelledError, QuicError]).} =
   trace "Dropping quic connection"
   await connection.state.drop()
-  trace "Drop quic connection done"
 
 proc certificates*(connection: QuicConnection): seq[seq[byte]] {.raises: [].} =
   connection.state.certificates()

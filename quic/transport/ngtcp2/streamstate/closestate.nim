@@ -31,7 +31,7 @@ method enter*(state: ClosedStreamState, stream: Stream) {.raises: [QuicError].} 
   stream.closed.fire()
 
 method leave*(state: ClosedStreamState) =
-  doAssert false, "ClosedStreamState state should never leave"
+  raiseAssert "ClosedStreamState state should never leave"
 
 method read*(
     state: ClosedStreamState

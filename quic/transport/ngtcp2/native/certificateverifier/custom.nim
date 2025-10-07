@@ -12,7 +12,8 @@ method verify*(
     self: CustomCertificateVerifier, serverName: string, derCertificates: seq[seq[byte]]
 ): cint =
   if self.verifierCB.isNil:
-    doAssert false, "custom cert verifier was not setup"
+    raiseAssert "custom cert verifier was not setup"
+
   if self.verifierCB(serverName, derCertificates):
     return 0
   else:

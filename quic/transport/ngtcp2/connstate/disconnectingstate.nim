@@ -29,7 +29,9 @@ proc callDisconnect(connection: QuicConnection) {.async.} =
 method ids*(state: DisconnectingConnection): seq[ConnectionId] =
   state.ids
 
-method enter(state: DisconnectingConnection, connection: QuicConnection) =
+method enter(
+    state: DisconnectingConnection, connection: QuicConnection
+) {.raises: [QuicError].} =
   trace "Entering DisconnectingConnection state"
   procCall enter(ConnectionState(state), connection)
   state.connection = Opt.some(connection)
@@ -42,7 +44,7 @@ method leave(state: DisconnectingConnection) =
   state.connection = Opt.none(QuicConnection)
   trace "Left DisconnectingConnection state"
 
-method send(state: DisconnectingConnection) =
+method send(state: DisconnectingConnection) {.raises: [QuicError].} =
   raise newException(ClosedConnectionError, "connection is disconnecting")
 
 method receive(state: DisconnectingConnection, datagram: sink Datagram) =
@@ -53,15 +55,31 @@ method openStream(
 ): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
   raise newException(ClosedConnectionError, "connection is disconnecting")
 
-method close(state: DisconnectingConnection) {.async.} =
-  await state.disconnect
+template handleWithQuicError*(body: untyped) =
+  try:
+    body
+  except CancelledError as e:
+    raise e
+  except QuicError as e:
+    raise e
+  except CatchableError as e:
+    raise newException(QuicError, e.msg)
+
+method close(
+    state: DisconnectingConnection
+) {.async: (raises: [CancelledError, QuicError]).} =
+  handleWithQuicError:
+    await state.disconnect
   let connection = state.connection.valueOr:
     return
   connection.switch(newClosedConnection(state.derCertificates))
 
-method drop(state: DisconnectingConnection) {.async.} =
+method drop(
+    state: DisconnectingConnection
+) {.async: (raises: [CancelledError, QuicError]).} =
   trace "Drop DisconnectingConnection state"
-  await state.disconnect
+  handleWithQuicError:
+    await state.disconnect
   let connection = state.connection.valueOr:
     return
   connection.switch(newClosedConnection(state.derCertificates))

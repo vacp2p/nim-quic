@@ -1,7 +1,7 @@
 import ../basics
 import ./tlsbackend
 import ./quicconnection
-import ./ngtcp2/connection/openstate
+import ./ngtcp2/conn
 import bearssl/rand
 
 proc newQuicClientConnection*(
@@ -16,5 +16,5 @@ proc newQuicServerConnection*(
     datagram: Datagram,
     rng: ref HmacDrbgContext,
 ): QuicConnection =
-  let openConn = openServerConnection(tlsBackend, local, remote, datagram, rng)
+  let openConn = openServerConnection(tlsBackend, local, remote, rng, datagram)
   newQuicConnection(openConn)

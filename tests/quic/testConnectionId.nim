@@ -9,7 +9,8 @@ suite "connection ids":
     rng = newRng()
 
   test "generates random ids":
-    check randomConnectionId(rng) != randomConnectionId(rng)
+    for i in 0 ..< 100:
+      check randomConnectionId(rng) != randomConnectionId(rng)
 
   test "random ids are of the correct length":
     check randomConnectionId(rng).len == DefaultConnectionIdLength

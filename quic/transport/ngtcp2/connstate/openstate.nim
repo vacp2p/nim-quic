@@ -1,5 +1,4 @@
 import chronicles
-import bearssl/rand
 import ngtcp2
 
 import ../../../basics
@@ -9,8 +8,6 @@ import ../../stream
 import ../../tlsbackend
 import ../native/connection
 import ../native/streams
-import ../native/client
-import ../native/server
 import ../native/errors
 import ./closingstate
 import ./drainingstate
@@ -30,25 +27,11 @@ type OpenConnection* = ref object of ConnectionState
 proc newOpenConnection*(ngtcp2Connection: Ngtcp2Connection): OpenConnection =
   OpenConnection(ngtcp2Connection: ngtcp2Connection, streams: OpenStreams.new)
 
-proc openClientConnection*(
-    tlsBackend: TLSBackend, local, remote: TransportAddress, rng: ref HmacDrbgContext
-): OpenConnection =
-  let ngtcp2Conn = newNgtcp2Client(tlsBackend.picoTLS, local, remote, rng)
-  newOpenConnection(ngtcp2Conn)
+method close(state: OpenConnection) {.async: (raises: [CancelledError, QuicError]).}
 
-proc openServerConnection*(
-    tlsBackend: TLSBackend,
-    local, remote: TransportAddress,
-    datagram: Datagram,
-    rng: ref HmacDrbgContext,
-): OpenConnection =
-  newOpenConnection(
-    newNgtcp2Server(tlsBackend.picoTLS, local, remote, datagram.data, rng)
-  )
-
-method close(state: OpenConnection) {.async.}
-
-method enter(state: OpenConnection, connection: QuicConnection) =
+method enter(
+    state: OpenConnection, connection: QuicConnection
+) {.raises: [QuicError].} =
   trace "Entering OpenConnection state"
   procCall enter(ConnectionState(state), connection)
   state.quicConnection = Opt.some(connection)
@@ -99,8 +82,17 @@ method leave(state: OpenConnection) =
 method ids(state: OpenConnection): seq[ConnectionId] {.raises: [].} =
   state.ngtcp2Connection.ids
 
-method send(state: OpenConnection) =
+method send(state: OpenConnection) {.raises: [QuicError].} =
   state.ngtcp2Connection.send()
+
+proc asyncClose(state: ConnectionState) =
+  proc close() {.async: (raises: []).} =
+    try:
+      await state.close()
+    except CatchableError as e:
+      trace "Failed to close state", msg = e.msg
+
+  asyncSpawn close()
 
 method receive(state: OpenConnection, datagram: sink Datagram) {.raises: [QuicError].} =
   var errCode = 0
@@ -119,7 +111,7 @@ method receive(state: OpenConnection, datagram: sink Datagram) {.raises: [QuicEr
       let duration = state.ngtcp2Connection.closingDuration()
       let draining = newDrainingConnection(ids, duration, state.derCertificates)
       quicConnection.switch(draining)
-      asyncSpawn draining.close()
+      asyncClose(draining)
 
       if not state.handshakeCompleted:
         # When a server for any reason decides that the certificate is
@@ -129,7 +121,7 @@ method receive(state: OpenConnection, datagram: sink Datagram) {.raises: [QuicEr
         quicConnection.error.emit("ERR_HANDSHAKE_FAILED")
     elif errCode != 0 and errCode != NGTCP2_ERR_DROP_CONN:
       quicConnection.error.emit(errMsg)
-      asyncSpawn state.close()
+      asyncClose(state)
 
 method openStream(
     state: OpenConnection, unidirectional: bool
@@ -140,7 +132,7 @@ method openStream(
   result = state.ngtcp2Connection.openStream(unidirectional = unidirectional)
   state.streams.add(result)
 
-method close(state: OpenConnection) {.async.} =
+method close(state: OpenConnection) {.async: (raises: [CancelledError, QuicError]).} =
   let quicConnection = state.quicConnection.valueOr:
     return
   let finalDatagram = state.ngtcp2Connection.close()
@@ -151,11 +143,10 @@ method close(state: OpenConnection) {.async.} =
   quicConnection.switch(closing)
   await closing.close()
 
-method drop(state: OpenConnection) {.async.} =
+method drop(state: OpenConnection) {.async: (raises: [CancelledError, QuicError]).} =
   trace "Dropping OpenConnection state"
   let quicConnection = state.quicConnection.valueOr:
     return
   let disconnecting = newDisconnectingConnection(state.ids, state.derCertificates)
   quicConnection.switch(disconnecting)
   await disconnecting.drop()
-  trace "Dropped OpenConnection state"
