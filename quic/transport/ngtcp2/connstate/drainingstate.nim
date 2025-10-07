@@ -31,17 +31,14 @@ proc newDrainingConnection*(
   state.init(ids, duration, certificates)
   state
 
-proc onTimeout(state: DrainingConnection) {.raises: [].} =
-  state.done.fire()
-
-{.push raises: [QuicError].}
-
-method enter*(state: DrainingConnection, connection: QuicConnection) =
+method enter*(
+    state: DrainingConnection, connection: QuicConnection
+) {.raises: [QuicError].} =
   procCall enter(ConnectionState(state), connection)
   state.connection = Opt.some(connection)
   state.timeout = newTimeout(
     proc() {.raises: [].} =
-      state.onTimeout()
+      state.done.fire()
   )
   state.timeout.set(state.duration)
 
@@ -53,7 +50,7 @@ method leave(state: DrainingConnection) =
 method ids(state: DrainingConnection): seq[ConnectionId] {.raises: [].} =
   state.ids
 
-method send(state: DrainingConnection) =
+method send(state: DrainingConnection) {.raises: [QuicError].} =
   raise newException(ClosedConnectionError, "connection is closing")
 
 method receive(state: DrainingConnection, datagram: sink Datagram) =
@@ -64,7 +61,9 @@ method openStream(
 ): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
   raise newException(ClosedConnectionError, "connection is closing")
 
-method close(state: DrainingConnection) {.async.} =
+method close(
+    state: DrainingConnection
+) {.async: (raises: [CancelledError, QuicError]).} =
   await state.done.wait()
   let connection = state.connection.valueOr:
     return
@@ -72,11 +71,11 @@ method close(state: DrainingConnection) {.async.} =
   connection.switch(disconnecting)
   await disconnecting.close()
 
-method drop(state: DrainingConnection) {.async.} =
+method drop(
+    state: DrainingConnection
+) {.async: (raises: [CancelledError, QuicError]).} =
   let connection = state.connection.valueOr:
     return
   let disconnecting = newDisconnectingConnection(state.ids, state.derCertificates)
   connection.switch(disconnecting)
   await disconnecting.drop()
-
-{.pop.}

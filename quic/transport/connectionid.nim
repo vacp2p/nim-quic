@@ -11,8 +11,9 @@ proc `$`*(id: ConnectionId): string =
 proc randomConnectionId*(
     rng: ref HmacDrbgContext, len = DefaultConnectionIdLength
 ): ConnectionId =
-  var bytes = newSeq[byte](len)
   if rng.isNil:
     raiseAssert "no rng setup"
+
+  var bytes = newSeq[byte](len)
   hmacDrbgGenerate(rng[], bytes)
   ConnectionId(bytes)
