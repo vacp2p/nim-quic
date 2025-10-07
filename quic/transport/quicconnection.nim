@@ -28,7 +28,7 @@ type
 method enter*(
     state: ConnectionState, connection: QuicConnection
 ) {.base, raises: [QuicError].} =
-  doAssert not state.entered # states are not reentrant
+  doAssert not state.entered, "states are not reentrant"
   state.entered = true
 
 method leave*(state: ConnectionState) {.base, raises: [QuicError].} =

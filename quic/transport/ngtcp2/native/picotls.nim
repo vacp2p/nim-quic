@@ -138,7 +138,7 @@ proc destroy*(p: PicoTLSContext) =
     try:
       p.certVerifier.get().destroy()
     except:
-      doAssert false, "checked with if"
+      raiseAssert "checked with if"
     p.certVerifier = Opt.none(CertificateVerifier)
 
   dealloc(p.clientHello)
