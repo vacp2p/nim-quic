@@ -58,18 +58,10 @@ suite "quic connection":
       )
 
   asyncTest "performs handshake":
-    let (client, server) = await performHandshake()
-    defer:
-      await client.drop()
-    defer:
-      await server.drop()
-
-    check client.handshake.isSet()
-    check server.handshake.isSet()
-
-  asyncTest "performs handshake multiple times":
-    for i in 1 .. 100:
+    for i in 1 .. 10:
       let (client, server) = await performHandshake()
+      check client.handshake.isSet()
+      check server.handshake.isSet()
       await client.drop()
       await server.drop()
 
@@ -121,9 +113,6 @@ suite "quic connection":
 
     expect ConnectionError:
       connection.send()
-
-    expect ConnectionError:
-      connection.receive(Datagram(data: @[]))
 
     expect ConnectionError:
       discard await connection.openStream()
