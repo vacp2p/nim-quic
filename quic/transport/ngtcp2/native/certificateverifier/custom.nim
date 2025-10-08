@@ -10,14 +10,10 @@ type
 
 method verify*(
     self: CustomCertificateVerifier, serverName: string, derCertificates: seq[seq[byte]]
-): cint =
+): bool =
   if self.verifierCB.isNil:
     raiseAssert "custom cert verifier was not setup"
-
-  if self.verifierCB(serverName, derCertificates):
-    return 0
-  else:
-    return PTLS_ALERT_BAD_CERTIFICATE
+  return self.verifierCB(serverName, derCertificates)
 
 proc init*(
     t: typedesc[CustomCertificateVerifier], certVerifierCB: certificateVerifierCB
@@ -25,6 +21,3 @@ proc init*(
   let response = CustomCertificateVerifier()
   response.verifierCB = certVerifierCB
   return response
-
-method destroy*(t: CustomCertificateVerifier) {.gcsafe.} =
-  discard

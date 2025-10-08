@@ -13,7 +13,6 @@ import ./closingstate
 import ./drainingstate
 import ./disconnectingstate
 import ./openstreams
-import ../native/certificateverifier
 
 logScope:
   topics = "quic openstate"
@@ -58,8 +57,7 @@ method enter(
     connection.incoming.putNoWait(stream)
   state.ngtcp2Connection.onHandshakeDone = proc() =
     state.handshakeCompleted = true
-    state.derCertificates =
-      state.ngtcp2Connection.tlsContext.extCertificateVerifier.certificates()
+    state.derCertificates = state.ngtcp2Connection.certificates()
     connection.handshake.fire()
 
   state.ngtcp2Connection.onTimeout = proc() {.gcsafe, raises: [].} =
