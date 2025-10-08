@@ -8,12 +8,9 @@ proc init*(
 ): InsecureCertificateVerifier {.gcsafe.} =
   return InsecureCertificateVerifier()
 
-method destroy*(t: InsecureCertificateVerifier) {.gcsafe.} =
-  discard
-
 method verify*(
     self: InsecureCertificateVerifier,
     serverName: string,
     derCertificates: seq[seq[byte]],
-): cint =
-  return 0
+): bool =
+  return true
