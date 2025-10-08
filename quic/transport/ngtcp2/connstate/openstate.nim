@@ -63,11 +63,9 @@ method enter(
     connection.handshake.fire()
 
   state.ngtcp2Connection.onTimeout = proc() {.gcsafe, raises: [].} =
-    try:
-      connection.timeout.fire()
-      state.streams.expireAll()
-    except Ngtcp2ConnectionClosed:
-      trace "connection closed"
+    connection.timeout.fire()
+    state.streams.expireAll()
+    discard state.close()
 
   trace "Entered OpenConnection state"
 
@@ -84,15 +82,6 @@ method ids(state: OpenConnection): seq[ConnectionId] {.raises: [].} =
 
 method send(state: OpenConnection) {.raises: [QuicError].} =
   state.ngtcp2Connection.send()
-
-proc asyncClose(state: ConnectionState) =
-  proc close() {.async: (raises: []).} =
-    try:
-      await state.close()
-    except CatchableError as e:
-      trace "Failed to close state", msg = e.msg
-
-  asyncSpawn close()
 
 method receive(state: OpenConnection, datagram: sink Datagram) {.raises: [QuicError].} =
   var errCode = 0
@@ -111,7 +100,7 @@ method receive(state: OpenConnection, datagram: sink Datagram) {.raises: [QuicEr
       let duration = state.ngtcp2Connection.closingDuration()
       let draining = newDrainingConnection(ids, duration, state.derCertificates)
       quicConnection.switch(draining)
-      asyncClose(draining)
+      discard state.close()
 
       if not state.handshakeCompleted:
         # When a server for any reason decides that the certificate is
@@ -121,7 +110,7 @@ method receive(state: OpenConnection, datagram: sink Datagram) {.raises: [QuicEr
         quicConnection.error.emit("ERR_HANDSHAKE_FAILED")
     elif errCode != 0 and errCode != NGTCP2_ERR_DROP_CONN:
       quicConnection.error.emit(errMsg)
-      asyncClose(state)
+      discard state.close()
 
 method openStream(
     state: OpenConnection, unidirectional: bool
