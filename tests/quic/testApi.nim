@@ -56,6 +56,58 @@ suite "api":
     await incoming.close()
     await outgoing.waitClosed()
 
+  asyncTest "client connection closes while server is waiting on incoming stream":
+    let dialing = client.dial(address)
+    let accepting = listener.accept()
+
+    let outgoing = await dialing
+    let incoming = await accepting
+
+    discard outgoing.close()
+    expect QuicError:
+      discard await incoming.incomingStream()
+
+  asyncTest "client connection drops while server is waiting on incoming stream":
+    # the same test as above  but connection is dropped
+    let dialing = client.dial(address)
+    let accepting = listener.accept()
+
+    let outgoing = await dialing
+    let incoming = await accepting
+
+    discard outgoing.drop()
+    expect QuicError:
+      # will happen with some delay, after timeout is triggered
+      discard await incoming.incomingStream()
+
+  asyncTest "server connection closes while client is waiting on stream":
+    skip() # TODO(nim-quic#145): test added but code needs to be fixed
+    return
+
+    let dialing = client.dial(address)
+    let accepting = listener.accept()
+
+    let outgoing = await dialing
+    let incoming = await accepting
+
+    discard incoming.close()
+    expect QuicError:
+      discard await outgoing.openStream()
+
+  asyncTest "server connection drop while client is waiting on stream":
+    skip() # TODO(nim-quic#145): test added but code needs to be fixed
+    return
+
+    let dialing = client.dial(address)
+    let accepting = listener.accept()
+
+    let outgoing = await dialing
+    let incoming = await accepting
+
+    discard incoming.drop()
+    expect QuicError:
+      discard await outgoing.openStream()
+
   asyncTest "accepts multiple incoming connections":
     let accepting1 = listener.accept()
     let outgoing1 = await client.dial(address)
