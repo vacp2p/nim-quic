@@ -1,4 +1,4 @@
-QUIC for Nim
+TEST QUIC for Nim
 ============
 
 An implementation of the [QUIC](https://datatracker.ietf.org/wg/quic/about/) protocol in [Nim](https://nim-lang.org/).
