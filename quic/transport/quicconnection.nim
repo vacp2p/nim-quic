@@ -93,7 +93,7 @@ proc receive*(connection: QuicConnection, datagram: sink Datagram) =
 proc openStream*(
     connection: QuicConnection, unidirectional = false
 ): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
-  await connection.state.openStream(unidirectional = unidirectional)
+  await connection.state.openStream(unidirectional)
 
 proc incomingStream*(
     connection: QuicConnection
