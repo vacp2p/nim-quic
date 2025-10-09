@@ -76,25 +76,32 @@ proc switch*(stream: Stream, newState: StreamState) {.raises: [QuicError].} =
 proc id*(stream: Stream): int64 =
   stream.id
 
-proc read*(stream: Stream): Future[seq[byte]] {.async.} =
+proc read*(
+    stream: Stream
+): Future[seq[byte]] {.async: (raises: [CancelledError, QuicError]).} =
   result = await stream.state.read()
 
-proc write*(stream: Stream, bytes: seq[byte]) {.async.} =
+proc write*(
+    stream: Stream, bytes: seq[byte]
+) {.async: (raises: [CancelledError, QuicError]).} =
   # Writing has to be serialized on the same stream as otherwise
   # data might not be sent correctly.
   await stream.lock.acquire()
   defer:
-    stream.lock.release()
+    try:
+      stream.lock.release()
+    except AsyncLockError:
+      discard # should not happen - lock acquired directly above
 
   await stream.state.write(bytes)
 
-proc close*(stream: Stream) {.async.} =
+proc close*(stream: Stream) {.async: (raises: [CancelledError, QuicError]).} =
   await stream.state.close()
 
-proc closeWrite*(stream: Stream) {.async.} =
+proc closeWrite*(stream: Stream) {.async: (raises: [CancelledError, QuicError]).} =
   await stream.state.closeWrite()
 
-proc closeRead*(stream: Stream) {.async.} =
+proc closeRead*(stream: Stream) {.async: (raises: [CancelledError, QuicError]).} =
   await stream.state.closeRead()
 
 proc reset*(stream: Stream) =

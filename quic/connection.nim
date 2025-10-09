@@ -42,11 +42,11 @@ proc `onRemoveId=`*(connection: Connection, callback: IdCallback) =
 proc `onClose=`*(connection: Connection, callback: proc() {.gcsafe, raises: [].}) =
   connection.onClose = Opt.some(callback)
 
-proc drop*(connection: Connection) {.async.} =
+proc drop*(connection: Connection) {.async: (raises: [CancelledError, QuicError]).} =
   trace "Dropping connection"
   await connection.quic.drop()
 
-proc close*(connection: Connection) {.async.} =
+proc close*(connection: Connection) {.async: (raises: [CancelledError, QuicError]).} =
   await connection.quic.close()
   if connection is OutgoingConnection:
     let outConn = OutgoingConnection(connection)
@@ -54,7 +54,7 @@ proc close*(connection: Connection) {.async.} =
       outConn.tlsBackend.get().destroy()
       outConn.tlsBackend = Opt.none(TLSBackend)
 
-proc waitClosed*(connection: Connection) {.async.} =
+proc waitClosed*(connection: Connection) {.async: (raises: [CancelledError]).} =
   await connection.closed.wait()
   if connection is OutgoingConnection:
     let outConn = OutgoingConnection(connection)
@@ -81,7 +81,7 @@ proc startSending(connection: Connection, remote: TransportAddress) =
 
   connection.loop = asyncLoop(send)
 
-proc stopSending(connection: Connection) {.async.} =
+proc stopSending(connection: Connection) {.async: (raises: [CancelledError]).} =
   trace "Stopping sending loop"
   await connection.loop.cancelAndWait()
 
@@ -91,7 +91,7 @@ method closeUdp(connection: Connection) {.async: (raises: []), base.} =
 method closeUdp(connection: OutgoingConnection) {.async: (raises: []).} =
   await connection.udp.closeWait()
 
-proc disconnect(connection: Connection) {.async.} =
+proc disconnect(connection: Connection) {.async: (raises: [CancelledError]).} =
   trace "Disconnecting connection"
   await connection.stopSending()
   await connection.closeUdp()
@@ -111,7 +111,7 @@ proc newIncomingConnection*(
     newQuicServerConnection(tlsBackend, udp.localAddress, remote, datagram, rng)
   let closed = newAsyncEvent()
   let connection = IncomingConnection(udp: udp, quic: quic, closed: closed)
-  proc onDisconnect() {.async.} =
+  proc onDisconnect() {.async: (raises: [CancelledError]).} =
     trace "Calling onDisconnect for newIncomingConnection"
     await connection.disconnect()
 
@@ -120,7 +120,9 @@ proc newIncomingConnection*(
   connection.startSending(remote)
   connection
 
-proc ensureClosed(connection: Connection) {.async.} =
+proc ensureClosed(
+    connection: Connection
+) {.async: (raises: [CancelledError, QuicError]).} =
   ## This will automatically close the connection if there's an idle timeout reported
   ## by ngtcp2
   discard await race(connection.quic.timeout.wait(), connection.closed.wait())
@@ -137,7 +139,7 @@ proc newOutgoingConnection*(
   let connection = OutgoingConnection(
     udp: udp, quic: quic, closed: closed, tlsBackend: Opt.some(tlsBackend)
   )
-  proc onDisconnect() {.async.} =
+  proc onDisconnect() {.async: (raises: [CancelledError]).} =
     trace "Calling onDisconnect for newOutgoingConnection"
     await connection.disconnect()
 
@@ -154,7 +156,7 @@ proc startHandshake*(connection: Connection) {.gcsafe.} =
 
 proc waitForHandshake*(
     connection: Connection
-) {.async: (raises: [CancelledError, TimeOutError, CatchableError]).} =
+) {.async: (raises: [CancelledError, QuicError, TimeOutError]).} =
   let key = connection.quic.error.register()
   defer:
     connection.quic.error.unregister(key)
@@ -178,14 +180,20 @@ proc waitForHandshake*(
     errFut.cancelSoon()
     handshakeFut.cancelSoon()
     await connCloseFut
-    raise newException(TimeOutError, "handshake timed out")
+    raise newException(TimeOutError, "connection handshake timed out")
   elif raceFut == errFut:
     let connCloseFut = connection.close()
     timeoutFut.cancelSoon()
     handshakeFut.cancelSoon()
     await connCloseFut
-    let err = await errFut
-    raise newException(QuicError, "connection error: " & err[0])
+
+    let err =
+      try:
+        await errFut
+      except AsyncEventQueueFullError as e:
+        raise newException(QuicError, "connection handshake error: waiting on error: " & e.msg)
+
+    raise newException(QuicError, "connection handshake error: " & err[0])
   else:
     errFut.cancelSoon()
     timeoutFut.cancelSoon()
