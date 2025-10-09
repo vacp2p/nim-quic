@@ -88,15 +88,19 @@ proc newListener*(
   listener.udp = newDatagramTransport(onReceive, local = address)
   listener
 
-proc waitForIncoming*(listener: Listener): Future[Connection] {.async.} =
+proc waitForIncoming*(
+    listener: Listener
+): Future[Connection] {.async: (raises: [CancelledError]).} =
   await listener.incoming.get()
 
-proc accept*(listener: Listener): Future[Connection] {.async.} =
+proc accept*(
+    listener: Listener
+): Future[Connection] {.async: (raises: [CancelledError, QuicError, TimeOutError]).} =
   let conn = await listener.waitForIncoming()
   await conn.waitForHandshake()
   return conn
 
-proc stop*(listener: Listener) {.async.} =
+proc stop*(listener: Listener) {.async: (raises: [CancelledError]).} =
   await listener.udp.closeWait()
 
 proc destroy*(listener: Listener) =

@@ -14,7 +14,7 @@ type
     handshake*: AsyncEvent
     timeout*: AsyncEvent
     error*: AsyncEventQueue[string]
-    disconnect*: Opt[proc(): Future[void] {.gcsafe, raises: [].}]
+    disconnect*: Opt[proc(): Future[void] {.gcsafe, async: (raises: [CancelledError]).}]
     onNewId*: IdCallback
     onRemoveId*: IdCallback
 

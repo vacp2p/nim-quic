@@ -11,7 +11,7 @@ logScope:
 
 type DisconnectingConnection* = ref object of ConnectionState
   connection: Opt[QuicConnection]
-  disconnect: Future[void]
+  disconnect: Future[void].Raising([CancelledError, QuicError])
   ids: seq[ConnectionId]
 
 proc newDisconnectingConnection*(
@@ -19,7 +19,9 @@ proc newDisconnectingConnection*(
 ): DisconnectingConnection =
   DisconnectingConnection(ids: ids, derCertificates: certificates)
 
-proc callDisconnect(connection: QuicConnection) {.async.} =
+proc callDisconnect(
+    connection: QuicConnection
+) {.async: (raises: [CancelledError, QuicError]).} =
   let disconnect = connection.disconnect.valueOr:
     return
   trace "Calling disconnect proc on QuicConnection"
@@ -55,21 +57,10 @@ method openStream(
 ): Future[Stream] {.async: (raises: [CancelledError, QuicError]).} =
   raise newException(ClosedConnectionError, "connection is disconnecting")
 
-template handleWithQuicError*(body: untyped) =
-  try:
-    body
-  except CancelledError as e:
-    raise e
-  except QuicError as e:
-    raise e
-  except CatchableError as e:
-    raise newException(QuicError, e.msg)
-
 method close(
     state: DisconnectingConnection
 ) {.async: (raises: [CancelledError, QuicError]).} =
-  handleWithQuicError:
-    await state.disconnect
+  await state.disconnect
   let connection = state.connection.valueOr:
     return
   connection.switch(newClosedConnection(state.derCertificates))
@@ -78,8 +69,7 @@ method drop(
     state: DisconnectingConnection
 ) {.async: (raises: [CancelledError, QuicError]).} =
   trace "Drop DisconnectingConnection state"
-  handleWithQuicError:
-    await state.disconnect
+  await state.disconnect
   let connection = state.connection.valueOr:
     return
   connection.switch(newClosedConnection(state.derCertificates))

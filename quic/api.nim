@@ -102,10 +102,7 @@ proc listen*(
 proc dial*(
     self: QuicClient, address: TransportAddress
 ): Future[Connection] {.
-    async: (
-      raises:
-        [CancelledError, CatchableError, TimeOutError, QuicError, TransportOsError]
-    )
+    async: (raises: [CancelledError, TimeOutError, QuicError, TransportOsError])
 .} =
   let tlsBackend = newClientTLSBackend(
     self.tlsConfig.certificate, self.tlsConfig.key, self.tlsConfig.alpn,
@@ -124,12 +121,19 @@ proc dial*(
 
   let udp = newDatagramTransport(onReceive)
   connection = newOutgoingConnection(tlsBackend, udp, address, self.rng)
+
   try:
     connection.startHandshake()
     await connection.waitForHandshake()
-  except CatchableError as exc:
-    # whatever error happens we need to destroy tlsBackend to free resources
+  # whatever error happens we need to destroy tlsBackend to free resources
+  except CancelledError as e:
     tlsBackend.destroy()
-    raise exc
+    raise e
+  except TimeOutError as e:
+    tlsBackend.destroy()
+    raise e
+  except QuicError as e:
+    tlsBackend.destroy()
+    raise e
 
   return connection
