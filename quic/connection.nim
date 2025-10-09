@@ -191,7 +191,9 @@ proc waitForHandshake*(
       try:
         await errFut
       except AsyncEventQueueFullError as e:
-        raise newException(QuicError, "connection handshake error: waiting on error: " & e.msg)
+        raise newException(
+          QuicError, "connection handshake error: waiting on error: " & e.msg
+        )
 
     raise newException(QuicError, "connection handshake error: " & err[0])
   else:
