@@ -180,7 +180,7 @@ proc send(
       connection.trySend(buffer, streamId, messagePtr, messageLen, addr written, isFin)
   connection.onSend(datagram)
   connection.updateExpiryTimer()
-  
+
   return written
 
 proc send*(
