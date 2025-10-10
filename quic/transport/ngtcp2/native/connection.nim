@@ -161,6 +161,11 @@ proc send(
     messageLen: uint,
     isFin: bool = false,
 ): Future[int] {.async: (raises: [CancelledError, QuicError]).} =
+  var written: int
+  var buffer = newSeqUninit[byte](writeBufferSize)
+  var datagram =
+    connection.trySend(buffer, streamId, messagePtr, messageLen, addr written, isFin)
+
   # For empty writes without FIN, treat as no-op
   # Return 0 bytes written since there was nothing to write
   if messageLen == 0 and not isFin:
@@ -168,10 +173,6 @@ proc send(
     return 0
 
   # Normal flow control for data packets
-  var written: int
-  var buffer = newSeqUninit[byte](writeBufferSize)
-  var datagram =
-    connection.trySend(buffer, streamId, messagePtr, messageLen, addr written, isFin)
   while datagram.data.len == 0:
     connection.flowing.clear()
     await connection.flowing.wait()
@@ -179,6 +180,7 @@ proc send(
       connection.trySend(buffer, streamId, messagePtr, messageLen, addr written, isFin)
   connection.onSend(datagram)
   connection.updateExpiryTimer()
+  
   return written
 
 proc send*(
