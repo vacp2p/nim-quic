@@ -105,6 +105,7 @@ proc updateExpiryTimer*(connection: Ngtcp2Connection) =
 
 proc trySend(
     connection: Ngtcp2Connection,
+    buffer: var seq[byte],
     streamId: int64 = -1,
     messagePtr: ptr byte = nil,
     messageLen: uint = 0,
@@ -116,7 +117,6 @@ proc trySend(
 
   let flags = if isFin: NGTCP2_WRITE_STREAM_FLAG_FIN else: NGTCP2_WRITE_STREAM_FLAG_NONE
 
-  var buffer = newSeqUninit[byte](writeBufferSize)
   var packetInfo: ngtcp2_pkt_info
   let length = ngtcp2_conn_write_stream_versioned(
     conn,
@@ -133,14 +133,21 @@ proc trySend(
     now(),
   )
   checkResult length.cint
-  buffer.setLen(length)
-  let ecn = ECN(packetInfo.ecn)
-  Datagram(data: buffer, ecn: ecn)
+
+  if length > 0:
+    buffer.setLen(length)
+    Datagram(data: buffer, ecn: ECN(packetInfo.ecn))
+  else:
+    # do not set length of buffer if nothing was written, this will help us
+    # to reuse same buffer for next trySend call until something is written
+
+    Datagram(ecn: ECN(packetInfo.ecn))
 
 proc send*(connection: Ngtcp2Connection) {.raises: [QuicError].} =
+  var buffer = newSeqUninit[byte](writeBufferSize)
   var done = false
   while not done:
-    let datagram = connection.trySend()
+    let datagram = connection.trySend(buffer)
     if datagram.data.len > 0:
       connection.onSend(datagram)
     else:
@@ -155,8 +162,10 @@ proc send(
     isFin: bool = false,
 ): Future[int] {.async: (raises: [CancelledError, QuicError]).} =
   let written = addr result
-  var datagram = trySend(connection, streamId, messagePtr, messageLen, written, isFin)
-
+  var buffer = newSeqUninit[byte](writeBufferSize)
+  var datagram =
+    trySend(connection, buffer, streamId, messagePtr, messageLen, written, isFin)
+    
   # For empty writes without FIN, treat as no-op
   # Return 0 bytes written since there was nothing to write
   if messageLen == 0 and not isFin:
@@ -168,7 +177,8 @@ proc send(
   while datagram.data.len == 0:
     connection.flowing.clear()
     await connection.flowing.wait()
-    datagram = trySend(connection, streamId, messagePtr, messageLen, written, isFin)
+    datagram =
+      trySend(connection, buffer, streamId, messagePtr, messageLen, written, isFin)
   connection.onSend(datagram)
   connection.updateExpiryTimer()
 
