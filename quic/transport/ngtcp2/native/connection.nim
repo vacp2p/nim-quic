@@ -134,14 +134,16 @@ proc trySend(
   )
   checkResult length.cint
 
-  if length > 0:
-    buffer.setLen(length)
-    Datagram(data: buffer, ecn: ECN(packetInfo.ecn))
-  else:
-    # do not set length of buffer if nothing was written, this will help us
-    # to reuse same buffer for next trySend call until something is written
+  if length == 0: 
+    # if nothing was written to buffer we should return empty datagram
+    # without using buffer for data because nothing was written and 
+    # we should not waste this buffer, by setting length to 0, because buffer
+    # can be used for next trySend call.
+    return Datagram()
 
-    Datagram(ecn: ECN(packetInfo.ecn))
+  buffer.setLen(length)
+  return Datagram(data: buffer, ecn: ECN(packetInfo.ecn))
+
 
 proc send*(connection: Ngtcp2Connection) {.raises: [QuicError].} =
   while true:
