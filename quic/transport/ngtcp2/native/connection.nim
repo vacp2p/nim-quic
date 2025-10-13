@@ -134,7 +134,7 @@ proc trySend(
   )
   checkResult length.cint
 
-  if length == 0: 
+  if length == 0:
     # if nothing was written to buffer we should return empty datagram
     # without using buffer for data because nothing was written and 
     # we should not waste this buffer, by setting length to 0, because buffer
@@ -143,7 +143,6 @@ proc trySend(
 
   buffer.setLen(length)
   return Datagram(data: buffer, ecn: ECN(packetInfo.ecn))
-
 
 proc send*(connection: Ngtcp2Connection) {.raises: [QuicError].} =
   while true:
