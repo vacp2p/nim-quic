@@ -144,14 +144,12 @@ proc trySend(
     Datagram(ecn: ECN(packetInfo.ecn))
 
 proc send*(connection: Ngtcp2Connection) {.raises: [QuicError].} =
-  var buffer = newSeqUninit[byte](writeBufferSize)
-  var done = false
-  while not done:
+  while true:
+    var buffer = newSeqUninit[byte](writeBufferSize)
     let datagram = connection.trySend(buffer)
-    if datagram.data.len > 0:
-      connection.onSend(datagram)
-    else:
-      done = true
+    if datagram.data.len == 0:
+      break
+    connection.onSend(datagram)
   connection.updateExpiryTimer()
 
 proc send(
