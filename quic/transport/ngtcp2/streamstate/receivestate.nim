@@ -15,7 +15,6 @@ proc newReceiveStreamState*(base: BaseStreamState): ReceiveStreamState =
 method enter*(state: ReceiveStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
-  state.setUserData(stream)
   state.sendFin(stream)
 
 method leave*(state: ReceiveStreamState) =

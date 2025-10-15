@@ -20,7 +20,6 @@ proc newClosedStreamState*(
 method enter*(state: ClosedStreamState, stream: Stream) {.raises: [QuicError].} =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
-  state.setUserData(stream)
   if state.wasReset:
     state.queue.reset()
   state.queue.close()

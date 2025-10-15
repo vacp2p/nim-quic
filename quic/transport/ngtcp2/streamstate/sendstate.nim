@@ -13,7 +13,6 @@ proc newSendStreamState*(base: BaseStreamState): SendStreamState =
 method enter*(state: SendStreamState, stream: Stream) {.raises: [QuicError].} =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
-  state.setUserData(stream)
   state.queue.close()
 
 method leave*(state: SendStreamState) =

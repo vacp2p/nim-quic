@@ -7,7 +7,9 @@ import ./connection
 import chronicles
 
 proc newStream(connection: Ngtcp2Connection, id: int64): Stream =
-  newStream(id, newOpenStreamState(connection))
+  let stream = newStream(id, newOpenStreamState(connection))
+  connection.setStreamUserData(id, unsafeAddr stream[])
+  return stream
 
 proc openStream*(
     connection: Ngtcp2Connection, unidirectional: bool
@@ -34,9 +36,9 @@ proc onStreamClose(
     stream_user_data: pointer,
 ): cint {.cdecl.} =
   trace "onStreamClose"
-  let state = cast[StreamState](stream_user_data)
-  if state != nil:
-    state.onClose()
+  let stream = cast[Stream](stream_user_data)
+  if stream != nil:
+    stream.onClose()
 
 proc onReceiveStreamData(
     connection: ptr ngtcp2_conn,
@@ -49,12 +51,12 @@ proc onReceiveStreamData(
     stream_user_data: pointer,
 ): cint {.cdecl.} =
   trace "onReceiveStreamData"
-  let state = cast[StreamState](stream_user_data)
-  var bytes = newSeqUninit[byte](datalen)
-  copyMem(bytes.toUnsafePtr, data, datalen)
-  let isFin = (flags and NGTCP2_STREAM_DATA_FLAG_FIN) != 0
-  if state != nil:
-    state.receive(uint64(offset), bytes, isFin)
+  let stream = cast[Stream](stream_user_data)
+  if stream != nil:
+    var bytes = newSeqUninit[byte](datalen)
+    copyMem(bytes.toUnsafePtr, data, datalen)
+    let isFin = (flags and NGTCP2_STREAM_DATA_FLAG_FIN) != 0
+    stream.receive(uint64(offset), bytes, isFin)
 
 proc onStreamReset(
     connection: ptr ngtcp2_conn,
@@ -65,9 +67,9 @@ proc onStreamReset(
     stream_user_data: pointer,
 ): cint {.cdecl.} =
   trace "onStreamReset"
-  let state = cast[StreamState](stream_user_data)
-  if state != nil:
-    state.reset()
+  let stream = cast[Stream](stream_user_data)
+  if stream != nil:
+    stream.reset()
 
 proc onStreamStopSending(
     conn: ptr ngtcp2_conn,
