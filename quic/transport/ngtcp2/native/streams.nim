@@ -6,6 +6,9 @@ import ../streamstate/openstate
 import ./connection
 import chronicles
 
+logScope:
+  topics = "native stream"
+
 proc newStream(connection: Ngtcp2Connection, id: int64): Stream =
   let stream = newStream(id, newOpenStreamState(connection))
   connection.setStreamUserData(id, unsafeAddr stream[])
@@ -38,7 +41,10 @@ proc onStreamClose(
   trace "onStreamClose"
   let stream = cast[Stream](stream_user_data)
   if stream != nil:
-    stream.onClose()
+    try:
+      stream.onClose()
+    except QuicError as e:
+      error "Unexpect error onStreamClose", msg = e.msg
 
 proc onReceiveStreamData(
     connection: ptr ngtcp2_conn,
@@ -56,7 +62,10 @@ proc onReceiveStreamData(
     var bytes = newSeqUninit[byte](datalen)
     copyMem(bytes.toUnsafePtr, data, datalen)
     let isFin = (flags and NGTCP2_STREAM_DATA_FLAG_FIN) != 0
-    stream.receive(uint64(offset), bytes, isFin)
+    try:
+      stream.receive(uint64(offset), bytes, isFin)
+    except QuicError as e:
+      error "Unexpect error onReceiveStreamData", msg = e.msg
 
 proc onStreamReset(
     connection: ptr ngtcp2_conn,
@@ -69,7 +78,10 @@ proc onStreamReset(
   trace "onStreamReset"
   let stream = cast[Stream](stream_user_data)
   if stream != nil:
-    stream.reset()
+    try:
+      stream.reset()
+    except QuicError as e:
+      error "Unexpect error onStreamReset", msg = e.msg
 
 proc onStreamStopSending(
     conn: ptr ngtcp2_conn,

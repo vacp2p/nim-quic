@@ -104,10 +104,10 @@ proc closeWrite*(stream: Stream) {.async: (raises: [CancelledError, QuicError]).
 proc closeRead*(stream: Stream) {.async: (raises: [CancelledError, QuicError]).} =
   await stream.state.closeRead()
 
-proc reset*(stream: Stream) =
+proc reset*(stream: Stream) {.raises: [QuicError].} =
   stream.state.reset()
 
-proc onClose*(stream: Stream) =
+proc onClose*(stream: Stream) {.raises: [QuicError].} =
   stream.state.onClose()
 
 proc isClosed*(stream: Stream): bool =
