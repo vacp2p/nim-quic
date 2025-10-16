@@ -8,7 +8,12 @@ import ./closestate
 type SendStreamState* = ref object of BaseStreamState
 
 proc newSendStreamState*(base: BaseStreamState): SendStreamState =
-  SendStreamState(connection: base.connection, queue: base.queue, finSent: base.finSent)
+  SendStreamState(
+    connection: base.connection,
+    streamId: base.streamId,
+    queue: base.queue,
+    finSent: base.finSent,
+  )
 
 method enter*(state: SendStreamState, stream: Stream) {.raises: [QuicError].} =
   procCall enter(StreamState(state), stream)

@@ -12,6 +12,7 @@ proc newClosedStreamState*(
 ): ClosedStreamState =
   ClosedStreamState(
     connection: base.connection,
+    streamId: base.streamId,
     queue: base.queue,
     finSent: base.finSent,
     wasReset: wasReset,

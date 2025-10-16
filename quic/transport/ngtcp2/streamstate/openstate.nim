@@ -9,8 +9,10 @@ import ./sendstate
 
 type OpenStreamState* = ref object of BaseStreamState
 
-proc newOpenStreamState*(connection: Ngtcp2Connection): OpenStreamState =
-  OpenStreamState(connection: connection, queue: initStreamQueue())
+proc newOpenStreamState*(
+    connection: Ngtcp2Connection, streamId: int64
+): OpenStreamState =
+  OpenStreamState(connection: connection, streamId: streamId, queue: initStreamQueue())
 
 method enter*(state: OpenStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)

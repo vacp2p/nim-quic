@@ -9,7 +9,10 @@ type ReceiveStreamState* = ref object of BaseStreamState
 
 proc newReceiveStreamState*(base: BaseStreamState): ReceiveStreamState =
   ReceiveStreamState(
-    connection: base.connection, queue: base.queue, finSent: base.finSent
+    connection: base.connection,
+    streamId: base.streamId,
+    queue: base.queue,
+    finSent: base.finSent,
   )
 
 method enter*(state: ReceiveStreamState, stream: Stream) =
