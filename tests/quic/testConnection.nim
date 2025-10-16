@@ -14,9 +14,8 @@ suite "connections":
 
   asyncTest "handles error when writing to udp transport by closing connection":
     let udp = newDatagramTransport()
-    let tlsBackend = newClientTLSBackend(
-      @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
-    )
+    let tlsBackend =
+      newClientTLSBackend(@[], @[], toHashSet(["test"]), Opt.none(CertificateVerifier))
     let connection = newOutgoingConnection(tlsBackend, udp, address, newRng())
     await udp.closeWait()
     connection.startHandshake()

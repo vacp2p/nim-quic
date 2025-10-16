@@ -9,15 +9,15 @@ import ./ids
 import ./settings
 import ./connection
 import ./path
-import ./picotls
 import ./rand
 import ./streams
 import ./timestamp
 import ./handshake
 import ./parsedatagram
+import ./types
 
 proc newNgtcp2Server*(
-    tlsContext: PicoTLSContext,
+    tlsContext: TLSContext,
     local, remote: TransportAddress,
     source, destination: ngtcp2_cid,
     rng: ref HmacDrbgContext,
@@ -50,8 +50,8 @@ proc newNgtcp2Server*(
   var conn: ptr ngtcp2_conn
   var ret = ngtcp2_conn_server_new_versioned(
     addr conn,
-    unsafeAddr source,
-    unsafeAddr id,
+    addr source,
+    addr id,
     path.toPathPtr,
     CurrentQuicVersion,
     NGTCP2_CALLBACKS_V1,
@@ -61,52 +61,36 @@ proc newNgtcp2Server*(
     NGTCP2_TRANSPORT_PARAMS_V1,
     addr transportParams,
     nil,
-    addr nConn[],
+    cast[pointer](nConn),
   )
   if ret != 0:
     raise newException(QuicError, "could not create new server versioned conn: " & $ret)
 
-  let cptls: ptr ngtcp2_crypto_picotls_ctx = create(ngtcp2_crypto_picotls_ctx)
+  nConn.conn = Opt.some(conn)
 
-  ngtcp2_crypto_picotls_ctx_init(cptls)
+  let ssl = SSL_new(tlsContext.context)
+  if ssl.isNil:
+    raise newException(QuicError, "SSL_new" & $ERR_error_string(ERR_get_error(), nil))
 
-  var tls = tlsContext.newConnection(true)
-  cptls.ptls = tls.conn
-
-  var addExtensions = cast[ptr UncheckedArray[ptls_raw_extension_t]](alloc(
-    ptls_raw_extension_t.sizeof * 2
-  ))
-  addExtensions[0] = ptls_raw_extension_t(type_field: high(uint16))
-  addExtensions[1] = ptls_raw_extension_t(type_field: high(uint16))
-  cptls.handshake_properties = ptls_handshake_properties_t(
-    additional_extensions: cast[ptr ptls_raw_extension_t](addExtensions)
-  )
-
-  ngtcp2_conn_set_tls_native_handle(conn, cptls)
-
-  var connref = create(ngtcp2_crypto_conn_ref)
-  connref.user_data = conn
-  connref.get_conn = proc(
+  nConn.connref = create(ngtcp2_crypto_conn_ref)
+  nConn.connref.user_data = cast[pointer](nConn)
+  nConn.connref.get_conn = proc(
       connRef: ptr ngtcp2_crypto_conn_ref
   ): ptr ngtcp2_conn {.cdecl.} =
-    cast[ptr ngtcp2_conn](connRef.user_data)
+    let n = cast[Ngtcp2Connection](connRef.user_data)
+    return n.conn.get()
 
-  var dataPtr = ptls_get_data_ptr(tls.conn)
-  dataPtr[] = connref
+  discard SSL_set_ex_data(ssl, 0, nConn.connref)
+  SSL_set_accept_state(ssl)
 
-  ret = ngtcp2_crypto_picotls_configure_server_session(cptls)
-  if ret != 0:
-    raise newException(QuicError, "could not configure server session: " & $ret)
+  ngtcp2_conn_set_tls_native_handle(nConn.conn.get(), ssl)
 
-  nConn.conn = Opt.some(conn)
-  nConn.tlsConn = tls
-  nConn.cptls = cptls
-  nConn.connref = connref
   nConn.tlsContext = tlsContext
+  nConn.ssl = ssl
   nConn
 
 proc newNgtcp2Server*(
-    tlsContext: PicoTLSContext,
+    tlsContext: TLSContext,
     local, remote: TransportAddress,
     datagram: openArray[byte],
     rng: ref HmacDrbgContext,
