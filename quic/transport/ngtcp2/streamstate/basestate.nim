@@ -4,15 +4,22 @@ import ../native/connection
 import ./queue
 
 type BaseStreamState* = ref object of StreamState
-  streamId*: int64
   stream*: Opt[Stream]
-  queue*: StreamQueue
   connection*: Ngtcp2Connection
+  streamId*: int64
+  queue*: StreamQueue
   finSent*: bool
+
+method enter*(state: BaseStreamState, stream: Stream) {.raises: [QuicError].} =
+  procCall enter(StreamState(state), stream)
+  state.stream = Opt.some(stream)
+
+method leave*(state: BaseStreamState) =
+  procCall leave(StreamState(state))
+  state.stream = Opt.none(Stream)
 
 method expire*(state: BaseStreamState) {.raises: [].} =
   let stream = state.stream.valueOr:
-    echo "aaaaaaaaaaaaaaaaaaaaaaaa111"
     return
   stream.closed.fire()
 
@@ -25,13 +32,13 @@ proc allowMoreIncomingBytes*(state: BaseStreamState, amount: uint64) =
   state.connection.extendStreamOffset(state.streamId, amount)
   state.connection.send()
 
-proc sendFin*(state: BaseStreamState, stream: stream.Stream) =
+proc sendFin*(state: BaseStreamState) =
   if not state.finSent:
     state.finSent = true
-    discard state.connection.send(stream.id, @[], true)
+    discard state.connection.send(state.streamId, @[], true)
 
-proc reset*(state: BaseStreamState, stream: stream.Stream) {.raises: [QuicError].} =
-  state.connection.shutdownStream(stream.id)
+proc reset*(state: BaseStreamState) {.raises: [QuicError].} =
+  state.connection.shutdownStream(state.streamId)
 
 proc switch*(state: BaseStreamState, newStream: StreamState) {.raises: [QuicError].} =
   let stream = state.stream.valueOr:

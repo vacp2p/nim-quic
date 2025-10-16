@@ -1,5 +1,4 @@
 import ../../../basics
-import ../../stream
 import ../native/connection
 import ./queue
 import ./basestate
@@ -13,14 +12,6 @@ proc newOpenStreamState*(
     connection: Ngtcp2Connection, streamId: int64
 ): OpenStreamState =
   OpenStreamState(connection: connection, streamId: streamId, queue: initStreamQueue())
-
-method enter*(state: OpenStreamState, stream: Stream) =
-  procCall enter(StreamState(state), stream)
-  state.stream = Opt.some(stream)
-
-method leave*(state: OpenStreamState) =
-  procCall leave(StreamState(state))
-  state.stream = Opt.none(Stream)
 
 method read*(
     state: OpenStreamState

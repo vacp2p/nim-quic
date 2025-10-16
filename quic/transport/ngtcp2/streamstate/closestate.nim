@@ -19,15 +19,14 @@ proc newClosedStreamState*(
   )
 
 method enter*(state: ClosedStreamState, stream: Stream) {.raises: [QuicError].} =
-  procCall enter(StreamState(state), stream)
-  state.stream = Opt.some(stream)
+  procCall enter(BaseStreamState(state), stream)
   if state.wasReset:
     state.queue.reset()
   state.queue.close()
   if state.wasReset:
-    state.reset(stream)
+    state.reset()
   else:
-    state.sendFin(stream)
+    state.sendFin()
   stream.closed.fire()
 
 method leave*(state: ClosedStreamState) =
