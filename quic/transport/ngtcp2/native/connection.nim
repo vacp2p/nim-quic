@@ -5,63 +5,31 @@ import chronicles
 import ../../../basics
 import ../../../udp/congestion
 import ../../../helpers/[openarray, sequninit]
-import ../../stream
 import ../../timeout
 import ../../connectionid
 import ./path
-import ./picotls
 import ./errors as ngtcp2errors
 import ./timestamp
 import ./pointers
+import ./types
+import ./certificates
 
 logScope:
   topics = "ngtcp2 conn"
 
 const writeBufferSize* = 4096
 
-type
-  Ngtcp2Connection* = ref object
-    conn*: Opt[ptr ngtcp2_conn]
-    tlsConn*: PicoTLSConnection
-    tlsContext*: PicoTLSContext
-    cptls*: ptr ngtcp2_crypto_picotls_ctx
-    connref*: ptr ngtcp2_crypto_conn_ref
-
-    path*: Path
-    rng*: ref HmacDrbgContext
-    flowing*: AsyncEvent
-    expiryTimer*: Timeout
-    onSend*: proc(datagram: Datagram) {.gcsafe, raises: [].}
-    onTimeout*: proc() {.gcsafe, raises: [].}
-    onIncomingStream*: proc(stream: Stream)
-    onHandshakeDone*: proc()
-    onNewId*: Opt[proc(id: ConnectionId)]
-    onRemoveId*: Opt[proc(id: ConnectionId)]
-
-  Ngtcp2ConnectionClosed* = object of QuicError
+export Ngtcp2Connection
 
 proc destroy*(connection: Ngtcp2Connection) =
   let conn = connection.conn.valueOr:
     return
   connection.expiryTimer.stop()
   ngtcp2_conn_del(conn)
-  ngtcp2_crypto_picotls_deconfigure_session(connection.cptls)
-  connection.tlsConn.destroy()
-  dealloc(connection.cptls.handshake_properties.additional_extensions)
-  let cnt =
-    connection.cptls.handshake_properties.anon0.client.negotiated_protocols.count
-  if cnt != 0:
-    let negotiated_protocols = cast[ptr UncheckedArray[ptls_iovec_t]](connection.cptls.handshake_properties.anon0.client.negotiated_protocols.list)
-    for i in 0 ..< cnt:
-      dealloc(negotiated_protocols[i].base)
-    dealloc(
-      connection.cptls.handshake_properties.anon0.client.negotiated_protocols.list
-    )
   dealloc(connection.connref)
-  dealloc(connection.cptls)
-  connection.cptls = nil
+  SSL_free(connection.ssl)
+  connection.ssl = nil
   connection.connref = nil
-  connection.tlsConn = nil
   connection.conn = Opt.none(ptr ngtcp2_conn)
   connection.onSend = nil
   connection.onIncomingStream = nil
@@ -318,3 +286,6 @@ proc shutdownStream*(connection: Ngtcp2Connection, streamId: int64) =
     raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
 
   checkResult ngtcp2_conn_shutdown_stream(conn, 0, streamId, 0)
+
+proc certificates*(connection: Ngtcp2Connection): seq[seq[byte]] =
+  return getFullCertChain(connection.ssl)

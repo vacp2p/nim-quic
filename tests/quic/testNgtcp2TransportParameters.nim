@@ -38,8 +38,7 @@ suite "ngtcp2 transport parameters":
     let tlsBackend = newClientTLSBackend(
       @[], @[], initHashSet[string](), Opt.none(CertificateVerifier)
     )
-    let connection =
-      newNgtcp2Client(tlsBackend.picoTLS, zeroAddress, zeroAddress, newRng())
+    let connection = newNgtcp2Client(tlsBackend.ctx, zeroAddress, zeroAddress, newRng())
     defer:
       connection.destroy()
     transport_params.active_connection_id_limit = 0
