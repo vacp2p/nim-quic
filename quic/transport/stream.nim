@@ -119,7 +119,7 @@ proc isUnidirectional*(stream: Stream): bool =
 proc expire*(stream: Stream) {.raises: [].} =
   stream.state.expire()
 
-proc receive*(
+proc onReceive*(
     stream: Stream, offset: uint64, bytes: seq[byte], isFin: bool
 ) {.raises: [QuicError].} =
   stream.state.receive(offset, bytes, isFin)

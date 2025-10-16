@@ -63,7 +63,7 @@ proc onReceiveStreamData(
     copyMem(bytes.toUnsafePtr, data, datalen)
     let isFin = (flags and NGTCP2_STREAM_DATA_FLAG_FIN) != 0
     try:
-      stream.receive(uint64(offset), bytes, isFin)
+      stream.onReceive(uint64(offset), bytes, isFin)
     except QuicError as e:
       error "Unexpect error onReceiveStreamData", msg = e.msg
 
