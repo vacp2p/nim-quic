@@ -15,7 +15,6 @@ proc newOpenStreamState*(connection: Ngtcp2Connection): OpenStreamState =
 method enter*(state: OpenStreamState, stream: Stream) =
   procCall enter(StreamState(state), stream)
   state.stream = Opt.some(stream)
-  state.setUserData(stream)
 
 method leave*(state: OpenStreamState) =
   procCall leave(StreamState(state))

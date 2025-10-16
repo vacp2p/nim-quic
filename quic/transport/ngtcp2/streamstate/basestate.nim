@@ -21,11 +21,6 @@ method write*(
     return
   await state.connection.send(stream.id, bytes)
 
-proc setUserData*(
-    state: BaseStreamState, stream: stream.Stream
-) {.raises: [QuicError].} =
-  state.connection.setStreamUserData(stream.id, unsafeAddr state[])
-
 proc allowMoreIncomingBytes*(state: BaseStreamState, amount: uint64) =
   let stream = state.stream.valueOr:
     return

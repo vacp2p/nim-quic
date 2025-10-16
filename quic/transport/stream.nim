@@ -104,10 +104,10 @@ proc closeWrite*(stream: Stream) {.async: (raises: [CancelledError, QuicError]).
 proc closeRead*(stream: Stream) {.async: (raises: [CancelledError, QuicError]).} =
   await stream.state.closeRead()
 
-proc reset*(stream: Stream) =
+proc reset*(stream: Stream) {.raises: [QuicError].} =
   stream.state.reset()
 
-proc onClose*(stream: Stream) =
+proc onClose*(stream: Stream) {.raises: [QuicError].} =
   stream.state.onClose()
 
 proc isClosed*(stream: Stream): bool =
@@ -118,3 +118,8 @@ proc isUnidirectional*(stream: Stream): bool =
 
 proc expire*(stream: Stream) {.raises: [].} =
   stream.state.expire()
+
+proc onReceive*(
+    stream: Stream, offset: uint64, bytes: seq[byte], isFin: bool
+) {.raises: [QuicError].} =
+  stream.state.receive(offset, bytes, isFin)
