@@ -12,7 +12,8 @@ logScope:
 proc openStream*(
     connection: Ngtcp2Connection, unidirectional: bool
 ): Stream {.raises: [QuicError].} =
-  let stream = newStream(newOpenStreamState(connection))
+  let stream = newStream()
+  stream.switch(newOpenStreamState(connection, stream))
   let id =
     if unidirectional:
       connection.openUniStream(addr stream[])
@@ -25,7 +26,8 @@ proc onStreamOpen(
     conn: ptr ngtcp2_conn, stream_id: int64, user_data: pointer
 ): cint {.cdecl.} =
   let connection = cast[Ngtcp2Connection](user_data)
-  let stream = newStream(newOpenStreamState(connection))
+  let stream = newStream()
+  stream.switch(newOpenStreamState(connection, stream))
   stream.id = stream_id
   connection.setStreamUserData(stream_id, addr stream[])
   connection.onIncomingStream(stream)

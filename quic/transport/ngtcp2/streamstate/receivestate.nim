@@ -1,6 +1,5 @@
 import ../../../errors
 import ../../../basics
-import ../../stream
 import ./queue
 import ./basestate
 import ./closestate
@@ -9,24 +8,21 @@ type ReceiveStreamState* = ref object of BaseStreamState
 
 proc newReceiveStreamState*(base: BaseStreamState): ReceiveStreamState =
   ReceiveStreamState(
-    connection: base.connection, queue: base.queue, finSent: base.finSent
+    connection: base.connection,
+    stream: base.stream,
+    queue: base.queue,
+    finSent: base.finSent,
   )
 
-method enter*(state: ReceiveStreamState, stream: Stream) =
-  procCall enter(StreamState(state), stream)
-  state.stream = Opt.some(stream)
-  state.sendFin(stream)
-
-method leave*(state: ReceiveStreamState) =
-  procCall leave(StreamState(state))
-  state.stream = Opt.none(Stream)
+method onEnter*(state: ReceiveStreamState) {.raises: [QuicError].} =
+  procCall onEnter(BaseStreamState(state))
+  state.sendFin()
 
 method read*(
     state: ReceiveStreamState
 ): Future[seq[byte]] {.async: (raises: [CancelledError, QuicError]).} =
   # Check for immediate EOF conditions
   if state.queue.isEOF() and state.queue.incoming.len == 0:
-    state.switch(newClosedStreamState(state))
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
 
   let data = await state.queue.incoming.get()
@@ -38,7 +34,6 @@ method read*(
 
   # Empty data (len == 0) and this is EOF
   if state.queue.isEOF():
-    state.switch(newClosedStreamState(state))
     return @[] # Return EOF per RFC 9000
 
   # Empty data but no EOF; continue reading for more data

@@ -13,11 +13,11 @@ type
 
   StreamError* = object of QuicError
 
-method enter*(state: StreamState, stream: Stream) {.base, raises: [QuicError].} =
+method onEnter*(state: StreamState) {.base, raises: [QuicError].} =
   doAssert not state.entered, "states are not reentrant"
   state.entered = true
 
-method leave*(state: StreamState) {.base, raises: [QuicError].} =
+method onLeave*(state: StreamState) {.base, raises: [QuicError].} =
   discard
 
 method read*(
@@ -62,15 +62,16 @@ method receive*(
 method expire*(state: StreamState) {.base, raises: [].} =
   raiseAssert "override method: expire"
 
-proc newStream*(state: StreamState): Stream {.raises: [QuicError].} =
-  let stream = Stream(state: state, closed: newAsyncEvent(), lock: newAsyncLock())
-  state.enter(stream)
-  stream
+proc newStream*(): Stream =
+  return Stream(closed: newAsyncEvent(), lock: newAsyncLock())
 
-proc switch*(stream: Stream, newState: StreamState) {.raises: [QuicError].} =
-  stream.state.leave()
-  stream.state = newState
-  stream.state.enter(stream)
+proc switch*(stream: Stream, nextState: StreamState) {.raises: [QuicError].} =
+  let currentState = stream.state
+  if not isNil(currentState):
+    currentState.onLeave()
+
+  stream.state = nextState
+  nextState.onEnter()
 
 proc id*(stream: Stream): int64 =
   stream.id

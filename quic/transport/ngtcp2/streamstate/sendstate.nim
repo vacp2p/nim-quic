@@ -1,6 +1,5 @@
 import ../../../errors
 import ../../../basics
-import ../../stream
 import ./queue
 import ./basestate
 import ./closestate
@@ -8,16 +7,16 @@ import ./closestate
 type SendStreamState* = ref object of BaseStreamState
 
 proc newSendStreamState*(base: BaseStreamState): SendStreamState =
-  SendStreamState(connection: base.connection, queue: base.queue, finSent: base.finSent)
+  SendStreamState(
+    connection: base.connection,
+    stream: base.stream,
+    queue: base.queue,
+    finSent: base.finSent,
+  )
 
-method enter*(state: SendStreamState, stream: Stream) {.raises: [QuicError].} =
-  procCall enter(StreamState(state), stream)
-  state.stream = Opt.some(stream)
+method onEnter*(state: SendStreamState) {.raises: [QuicError].} =
+  procCall onEnter(BaseStreamState(state))
   state.queue.close()
-
-method leave*(state: SendStreamState) =
-  procCall leave(StreamState(state))
-  state.stream = Opt.none(Stream)
 
 method read*(
     state: SendStreamState
