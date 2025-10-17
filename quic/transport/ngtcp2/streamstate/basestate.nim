@@ -9,11 +9,11 @@ type BaseStreamState* = ref object of StreamState
   queue*: StreamQueue
   finSent*: bool
 
-method enter*(state: BaseStreamState) {.raises: [QuicError].} =
-  procCall enter(StreamState(state))
+method onEnter*(state: BaseStreamState) {.raises: [QuicError].} =
+  procCall onEnter(StreamState(state))
 
-method leave*(state: BaseStreamState) =
-  procCall leave(StreamState(state))
+method onLeave*(state: BaseStreamState) =
+  procCall onLeave(StreamState(state))
 
 method expire*(state: BaseStreamState) {.raises: [].} =
   state.stream.closed.fire()

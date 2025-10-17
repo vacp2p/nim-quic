@@ -14,8 +14,8 @@ proc newSendStreamState*(base: BaseStreamState): SendStreamState =
     finSent: base.finSent,
   )
 
-method enter*(state: SendStreamState) {.raises: [QuicError].} =
-  procCall enter(BaseStreamState(state))
+method onEnter*(state: SendStreamState) {.raises: [QuicError].} =
+  procCall onEnter(BaseStreamState(state))
   state.queue.close()
 
 method read*(

@@ -14,8 +14,8 @@ proc newReceiveStreamState*(base: BaseStreamState): ReceiveStreamState =
     finSent: base.finSent,
   )
 
-method enter*(state: ReceiveStreamState) {.raises: [QuicError].} =
-  procCall enter(BaseStreamState(state))
+method onEnter*(state: ReceiveStreamState) {.raises: [QuicError].} =
+  procCall onEnter(BaseStreamState(state))
   state.sendFin()
 
 method read*(
