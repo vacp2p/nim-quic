@@ -9,26 +9,26 @@ import chronicles
 logScope:
   topics = "native stream"
 
-proc newStream(connection: Ngtcp2Connection, id: int64): Stream =
-  let stream = newStream(id, newOpenStreamState(connection))
-  connection.setStreamUserData(id, unsafeAddr stream[])
-  return stream
-
 proc openStream*(
     connection: Ngtcp2Connection, unidirectional: bool
 ): Stream {.raises: [QuicError].} =
-  var id: int64
-  if unidirectional:
-    id = connection.openUniStream()
-  else:
-    id = connection.openBidiStream()
-  newStream(connection, id)
+  let stream = newStream(newOpenStreamState(connection))
+  let id =
+    if unidirectional:
+      connection.openUniStream(addr stream[])
+    else:
+      connection.openBidiStream(addr stream[])
+  stream.id = id
+  return stream
 
 proc onStreamOpen(
     conn: ptr ngtcp2_conn, stream_id: int64, user_data: pointer
 ): cint {.cdecl.} =
   let connection = cast[Ngtcp2Connection](user_data)
-  connection.onIncomingStream(newStream(connection, stream_id))
+  let stream = newStream(newOpenStreamState(connection))
+  stream.id = stream_id
+  connection.setStreamUserData(stream_id, addr stream[])
+  connection.onIncomingStream(stream)
 
 proc onStreamClose(
     conn: ptr ngtcp2_conn,

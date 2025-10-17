@@ -3,7 +3,7 @@ import ../helpers/bits
 
 type
   Stream* = ref object
-    id: int64
+    id*: int64
     state: StreamState
     closed*: AsyncEvent
     lock: AsyncLock
@@ -62,9 +62,8 @@ method receive*(
 method expire*(state: StreamState) {.base, raises: [].} =
   raiseAssert "override method: expire"
 
-proc newStream*(id: int64, state: StreamState): Stream {.raises: [QuicError].} =
-  let stream =
-    Stream(state: state, id: id, closed: newAsyncEvent(), lock: newAsyncLock())
+proc newStream*(state: StreamState): Stream {.raises: [QuicError].} =
+  let stream = Stream(state: state, closed: newAsyncEvent(), lock: newAsyncLock())
   state.enter(stream)
   stream
 
