@@ -12,14 +12,14 @@ proc newClosedStreamState*(
 ): ClosedStreamState =
   ClosedStreamState(
     connection: base.connection,
-    streamId: base.streamId,
+    stream: base.stream,
     queue: base.queue,
     finSent: base.finSent,
     wasReset: wasReset,
   )
 
-method enter*(state: ClosedStreamState, stream: Stream) {.raises: [QuicError].} =
-  procCall enter(BaseStreamState(state), stream)
+method enter*(state: ClosedStreamState) {.raises: [QuicError].} =
+  procCall enter(BaseStreamState(state))
   if state.wasReset:
     state.queue.reset()
   state.queue.close()
@@ -27,7 +27,7 @@ method enter*(state: ClosedStreamState, stream: Stream) {.raises: [QuicError].} 
     state.reset()
   else:
     state.sendFin()
-  stream.closed.fire()
+  state.stream.closed.fire()
 
 method leave*(state: ClosedStreamState) =
   raiseAssert "ClosedStreamState state should never leave"

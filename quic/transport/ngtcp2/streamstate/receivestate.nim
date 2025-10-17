@@ -1,6 +1,5 @@
 import ../../../errors
 import ../../../basics
-import ../../stream
 import ./queue
 import ./basestate
 import ./closestate
@@ -10,13 +9,13 @@ type ReceiveStreamState* = ref object of BaseStreamState
 proc newReceiveStreamState*(base: BaseStreamState): ReceiveStreamState =
   ReceiveStreamState(
     connection: base.connection,
-    streamId: base.streamId,
+    stream: base.stream,
     queue: base.queue,
     finSent: base.finSent,
   )
 
-method enter*(state: ReceiveStreamState, stream: Stream) {.raises: [QuicError].} =
-  procCall enter(BaseStreamState(state), stream)
+method enter*(state: ReceiveStreamState) {.raises: [QuicError].} =
+  procCall enter(BaseStreamState(state))
   state.sendFin()
 
 method read*(

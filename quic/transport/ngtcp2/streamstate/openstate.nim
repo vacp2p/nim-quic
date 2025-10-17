@@ -1,4 +1,5 @@
 import ../../../basics
+import ../../stream
 import ../native/connection
 import ./queue
 import ./basestate
@@ -9,9 +10,9 @@ import ./sendstate
 type OpenStreamState* = ref object of BaseStreamState
 
 proc newOpenStreamState*(
-    connection: Ngtcp2Connection, streamId: int64
+    connection: Ngtcp2Connection, stream: Stream
 ): OpenStreamState =
-  OpenStreamState(connection: connection, streamId: streamId, queue: initStreamQueue())
+  OpenStreamState(connection: connection, stream: stream, queue: initStreamQueue())
 
 method read*(
     state: OpenStreamState

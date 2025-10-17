@@ -13,7 +13,7 @@ type
 
   StreamError* = object of QuicError
 
-method enter*(state: StreamState, stream: Stream) {.base, raises: [QuicError].} =
+method enter*(state: StreamState) {.base, raises: [QuicError].} =
   doAssert not state.entered, "states are not reentrant"
   state.entered = true
 
@@ -70,7 +70,7 @@ proc newStream*(state: StreamState): Stream {.raises: [QuicError].} =
 proc switch*(stream: Stream, newState: StreamState) {.raises: [QuicError].} =
   stream.state.leave()
   stream.state = newState
-  stream.state.enter(stream)
+  stream.state.enter()
 
 proc id*(stream: Stream): int64 =
   stream.id
