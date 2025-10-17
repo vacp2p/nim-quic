@@ -62,9 +62,8 @@ method receive*(
 method expire*(state: StreamState) {.base, raises: [].} =
   raiseAssert "override method: expire"
 
-proc newStream*(id: int64, state: StreamState): Stream {.raises: [QuicError].} =
-  let stream =
-    Stream(state: state, id: id, closed: newAsyncEvent(), lock: newAsyncLock())
+proc newStream*(state: StreamState): Stream {.raises: [QuicError].} =
+  let stream = Stream(state: state, closed: newAsyncEvent(), lock: newAsyncLock())
   state.enter(stream)
   stream
 
@@ -75,6 +74,9 @@ proc switch*(stream: Stream, newState: StreamState) {.raises: [QuicError].} =
 
 proc id*(stream: Stream): int64 =
   stream.id
+
+proc setId*(stream: Stream, id: int64) =
+  stream.id = id
 
 proc read*(
     stream: Stream

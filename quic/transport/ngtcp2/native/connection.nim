@@ -252,17 +252,17 @@ proc isHandshakeCompleted*(connection: Ngtcp2Connection): bool =
 
   ngtcp2_conn_get_handshake_completed(conn).bool
 
-proc openUniStream*(connection: Ngtcp2Connection): int64 =
+proc openUniStream*(connection: Ngtcp2Connection, userdata: pointer): int64 =
   let conn = connection.conn.valueOr:
     raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
 
-  checkResult ngtcp2_conn_open_uni_stream(conn, addr result, nil)
+  checkResult ngtcp2_conn_open_uni_stream(conn, addr result, userdata)
 
-proc openBidiStream*(connection: Ngtcp2Connection): int64 =
+proc openBidiStream*(connection: Ngtcp2Connection, userdata: pointer): int64 =
   let conn = connection.conn.valueOr:
     raise newException(Ngtcp2ConnectionClosed, "connection no longer exists")
 
-  checkResult ngtcp2_conn_open_bidi_stream(conn, addr result, nil)
+  checkResult ngtcp2_conn_open_bidi_stream(conn, addr result, userdata)
 
 proc setStreamUserData*(
     connection: Ngtcp2Connection, streamId: int64, userdata: pointer
