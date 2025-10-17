@@ -15,9 +15,9 @@ proc openStream*(
   let stream = newStream(newOpenStreamState(connection))
   var id: int64
   if unidirectional:
-    id = connection.openUniStream(unsafeAddr stream[])
+    id = connection.openUniStream(addr stream[])
   else:
-    id = connection.openBidiStream(unsafeAddr stream[])
+    id = connection.openBidiStream(addr stream[])
   stream.id = id
   return stream
 
@@ -27,7 +27,7 @@ proc onStreamOpen(
   let connection = cast[Ngtcp2Connection](user_data)
   let stream = newStream(newOpenStreamState(connection))
   stream.id = stream_id
-  connection.setStreamUserData(stream_id, unsafeAddr stream[])
+  connection.setStreamUserData(stream_id, addr stream[])
   connection.onIncomingStream(stream)
 
 proc onStreamClose(
