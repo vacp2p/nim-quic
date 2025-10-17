@@ -68,7 +68,7 @@ proc newStream*(): Stream =
 proc switch*(stream: Stream, newState: StreamState) {.raises: [QuicError].} =
   if not isNil(stream.state):
     stream.state.onLeave()
-    
+
   stream.state = newState
   stream.state.onEnter()
 
