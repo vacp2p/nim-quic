@@ -66,12 +66,13 @@ method expire*(state: StreamState) {.base, raises: [].} =
 proc newStream*(): Stream =
   return Stream(closed: newAsyncEvent(), lock: newAsyncLock())
 
-proc switch*(stream: Stream, newState: StreamState) {.raises: [QuicError].} =
-  if not isNil(stream.state):
-    stream.state.onLeave()
+proc switch*(stream: Stream, nextState: StreamState) {.raises: [QuicError].} =
+  let currentState = stream.state
+  if not isNil(currentState):
+    currentState.onLeave()
 
-  stream.state = newState
-  stream.state.onEnter()
+  stream.state = nextState
+  nextState.onEnter()
 
 proc id*(stream: Stream): int64 =
   stream.id

@@ -35,6 +35,6 @@ proc sendFin*(state: BaseStreamState) =
 proc reset*(state: BaseStreamState) {.raises: [QuicError].} =
   state.connection.shutdownStream(state.stream.id)
 
-proc switch*(state: BaseStreamState, newStream: StreamState) {.raises: [QuicError].} =
+proc switch*(state: BaseStreamState, nextState: StreamState) {.raises: [QuicError].} =
   if not state.left:
-    state.stream.switch(newStream)
+    state.stream.switch(nextState)
