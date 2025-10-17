@@ -3,7 +3,7 @@ import ../helpers/bits
 
 type
   Stream* = ref object
-    id: int64
+    id*: int64
     state: StreamState
     closed*: AsyncEvent
     lock: AsyncLock
@@ -74,9 +74,6 @@ proc switch*(stream: Stream, newState: StreamState) {.raises: [QuicError].} =
 
 proc id*(stream: Stream): int64 =
   stream.id
-
-proc setId*(stream: Stream, id: int64) =
-  stream.id = id
 
 proc read*(
     stream: Stream
