@@ -89,7 +89,7 @@ suite "Quic integration usecases":
     asyncSpawn accept(listener, handleServerConn)
     for i in 0 ..< connectionsCount:
       # this sleep fixes the test
-      await sleepAsync(100.milliseconds)
+      #await sleepAsync(100.milliseconds)
       asyncSpawn runClient()
     waitFor allFutures(serverWg.wait(), clientWg.wait())
 
