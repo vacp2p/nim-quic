@@ -36,7 +36,7 @@ proc newNgtcp2Server*(
 
   installConnectionIdCallback(callbacks)
   installEncryptionCallbacks(callbacks)
-  installServerHandshakeCallback(callbacks)
+  installHandshakeCallback(callbacks)
   installStreamCallbacks(callbacks)
 
   var settings = defaultSettings(rng)
