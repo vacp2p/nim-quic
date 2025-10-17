@@ -23,7 +23,6 @@ method read*(
 ): Future[seq[byte]] {.async: (raises: [CancelledError, QuicError]).} =
   # Check for immediate EOF conditions
   if state.queue.isEOF() and state.queue.incoming.len == 0:
-    state.switch(newClosedStreamState(state))
     return @[] # Return EOF immediately per RFC 9000 "Data Read" state
 
   let data = await state.queue.incoming.get()
@@ -35,7 +34,6 @@ method read*(
 
   # Empty data (len == 0) and this is EOF
   if state.queue.isEOF():
-    state.switch(newClosedStreamState(state))
     return @[] # Return EOF per RFC 9000
 
   # Empty data but no EOF; continue reading for more data

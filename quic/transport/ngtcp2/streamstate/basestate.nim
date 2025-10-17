@@ -36,8 +36,4 @@ proc reset*(state: BaseStreamState) {.raises: [QuicError].} =
   state.connection.shutdownStream(state.stream.id)
 
 proc switch*(state: BaseStreamState, nextState: StreamState) {.raises: [QuicError].} =
-  if not state.left:
-    # there stream can be switch simultaneously from two futures.
-    # for example ReceiveStreamState can switch to Closed from future that does read()-ing
-    # and callback onClose().
-    state.stream.switch(nextState)
+  state.stream.switch(nextState)

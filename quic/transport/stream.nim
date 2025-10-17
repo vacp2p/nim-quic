@@ -10,7 +10,6 @@ type
 
   StreamState* = ref object of RootObj
     entered: bool
-    left*: bool
 
   StreamError* = object of QuicError
 
@@ -19,7 +18,7 @@ method onEnter*(state: StreamState) {.base, raises: [QuicError].} =
   state.entered = true
 
 method onLeave*(state: StreamState) {.base, raises: [QuicError].} =
-  state.left = true
+  discard
 
 method read*(
     state: StreamState
