@@ -13,11 +13,11 @@ proc openStream*(
     connection: Ngtcp2Connection, unidirectional: bool
 ): Stream {.raises: [QuicError].} =
   let stream = newStream(newOpenStreamState(connection))
-  var id: int64
-  if unidirectional:
-    id = connection.openUniStream(addr stream[])
-  else:
-    id = connection.openBidiStream(addr stream[])
+  let id =
+    if unidirectional:
+      connection.openUniStream(addr stream[])
+    else:
+      connection.openBidiStream(addr stream[])
   stream.id = id
   return stream
 
