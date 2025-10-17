@@ -9,16 +9,10 @@ import ./sendstate
 
 type OpenStreamState* = ref object of BaseStreamState
 
-proc newOpenStreamState*(connection: Ngtcp2Connection): OpenStreamState =
-  OpenStreamState(connection: connection, queue: initStreamQueue())
-
-method enter*(state: OpenStreamState, stream: Stream) =
-  procCall enter(StreamState(state), stream)
-  state.stream = Opt.some(stream)
-
-method leave*(state: OpenStreamState) =
-  procCall leave(StreamState(state))
-  state.stream = Opt.none(Stream)
+proc newOpenStreamState*(
+    connection: Ngtcp2Connection, stream: Stream
+): OpenStreamState =
+  OpenStreamState(connection: connection, stream: stream, queue: initStreamQueue())
 
 method read*(
     state: OpenStreamState
