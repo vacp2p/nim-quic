@@ -55,7 +55,7 @@ suite "Quic integration usecases":
     waitFor allFutures(incoming(), outgoing())
 
   asyncTest "connect many clients to single server":
-    const connectionsCount = 2 # should be increased when bug is fixed
+    const connectionsCount = 20
     const msgSize = 50 * 1024
     let serverWg = newWaitGroup(connectionsCount)
     let clientWg = newWaitGroup(connectionsCount)
@@ -88,6 +88,8 @@ suite "Quic integration usecases":
 
     asyncSpawn accept(listener, handleServerConn)
     for i in 0 ..< connectionsCount:
+      # this sleep fixes the test
+      await sleepAsync(100.milliseconds)
       asyncSpawn runClient()
     waitFor allFutures(serverWg.wait(), clientWg.wait())
 
