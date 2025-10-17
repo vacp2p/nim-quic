@@ -65,12 +65,10 @@ method expire*(state: StreamState) {.base, raises: [].} =
 proc newStream*(): Stream =
   return Stream(closed: newAsyncEvent(), lock: newAsyncLock())
 
-proc setState*(stream: Stream, state: StreamState) {.raises: [QuicError].} =
-  stream.state = state
-  state.onEnter()
-
 proc switch*(stream: Stream, newState: StreamState) {.raises: [QuicError].} =
-  stream.state.onLeave()
+  if not isNil(stream.state):
+    stream.state.onLeave()
+    
   stream.state = newState
   stream.state.onEnter()
 
