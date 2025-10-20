@@ -55,15 +55,16 @@ suite "Quic integration usecases":
     waitFor allSucceeded(incoming(), outgoing())
 
   asyncTest "connect many clients to single server":
-    const count = 2 # should be increased when bug is fixed
-    let serverWg = newWaitGroup(count)
-    let clientWg = newWaitGroup(count)
+    const connectionsCount = 2 # should be increased when bug is fixed
+    const msgSize = 50 * 1024
+    let serverWg = newWaitGroup(connectionsCount)
+    let clientWg = newWaitGroup(connectionsCount)
     let address = initTAddress("127.0.0.1:12345")
     let server = makeServer()
     let listener = server.listen(address)
     listener.deferStop()
 
-    let message = newData(50 * 1024)
+    let message = newData(msgSize)
 
     proc handleServerConn(connection: Connection) {.async.} =
       let stream = await connection.incomingStream()
@@ -86,14 +87,67 @@ suite "Quic integration usecases":
       clientWg.done()
 
     asyncSpawn accept(listener, handleServerConn)
-    for i in 0 ..< count:
+    for i in 0 ..< connectionsCount:
+      asyncSpawn runClient()
+    waitFor allSucceeded(serverWg.wait(), clientWg.wait())
+
+  asyncTest "connect many clients to single server; with many streams":
+    const connectionsCount = 3
+    const streamsCount = 20
+    const msgSize = 50 * 1024
+    let serverWg = newWaitGroup(connectionsCount)
+    let clientWg = newWaitGroup(connectionsCount)
+    let address = initTAddress("127.0.0.1:12345")
+    let server = makeServer()
+    let listener = server.listen(address)
+    listener.deferStop()
+
+    proc handleServerStream(connection: Connection, connWg: WaitGroup) {.async.} =
+      let stream = await connection.incomingStream()
+      let receivedData = await readStreamTillEOF(stream)
+      let dataId = receivedData[0]
+      checkEqual(newData(msgSize, dataId), receivedData)
+      await stream.close()
+      connWg.done()
+
+    proc handleServerConn(connection: Connection) {.async.} =
+      let connWg = newWaitGroup(streamsCount)
+      for i in 0 ..< streamsCount:
+        asyncSpawn handleServerStream(connection, connWg)
+
+      await connWg.wait()
+      await connection.close()
+      serverWg.done()
+
+    proc handleClientStream(
+        connection: Connection, connWg: WaitGroup, id: uint8
+    ) {.async.} =
+      let stream = await connection.openStream()
+      await stream.write(newData(msgSize, id)) # send data unique for this stream
+      await stream.close()
+      connWg.done()
+
+    proc runClient() {.async.} =
+      let connWg = newWaitGroup(streamsCount)
+      let client = makeClient()
+      let connection = await client.dial(address)
+
+      for i in 0 ..< streamsCount:
+        asyncSpawn handleClientStream(connection, connWg, i.uint8)
+
+      await connWg.wait()
+      await connection.close()
+      clientWg.done()
+
+    asyncSpawn accept(listener, handleServerConn)
+    for i in 0 ..< connectionsCount:
       asyncSpawn runClient()
     waitFor allSucceeded(serverWg.wait(), clientWg.wait())
 
   asyncTest "incomingStream throws error when client disconnects":
-    const count = 20
-    let serverWg = newWaitGroup(count)
-    let clientWg = newWaitGroup(count)
+    const connectionsCount = 20
+    let serverWg = newWaitGroup(connectionsCount)
+    let clientWg = newWaitGroup(connectionsCount)
     let address = initTAddress("127.0.0.1:12345")
     let server = makeServer()
     let listener = server.listen(address)
@@ -115,14 +169,14 @@ suite "Quic integration usecases":
       clientWg.done()
 
     asyncSpawn accept(listener, handleServerConn)
-    for i in 0 ..< count:
+    for i in 0 ..< connectionsCount:
       asyncSpawn runClient()
     waitFor allSucceeded(serverWg.wait(), clientWg.wait())
 
   asyncTest "openStream throws error when server disconnects":
-    const count = 20
-    let serverWg = newWaitGroup(count)
-    let clientWg = newWaitGroup(count)
+    const connectionsCount = 20
+    let serverWg = newWaitGroup(connectionsCount)
+    let clientWg = newWaitGroup(connectionsCount)
     let address = initTAddress("127.0.0.1:12345")
     let server = makeServer()
     let listener = server.listen(address)
@@ -147,6 +201,6 @@ suite "Quic integration usecases":
       clientWg.done()
 
     asyncSpawn accept(listener, handleServerConn)
-    for i in 0 ..< count:
+    for i in 0 ..< connectionsCount:
       asyncSpawn runClient()
     waitFor allSucceeded(serverWg.wait(), clientWg.wait())
