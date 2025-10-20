@@ -91,7 +91,7 @@ suite "Quic integration usecases":
       asyncSpawn runClient()
     waitFor allSucceeded(serverWg.wait(), clientWg.wait())
 
-  asyncTest "connect many clients to single server; with many streams":
+  asyncTest "connections with many streams":
     const connectionsCount = 3
     const streamsCount = 20
     const msgSize = 50 * 1024
