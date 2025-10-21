@@ -216,7 +216,7 @@ proc handleTimeout(connection: Ngtcp2Connection) =
   let conn = connection.conn.valueOr:
     return
 
-  errorAsDefect:
+  try:
     let ret = ngtcp2_conn_handle_expiry(conn, now())
     trace "handleExpiry", code = ret
     if ret == NGTCP2_ERR_IDLE_CLOSE:
@@ -225,6 +225,8 @@ proc handleTimeout(connection: Ngtcp2Connection) =
     else:
       checkResult ret
       connection.send()
+  except QuicError as e:
+    error "handleTimeout unexpected error", msg = e.msg
 
 proc close*(connection: Ngtcp2Connection): Datagram =
   let conn = connection.conn.valueOr:

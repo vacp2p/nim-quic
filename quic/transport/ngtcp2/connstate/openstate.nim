@@ -48,9 +48,11 @@ method enter(
   state.ngtcp2Connection.onNewId = Opt.some(onNewId)
   state.ngtcp2Connection.onRemoveId = Opt.some(onRemoveId)
 
-  state.ngtcp2Connection.onSend = proc(datagram: Datagram) =
-    errorAsDefect:
+  state.ngtcp2Connection.onSend = proc(datagram: Datagram) {.raises: [QuicError].} =
+    try:
       connection.outgoing.putNoWait(datagram)
+    except AsyncQueueFullError:
+      raise newException(QuicError, "Outgoing queue is full")
 
   state.ngtcp2Connection.onIncomingStream = proc(stream: Stream) =
     state.streams.add(stream)
