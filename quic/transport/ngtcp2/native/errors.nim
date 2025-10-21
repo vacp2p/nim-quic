@@ -21,5 +21,4 @@ proc checkResult*(result: cint) {.raises: [Ngtcp2Error].} =
   if e.isFatal:
     error "Created fatal error", code = e.code, msg = e.msg
 
-
   raise e
