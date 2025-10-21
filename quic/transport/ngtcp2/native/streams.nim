@@ -95,9 +95,23 @@ proc onStreamStopSending(
   trace "onStreamStopSending"
   return 0
 
+proc onAckedStreamDataOffset(
+    conn: ptr ngtcp2_conn,
+    stream_id: int64,
+    offset: uint64,
+    datalen: uint64,
+    user_data: pointer,
+    stream_user_data: pointer,
+): cint {.cdecl.} =
+  trace "onAckedStreamDataOffset"
+  let connection = cast[Ngtcp2Connection](user_data)
+  connection.ackSentBytes(stream_id, offset, datalen)
+  return 0
+
 proc installStreamCallbacks*(callbacks: var ngtcp2_callbacks) =
   callbacks.stream_open = onStreamOpen
   callbacks.stream_close = onStreamClose
   callbacks.recv_stream_data = onReceiveStreamData
   callbacks.stream_reset = onStreamReset
   callbacks.stream_stop_sending = onStreamStopSending
+  callbacks.acked_stream_data_offset = onAckedStreamDataOffset

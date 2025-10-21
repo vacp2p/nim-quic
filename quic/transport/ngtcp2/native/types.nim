@@ -1,5 +1,6 @@
 import ngtcp2
 import bearssl/rand
+import tables
 import ../../../basics
 import ../../../helpers/sequninit
 import ../../stream
@@ -8,6 +9,7 @@ import ../../connectionid
 import ./path
 import sets
 import ./certificateverifier
+import ./pendingackqueue
 
 type TLSContext* = ref object
   context*: ptr SSL_CTX
@@ -20,6 +22,7 @@ type
     tlsContext*: TLSContext
     ssl*: ptr SSL
     connref*: ptr ngtcp2_crypto_conn_ref
+    pendingAckQueues*: Table[int64, PendingAckQueue]
 
     path*: Path
     rng*: ref HmacDrbgContext
