@@ -1,4 +1,4 @@
-import std/sequtils
+import std/[sequtils, tables]
 import ngtcp2
 import bearssl/rand
 import chronicles
@@ -13,6 +13,7 @@ import ./timestamp
 import ./pointers
 import ./types
 import ./certificates
+import ./pendingackqueue
 
 logScope:
   topics = "ngtcp2 conn"
@@ -113,6 +114,7 @@ proc trySend(
   return Datagram(data: buffer, ecn: ECN(packetInfo.ecn))
 
 proc send*(connection: Ngtcp2Connection) {.raises: [QuicError].} =
+  ## Send control flow messages
   while true:
     var buffer = newSeqUninit[byte](writeBufferSize)
     let datagram = connection.trySend(buffer)
@@ -145,16 +147,32 @@ proc send(
     await connection.flowing.wait()
     datagram =
       connection.trySend(buffer, streamId, messagePtr, messageLen, addr written, isFin)
+
   connection.onSend(datagram)
   connection.updateExpiryTimer()
 
   return written
 
+template pendingAckQueue*(
+    connection: Ngtcp2Connection, stream_id: int64
+): PendingAckQueue =
+  if connection.pendingAckQueues.hasKey(stream_id):
+    try:
+      connection.pendingAckQueues[stream_id]
+    except KeyError:
+      raiseAssert "checked with hasKey"
+  else:
+    let pendingAckQueue = PendingAckQueue.new()
+    connection.pendingAckQueues[stream_id] = pendingAckQueue
+    pendingAckQueue
+
 proc send*(
     connection: Ngtcp2Connection, streamId: int64, bytes: seq[byte], isFin: bool = false
 ) {.async: (raises: [CancelledError, QuicError]).} =
+  ## Send payloads
   var messagePtr = bytes.toUnsafePtr
   var messageLen = bytes.len.uint
+  connection.pendingAckQueue(streamId).push(bytes)
   var done = false
   while not done:
     let written = await connection.send(streamId, messagePtr, messageLen, isFin)
@@ -162,6 +180,11 @@ proc send*(
       messagePtr = messagePtr + written
       messageLen = messageLen - written.uint
       done = messageLen == 0
+
+proc ackSentBytes*(
+    connection: Ngtcp2Connection, streamId: int64, offset: uint64, dataLen: uint64
+) =
+  connection.pendingAckQueue(streamId).ack(offset, dataLen)
 
 proc tryReceive(connection: Ngtcp2Connection, datagram: sink seq[byte], ecn: ECN) =
   let conn = connection.conn.valueOr:
