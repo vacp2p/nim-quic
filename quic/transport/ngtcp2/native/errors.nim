@@ -3,7 +3,7 @@ import chronicles
 import ../../../errors
 
 logScope:
-  topics = "ngtcp2 conn"
+  topics = "ngtcp2 error"
 
 type Ngtcp2Error* = ref object of QuicError
   code*: cint
