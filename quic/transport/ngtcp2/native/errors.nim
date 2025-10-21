@@ -1,19 +1,25 @@
 import ngtcp2
+import chronicles
 import ../../../errors
 
-type
-  Ngtcp2Error* = ref object of QuicError
-    code*: cint
+logScope:
+  topics = "ngtcp2 conn"
 
-  Ngtcp2Defect* = object of QuicDefect
+type Ngtcp2Error* = ref object of QuicError
+  code*: cint
+  isFatal*: bool
 
-proc checkResult*(result: cint) =
-  if result < 0:
-    let msg = $ngtcp2_strerror(result)
-    if ngtcp2_err_is_fatal(result) != 0:
-      raise newException(Ngtcp2Defect, msg)
-    else:
-      let e = new(Ngtcp2Error)
-      e.code = result
-      e.msg = msg
-      raise e
+proc checkResult*(result: cint) {.raises: [Ngtcp2Error].} =
+  if result >= 0:
+    return
+
+  let e = new(Ngtcp2Error)
+  e.code = result
+  e.isFatal = ngtcp2_err_is_fatal(result) != 0
+  e.msg = $ngtcp2_strerror(result)
+
+  if e.isFatal:
+    error "Created fatal error", code = e.code, msg = e.msg
+
+
+  raise e

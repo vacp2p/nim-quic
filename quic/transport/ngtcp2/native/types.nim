@@ -25,7 +25,7 @@ type
     rng*: ref HmacDrbgContext
     flowing*: AsyncEvent
     expiryTimer*: Timeout
-    onSend*: proc(datagram: Datagram) {.gcsafe, raises: [].}
+    onSend*: proc(datagram: Datagram) {.gcsafe, raises: [QuicError].}
     onTimeout*: proc() {.gcsafe, raises: [].}
     onIncomingStream*: proc(stream: Stream)
     onHandshakeDone*: proc()
