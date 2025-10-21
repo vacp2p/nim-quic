@@ -52,7 +52,7 @@ suite "Quic integration usecases":
       await stream.close()
       await connection.close()
 
-    waitFor allSucceeded(incoming(), outgoing())
+    waitFor allFutures(incoming(), outgoing())
 
   asyncTest "connect many clients to single server":
     const connectionsCount = 2 # should be increased when bug is fixed
@@ -89,7 +89,7 @@ suite "Quic integration usecases":
     asyncSpawn accept(listener, handleServerConn)
     for i in 0 ..< connectionsCount:
       asyncSpawn runClient()
-    waitFor allSucceeded(serverWg.wait(), clientWg.wait())
+    waitFor allFutures(serverWg.wait(), clientWg.wait())
 
   asyncTest "connections with many streams":
     const connectionsCount = 3
@@ -142,7 +142,7 @@ suite "Quic integration usecases":
     asyncSpawn accept(listener, handleServerConn)
     for i in 0 ..< connectionsCount:
       asyncSpawn runClient()
-    waitFor allSucceeded(serverWg.wait(), clientWg.wait())
+    waitFor allFutures(serverWg.wait(), clientWg.wait())
 
   asyncTest "incomingStream throws error when client disconnects":
     const connectionsCount = 20
@@ -171,7 +171,7 @@ suite "Quic integration usecases":
     asyncSpawn accept(listener, handleServerConn)
     for i in 0 ..< connectionsCount:
       asyncSpawn runClient()
-    waitFor allSucceeded(serverWg.wait(), clientWg.wait())
+    waitFor allFutures(serverWg.wait(), clientWg.wait())
 
   asyncTest "openStream throws error when server disconnects":
     const connectionsCount = 20
@@ -203,4 +203,4 @@ suite "Quic integration usecases":
     asyncSpawn accept(listener, handleServerConn)
     for i in 0 ..< connectionsCount:
       asyncSpawn runClient()
-    waitFor allSucceeded(serverWg.wait(), clientWg.wait())
+    waitFor allFutures(serverWg.wait(), clientWg.wait())

@@ -64,12 +64,15 @@ proc waitClosed*(connection: Connection) {.async: (raises: [CancelledError]).} =
 
 proc startSending(connection: Connection, remote: TransportAddress) =
   trace "Starting sending loop"
-  proc onStop(e: ref CatchableError) {.async.} =
+  proc onStop(e: ref CatchableError) {.async: (raises: []).} =
     if not connection.loop.finished:
       connection.loop.fail(e)
-    await connection.drop()
+    try:
+      await connection.drop()
+    except CatchableError as e:
+      trace "Failed to drop connection", msg = e.msg
 
-  proc send() {.async.} =
+  proc send() {.async: (raises: [CancelledError]).} =
     try:
       let datagram = await connection.quic.outgoing.get()
       await connection.udp.sendTo(remote, datagram.data)

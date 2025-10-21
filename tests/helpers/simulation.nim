@@ -6,9 +6,13 @@ import ./certificate
 import ./addresses
 
 proc networkLoop*(source, destination: QuicConnection) {.async.} =
-  proc transfer() {.async.} =
+  proc transfer() {.async: (raises: [CancelledError]).} =
     let datagram = await source.outgoing.get()
-    destination.receive(datagram)
+    try:
+      destination.receive(datagram)
+    except CatchableError as e:
+      # this is used in tests so it's fine to raise defect
+      raise newException(Defect, e.msg)
 
   await asyncLoop(transfer)
 
@@ -21,10 +25,14 @@ proc simulateNetwork*(a, b: QuicConnection) {.async.} =
     await allFutures(loop1.cancelAndWait(), loop2.cancelAndWait())
 
 proc lossyNetworkLoop*(source, destination: QuicConnection) {.async.} =
-  proc transfer() {.async.} =
+  proc transfer() {.async: (raises: [CancelledError]).} =
     let datagram = await source.outgoing.get()
     if rand(1.0) < 0.2:
-      destination.receive(datagram)
+      try:
+        destination.receive(datagram)
+      except CatchableError as e:
+        # this is used in tests so it's fine to raise defect
+        raise newException(Defect, e.msg)
 
   await asyncLoop(transfer)
 
