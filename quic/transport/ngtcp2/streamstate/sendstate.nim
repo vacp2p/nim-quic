@@ -1,5 +1,6 @@
 import ../../../errors
 import ../../../basics
+import ../native/[connection, errors]
 import ./queue
 import ./basestate
 import ./closestate
@@ -26,7 +27,11 @@ method read*(
 method write*(
     state: SendStreamState, bytes: seq[byte]
 ) {.async: (raises: [CancelledError, QuicError]).} =
-  await procCall BaseStreamState(state).write(bytes)
+  try:
+    await state.connection.send(state.stream.id, bytes)
+  except Ngtcp2FatalError as e:
+    state.switch(newClosedStreamState(state))
+    raise newException(QuicError, "received fatal error: " & e.msg, e)
 
 method close*(state: SendStreamState) {.async: (raises: [CancelledError, QuicError]).} =
   state.switch(newClosedStreamState(state))

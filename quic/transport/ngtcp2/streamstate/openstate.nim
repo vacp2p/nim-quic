@@ -1,6 +1,6 @@
 import ../../../basics
 import ../../stream
-import ../native/connection
+import ../native/[connection, errors]
 import ./queue
 import ./basestate
 import ./closestate
@@ -13,6 +13,14 @@ proc newOpenStreamState*(
     connection: Ngtcp2Connection, stream: Stream
 ): OpenStreamState =
   OpenStreamState(connection: connection, stream: stream, queue: initStreamQueue())
+
+proc allowMoreIncomingBytes(state: OpenStreamState, amount: uint64) =
+  try:
+    state.connection.extendStreamOffset(state.stream.id, amount)
+    state.connection.send()
+  except Ngtcp2FatalError as e:
+    state.switch(newClosedStreamState(state))
+    raise newException(QuicError, "received fatal error: " & e.msg, e)
 
 method read*(
     state: OpenStreamState
@@ -38,7 +46,11 @@ method read*(
 method write*(
     state: OpenStreamState, bytes: seq[byte]
 ) {.async: (raises: [CancelledError, QuicError]).} =
-  await procCall BaseStreamState(state).write(bytes)
+  try:
+    await state.connection.send(state.stream.id, bytes)
+  except Ngtcp2FatalError as e:
+    state.switch(newClosedStreamState(state))
+    raise newException(QuicError, "received fatal error: " & e.msg, e)
 
 method close*(state: OpenStreamState) {.async: (raises: [CancelledError, QuicError]).} =
   state.switch(newReceiveStreamState(state))

@@ -113,7 +113,7 @@ proc trySend(
   buffer.setLen(length)
   return Datagram(data: buffer, ecn: ECN(packetInfo.ecn))
 
-proc send*(connection: Ngtcp2Connection) {.raises: [QuicError].} =
+proc send*(connection: Ngtcp2Connection) {.raises: [QuicError, Ngtcp2FatalError].} =
   ## Send control flow messages
   while true:
     var buffer = newSeqUninit[byte](writeBufferSize)
@@ -129,7 +129,7 @@ proc send(
     messagePtr: ptr byte,
     messageLen: uint,
     isFin: bool = false,
-): Future[int] {.async: (raises: [CancelledError, QuicError]).} =
+): Future[int] {.async: (raises: [CancelledError, QuicError, Ngtcp2FatalError]).} =
   var written: int
   var buffer = newSeqUninit[byte](writeBufferSize)
   var datagram =
@@ -168,7 +168,7 @@ template pendingAckQueue*(
 
 proc send*(
     connection: Ngtcp2Connection, streamId: int64, bytes: seq[byte], isFin: bool = false
-) {.async: (raises: [CancelledError, QuicError]).} =
+) {.async: (raises: [CancelledError, QuicError, Ngtcp2Error, Ngtcp2FatalError]).} =
   ## Send payloads
   var messagePtr = bytes.toUnsafePtr
   var messageLen = bytes.len.uint
@@ -225,6 +225,9 @@ proc handleTimeout(connection: Ngtcp2Connection) =
     else:
       checkResult ret
       connection.send()
+  except Ngtcp2FatalError as e:
+    # TODO how to close?
+    error "handleTimeout unexpected error", msg = e.msg
   except QuicError as e:
     error "handleTimeout unexpected error", msg = e.msg
 

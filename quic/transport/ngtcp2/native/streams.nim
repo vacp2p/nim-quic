@@ -3,7 +3,7 @@ import ../../../helpers/[openarray, sequninit]
 import ../../../errors
 import ../../stream
 import ../streamstate/openstate
-import ./connection
+import ./[connection, errors]
 import chronicles
 
 logScope:
@@ -14,12 +14,15 @@ proc openStream*(
 ): Stream {.raises: [QuicError].} =
   let stream = newStream()
   stream.switch(newOpenStreamState(connection, stream))
-  let id =
-    if unidirectional:
-      connection.openUniStream(addr stream[])
-    else:
-      connection.openBidiStream(addr stream[])
-  stream.id = id
+  try:
+    let id =
+      if unidirectional:
+        connection.openUniStream(addr stream[])
+      else:
+        connection.openBidiStream(addr stream[])
+    stream.id = id
+  except Ngtcp2FatalError as e:
+    raise newException(QuicError, "received fatal error: " & e.msg, e)
   return stream
 
 proc onStreamOpen(

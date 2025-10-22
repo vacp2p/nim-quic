@@ -10,6 +10,7 @@ import ../native/connection
 import ../native/streams
 import ../native/errors
 import ./closingstate
+import ./closedstate
 import ./drainingstate
 import ./disconnectingstate
 import ./openstreams
@@ -81,16 +82,24 @@ method ids(state: OpenConnection): seq[ConnectionId] {.raises: [].} =
   state.ngtcp2Connection.ids
 
 method send(state: OpenConnection) {.raises: [QuicError].} =
-  state.ngtcp2Connection.send()
+  try:
+    state.ngtcp2Connection.send()
+  except Ngtcp2FatalError as e:
+    discard state.close()
+    raise newException(QuicError, "Received fatal error: " & e.msg, e)
 
 method receive(state: OpenConnection, datagram: sink Datagram) {.raises: [QuicError].} =
   var errCode = 0
   var errMsg = ""
   try:
     state.ngtcp2Connection.receive(datagram)
-  except Ngtcp2Error as exc:
-    errCode = exc.code
-    errMsg = exc.msg
+  except Ngtcp2FatalError as e:
+    errCode = e.code
+    errMsg = e.msg
+    trace "ngtcp2 fatal error on receive", code = errCode, msg = errMsg
+  except Ngtcp2Error as e:
+    errCode = e.code
+    errMsg = e.msg
     trace "ngtcp2 error on receive", code = errCode, msg = errMsg
   finally:
     let quicConnection = state.quicConnection.valueOr:
@@ -124,13 +133,22 @@ method openStream(
 method close(state: OpenConnection) {.async: (raises: [CancelledError, QuicError]).} =
   let quicConnection = state.quicConnection.valueOr:
     return
-  let finalDatagram = state.ngtcp2Connection.close()
-  let duration = state.ngtcp2Connection.closingDuration()
-  let ids = state.ids
-  let closing =
-    newClosingConnection(finalDatagram, ids, duration, state.derCertificates)
-  quicConnection.switch(closing)
-  await closing.close()
+
+  try:
+    let finalDatagram = state.ngtcp2Connection.close()
+    let duration = state.ngtcp2Connection.closingDuration()
+    let closing =
+      newClosingConnection(finalDatagram, state.ids, duration, state.derCertificates)
+    quicConnection.switch(closing)
+    await closing.close()
+  except Ngtcp2FatalError as e:
+    let closed = newClosedConnection(state.derCertificates)
+    quicConnection.switch(closed)
+    raise newException(
+      QuicError,
+      "failed to gracefully close connection: received fatal error: " & e.msg,
+      e,
+    )
 
 method drop(state: OpenConnection) {.async: (raises: [CancelledError, QuicError]).} =
   trace "Dropping OpenConnection state"

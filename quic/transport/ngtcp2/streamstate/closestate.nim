@@ -1,6 +1,7 @@
 import ../../../errors
 import ../../../basics
 import ../../stream
+import ../native/[connection, errors]
 import ./queue
 import ./basestate
 
@@ -18,13 +19,25 @@ proc newClosedStreamState*(
     wasReset: wasReset,
   )
 
+proc doReset(state: ClosedStreamState) {.raises: [QuicError].} =
+  try:
+    state.connection.shutdownStream(state.stream.id)
+  except Ngtcp2FatalError:
+    # do nothing we are already in closed connection
+    discard  
+
+proc sendFin(state: ClosedStreamState) =
+  if not state.finSent:
+    state.finSent = true
+    discard state.connection.send(state.stream.id, @[], true)
+
 method onEnter*(state: ClosedStreamState) {.raises: [QuicError].} =
   procCall onEnter(BaseStreamState(state))
   if state.wasReset:
     state.queue.reset()
   state.queue.close()
   if state.wasReset:
-    state.reset()
+    state.doReset()
   else:
     state.sendFin()
   state.stream.closed.fire()
