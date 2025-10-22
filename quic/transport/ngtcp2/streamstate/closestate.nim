@@ -23,8 +23,8 @@ proc doReset(state: ClosedStreamState) {.raises: [QuicError].} =
   try:
     state.connection.shutdownStream(state.stream.id)
   except Ngtcp2FatalError:
-    # do nothing we are already in closed connection
-    discard  
+    # do nothing here, state is already in closed connection
+    discard
 
 proc sendFin(state: ClosedStreamState) =
   if not state.finSent:
