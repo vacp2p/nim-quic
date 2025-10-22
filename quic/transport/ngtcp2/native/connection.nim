@@ -168,7 +168,7 @@ template pendingAckQueue*(
 
 proc send*(
     connection: Ngtcp2Connection, streamId: int64, bytes: seq[byte], isFin: bool = false
-) {.async: (raises: [CancelledError, QuicError, Ngtcp2Error, Ngtcp2FatalError]).} =
+) {.async: (raises: [CancelledError, QuicError, Ngtcp2FatalError]).} =
   ## Send payloads
   var messagePtr = bytes.toUnsafePtr
   var messageLen = bytes.len.uint
