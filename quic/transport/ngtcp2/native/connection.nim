@@ -226,8 +226,8 @@ proc handleTimeout(connection: Ngtcp2Connection) =
       checkResult ret
       connection.send()
   except Ngtcp2FatalError as e:
-    # TODO how to close?
-    error "handleTimeout unexpected error", msg = e.msg
+    error "handleTimeout fatal error", msg = e.msg
+    # connection could not be closed here, upper layers need to transition to closed state.
   except QuicError as e:
     error "handleTimeout unexpected error", msg = e.msg
 
