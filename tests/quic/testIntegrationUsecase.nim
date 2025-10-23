@@ -82,14 +82,16 @@ suite "Quic integration usecases":
       let stream = await connection.openStream()
       await stream.write(message)
       await stream.close()
+
+      # client needs to wait some time before closing connections. 
+      # because if connection is closed too early data will not be transmitted to server.
+      await sleepAsync(300.milliseconds)
       await connection.close()
 
       clientWg.done()
 
     asyncSpawn accept(listener, handleServerConn)
     for i in 0 ..< connectionsCount:
-      # this sleep fixes the test
-      #await sleepAsync(100.milliseconds)
       asyncSpawn runClient()
     waitFor allFutures(serverWg.wait(), clientWg.wait())
 
