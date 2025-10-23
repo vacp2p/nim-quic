@@ -86,9 +86,8 @@ proc extendMaxStreamData*(connection: Ngtcp2Connection, streamId: int64) =
   ## Unblocks any stream that might have been blocked due to flow control
   try:
     if connection.blockedStreams.hasKey(streamId):
-      let blockedFut = connection.blockedStreams[streamId]
+      connection.blockedStreams[streamId].complete()
       connection.blockedStreams.del(streamId)
-      blockedFut.complete()
   except KeyError:
     raiseAssert "checked with hasKey"
 
@@ -124,7 +123,7 @@ proc trySend(
 
   if length.int == NGTCP2_ERR_STREAM_DATA_BLOCKED:
     connection.blockedStreams[streamId] =
-      cast[Future[void].Raising([])](newFuture[void]())
+      Future[void].Raising([]).init("StreamLatch", {FutureFlag.OwnCancelSchedule})
     return Datagram()
 
   checkResult length.cint
