@@ -72,6 +72,26 @@ proc updateExpiryTimer*(connection: Ngtcp2Connection) =
   else:
     connection.expiryTimer.stop()
 
+proc waitUntilUnblocked(
+    connection: Ngtcp2Connection, streamId: int64
+) {.async: (raises: []).} =
+  if not connection.blockedStreams.hasKey(streamId):
+    return
+  try:
+    await connection.blockedStreams[streamId]
+  except KeyError:
+    raiseAssert "checked with hasKey"
+
+proc extendMaxStreamData*(connection: Ngtcp2Connection, streamId: int64) =
+  ## Unblocks any stream that might have been blocked due to flow control
+  try:
+    if connection.blockedStreams.hasKey(streamId):
+      let blockedFut = connection.blockedStreams[streamId]
+      connection.blockedStreams.del(streamId)
+      blockedFut.complete()
+  except KeyError:
+    raiseAssert "checked with hasKey"
+
 proc trySend(
     connection: Ngtcp2Connection,
     buffer: var seq[byte],
@@ -101,6 +121,12 @@ proc trySend(
     messageLen,
     now(),
   )
+
+  if length.int == NGTCP2_ERR_STREAM_DATA_BLOCKED:
+    connection.blockedStreams[streamId] =
+      cast[Future[void].Raising([])](newFuture[void]())
+    return Datagram()
+
   checkResult length.cint
 
   if length == 0:
@@ -130,6 +156,10 @@ proc send(
     messageLen: uint,
     isFin: bool = false,
 ): Future[int] {.async: (raises: [CancelledError, QuicError]).} =
+  # Stream might be blocked, waiting in case there are multiple 
+  # async ops trying to write to same stream
+  await connection.waitUntilUnblocked(streamId)
+
   var written: int
   var buffer = newSeqUninit[byte](writeBufferSize)
   var datagram =
@@ -145,6 +175,7 @@ proc send(
   while datagram.data.len == 0:
     connection.flowing.clear()
     await connection.flowing.wait()
+    await connection.waitUntilUnblocked(streamId)
     datagram =
       connection.trySend(buffer, streamId, messagePtr, messageLen, addr written, isFin)
 

@@ -23,6 +23,7 @@ type
     ssl*: ptr SSL
     connref*: ptr ngtcp2_crypto_conn_ref
     pendingAckQueues*: Table[int64, PendingAckQueue]
+    blockedStreams*: Table[int64, Future[void].Raising([])]
 
     path*: Path
     rng*: ref HmacDrbgContext
