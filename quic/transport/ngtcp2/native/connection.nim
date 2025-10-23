@@ -285,6 +285,10 @@ proc close*(connection: Ngtcp2Connection): Datagram =
   checkResult length.cint
   buffer.setLen(length)
   let ecn = ECN(packetInfo.ecn)
+
+  for blockedFut in connection.blockedStreams.values():
+    blockedFut.cancelSoon()
+
   Datagram(data: buffer, ecn: ecn)
 
   # TODO: should stop all event loops
