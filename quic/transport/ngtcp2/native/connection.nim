@@ -1,4 +1,4 @@
-import std/[sequtils, tables]
+import std/[sequtils, tables, os]
 import ngtcp2
 import bearssl/rand
 import chronicles
@@ -101,6 +101,11 @@ proc trySend(
     messageLen,
     now(),
   )
+
+  if length.int == -208:
+    sleep 100
+    return Datagram()
+
   checkResult length.cint
 
   if length == 0:
