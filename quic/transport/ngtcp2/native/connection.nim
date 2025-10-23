@@ -25,6 +25,10 @@ export Ngtcp2Connection
 proc destroy*(connection: Ngtcp2Connection) =
   let conn = connection.conn.valueOr:
     return
+
+  for blockedFut in connection.blockedStreams.values():
+    blockedFut.cancelSoon()
+
   connection.expiryTimer.stop()
   ngtcp2_conn_del(conn)
   dealloc(connection.connref)
@@ -74,7 +78,7 @@ proc updateExpiryTimer*(connection: Ngtcp2Connection) =
 
 proc waitUntilUnblocked(
     connection: Ngtcp2Connection, streamId: int64
-) {.async: (raises: []).} =
+) {.async: (raises: [CancelledError]).} =
   if not connection.blockedStreams.hasKey(streamId):
     return
   try:
@@ -123,7 +127,7 @@ proc trySend(
 
   if length.int == NGTCP2_ERR_STREAM_DATA_BLOCKED:
     connection.blockedStreams[streamId] =
-      Future[void].Raising([]).init("StreamLatch", {FutureFlag.OwnCancelSchedule})
+      Future[void].Raising([CancelledError]).init("StreamLatch")
     return Datagram()
 
   checkResult length.cint
@@ -285,9 +289,6 @@ proc close*(connection: Ngtcp2Connection): Datagram =
   checkResult length.cint
   buffer.setLen(length)
   let ecn = ECN(packetInfo.ecn)
-
-  for blockedFut in connection.blockedStreams.values():
-    blockedFut.cancelSoon()
 
   Datagram(data: buffer, ecn: ecn)
 
