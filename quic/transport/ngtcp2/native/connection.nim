@@ -25,6 +25,10 @@ export Ngtcp2Connection
 proc destroy*(connection: Ngtcp2Connection) =
   let conn = connection.conn.valueOr:
     return
+
+  for blockedFut in connection.blockedStreams.values():
+    blockedFut.cancelSoon()
+
   connection.expiryTimer.stop()
   ngtcp2_conn_del(conn)
   dealloc(connection.connref)
@@ -72,6 +76,25 @@ proc updateExpiryTimer*(connection: Ngtcp2Connection) =
   else:
     connection.expiryTimer.stop()
 
+proc waitUntilUnblocked(
+    connection: Ngtcp2Connection, streamId: int64
+) {.async: (raises: [CancelledError]).} =
+  if not connection.blockedStreams.hasKey(streamId):
+    return
+  try:
+    await connection.blockedStreams[streamId]
+  except KeyError:
+    raiseAssert "checked with hasKey"
+
+proc extendMaxStreamData*(connection: Ngtcp2Connection, streamId: int64) =
+  ## Unblocks any stream that might have been blocked due to flow control
+  try:
+    if connection.blockedStreams.hasKey(streamId):
+      connection.blockedStreams[streamId].complete()
+      connection.blockedStreams.del(streamId)
+  except KeyError:
+    raiseAssert "checked with hasKey"
+
 proc trySend(
     connection: Ngtcp2Connection,
     buffer: var seq[byte],
@@ -101,6 +124,12 @@ proc trySend(
     messageLen,
     now(),
   )
+
+  if length.int == NGTCP2_ERR_STREAM_DATA_BLOCKED:
+    connection.blockedStreams[streamId] =
+      Future[void].Raising([CancelledError]).init("StreamLatch")
+    return Datagram()
+
   checkResult length.cint
 
   if length == 0:
@@ -130,6 +159,10 @@ proc send(
     messageLen: uint,
     isFin: bool = false,
 ): Future[int] {.async: (raises: [CancelledError, QuicError]).} =
+  # Stream might be blocked, waiting in case there are multiple 
+  # async ops trying to write to same stream
+  await connection.waitUntilUnblocked(streamId)
+
   var written: int
   var buffer = newSeqUninit[byte](writeBufferSize)
   var datagram =
@@ -145,6 +178,7 @@ proc send(
   while datagram.data.len == 0:
     connection.flowing.clear()
     await connection.flowing.wait()
+    await connection.waitUntilUnblocked(streamId)
     datagram =
       connection.trySend(buffer, streamId, messagePtr, messageLen, addr written, isFin)
 
@@ -255,6 +289,7 @@ proc close*(connection: Ngtcp2Connection): Datagram =
   checkResult length.cint
   buffer.setLen(length)
   let ecn = ECN(packetInfo.ecn)
+
   Datagram(data: buffer, ecn: ecn)
 
   # TODO: should stop all event loops

@@ -24,7 +24,7 @@ template deferStop(listener: Listener) =
 
 suite "Quic integration usecases":
   test "client to server send and receive message":
-    let message = newData(50 * 1024)
+    let message = newData(1024 * 1024)
     let address = initTAddress("127.0.0.1:12345")
 
     proc outgoing() {.async.} =
@@ -56,7 +56,7 @@ suite "Quic integration usecases":
 
   asyncTest "connect many clients to single server":
     const connectionsCount = 20
-    const msgSize = 50 * 1024
+    const msgSize = 1024 * 1024
     let serverWg = newWaitGroup(connectionsCount)
     let clientWg = newWaitGroup(connectionsCount)
     let address = initTAddress("127.0.0.1:12345")
@@ -98,7 +98,7 @@ suite "Quic integration usecases":
   asyncTest "connections with many streams":
     const connectionsCount = 3
     const streamsCount = 20
-    const msgSize = 50 * 1024
+    const msgSize = 1024 * 1024
     let serverWg = newWaitGroup(connectionsCount)
     let clientWg = newWaitGroup(connectionsCount)
     let address = initTAddress("127.0.0.1:12345")

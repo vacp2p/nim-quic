@@ -108,6 +108,17 @@ proc onAckedStreamDataOffset(
   connection.ackSentBytes(stream_id, offset, datalen)
   return 0
 
+proc onExtendMaxStreamData(
+    conn: ptr ngtcp2_conn,
+    stream_id: int64,
+    max_data: uint64,
+    user_data: pointer,
+    stream_user_data: pointer,
+): cint {.cdecl.} =
+  trace "onExtendMaxStreamData"
+  let connection = cast[Ngtcp2Connection](user_data)
+  connection.extendMaxStreamData(stream_id)
+
 proc installStreamCallbacks*(callbacks: var ngtcp2_callbacks) =
   callbacks.stream_open = onStreamOpen
   callbacks.stream_close = onStreamClose
@@ -115,3 +126,4 @@ proc installStreamCallbacks*(callbacks: var ngtcp2_callbacks) =
   callbacks.stream_reset = onStreamReset
   callbacks.stream_stop_sending = onStreamStopSending
   callbacks.acked_stream_data_offset = onAckedStreamDataOffset
+  callbacks.extend_max_stream_data = onExtendMaxStreamData
