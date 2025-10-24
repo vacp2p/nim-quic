@@ -85,7 +85,7 @@ suite "Quic integration usecases":
 
       # client needs to wait some time before closing connections. 
       # because if connection is closed too early data will not be transmitted to server.
-      await sleepAsync(300.milliseconds)
+      await sleepAsync(1.seconds)
       await connection.close()
 
       clientWg.done()
