@@ -55,7 +55,7 @@ suite "Quic integration usecases":
     waitFor allFutures(incoming(), outgoing())
 
   asyncTest "connect many clients to single server":
-    const connectionsCount = 2 # should be increased when bug is fixed
+    const connectionsCount = 20
     const msgSize = 1024 * 1024
     let serverWg = newWaitGroup(connectionsCount)
     let clientWg = newWaitGroup(connectionsCount)
@@ -82,6 +82,10 @@ suite "Quic integration usecases":
       let stream = await connection.openStream()
       await stream.write(message)
       await stream.close()
+
+      # client needs to wait some time before closing connections. 
+      # because if connection is closed too early data will not be transmitted to server.
+      await sleepAsync(300.milliseconds)
       await connection.close()
 
       clientWg.done()
