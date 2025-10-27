@@ -125,7 +125,8 @@ proc trySend(
     now(),
   )
 
-  if length.int == NGTCP2_ERR_STREAM_DATA_BLOCKED:
+  if length.int == NGTCP2_ERR_STREAM_DATA_BLOCKED and
+      (not connection.blockedStreams.hasKey(streamId)):
     connection.blockedStreams[streamId] =
       Future[void].Raising([CancelledError]).init("StreamLatch")
     return Datagram()
