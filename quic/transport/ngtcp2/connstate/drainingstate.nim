@@ -46,6 +46,7 @@ method leave(state: DrainingConnection) =
   procCall leave(ConnectionState(state))
   state.timeout.stop()
   state.connection = Opt.none(QuicConnection)
+  state.done.fire()
 
 method ids(state: DrainingConnection): seq[ConnectionId] {.raises: [].} =
   state.ids
