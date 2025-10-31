@@ -54,6 +54,10 @@ suite "Quic integration usecases":
     let serverConn = await accepting
 
     await allFutures(serverConn.incoming(), clientConn.outgoing())
+
+    # closing connections after server and client finished work, because if we 
+    # closed earlier data sent via connection may not be received by other end 
+    # fully in time
     await allFutures(clientConn.close(), serverConn.close())
     await listener.stop()
 
@@ -79,7 +83,7 @@ suite "Quic integration usecases":
 
     asyncSpawn accept(listener, handleServerConn)
 
-    proc runClient(connection: Connection) {.async.} =
+    proc handleClientConn(connection: Connection) {.async.} =
       let stream = await connection.openStream()
       await stream.write(message)
       await stream.close()
@@ -90,7 +94,7 @@ suite "Quic integration usecases":
       let client = makeClient()
       let connection = await client.dial(address)
       clientConnections.add(connection)
-      asyncSpawn runClient(connection)
+      asyncSpawn handleClientConn(connection)
 
     await allFutures(serverWg.wait(), clientWg.wait())
     await allFutures(clientConnections.mapIt(it.close()))

@@ -160,8 +160,6 @@ proc send(
     messageLen: uint,
     isFin: bool = false,
 ): Future[int] {.async: (raises: [CancelledError, QuicError]).} =
-  # Stream might be blocked, waiting in case there are multiple 
-  # async ops trying to write to same stream
   if messageLen == 0 and not isFin:
     connection.updateExpiryTimer()
     return 0

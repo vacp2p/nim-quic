@@ -44,7 +44,7 @@ suite "streams":
     await stream.close()
 
     expect QuicError:
-      await stream.write(@[1'u8, 2'u8, 3'u8])
+      await stream.write(newData(3))
 
   asyncTest "raises when reading from or writing to reset stream":
     let stream = await client.openStream()
@@ -53,13 +53,13 @@ suite "streams":
       discard await stream.read()
 
     expect QuicError:
-      await stream.write(@[1'u8, 2'u8, 3'u8])
+      await stream.write(newData(3))
 
   asyncTest "accepts incoming streams":
     let simulation = simulateNetwork(client, server)
 
     let clientStream = await client.openStream()
-    await clientStream.write(@[1'u8, 2'u8, 3'u8])
+    await clientStream.write(newData(3))
 
     let serverStream = await server.incomingStream()
     check clientStream.id == serverStream.id
@@ -68,7 +68,7 @@ suite "streams":
 
   asyncTest "reads from stream":
     let simulation = simulateNetwork(client, server)
-    let message = @[1'u8, 2'u8, 3'u8]
+    let message = newData(3)
 
     let clientStream = await client.openStream()
     await clientStream.write(message)
@@ -117,7 +117,7 @@ suite "streams":
   asyncTest "handles packet loss":
     let simulation = simulateLossyNetwork(client, server)
 
-    let message = @[1'u8, 2'u8, 3'u8]
+    let message = newData(3)
     let clientStream = await client.openStream()
     await clientStream.write(message)
 
@@ -130,7 +130,7 @@ suite "streams":
     let simulation = simulateNetwork(client, server)
 
     let clientStream = await client.openStream()
-    await clientStream.write(@[1'u8, 2'u8, 3'u8])
+    await clientStream.write(newData(3, 0xAA))
 
     let serverStream = await server.incomingStream()
 
@@ -145,12 +145,12 @@ suite "streams":
 
     # In QUIC, receiving FIN doesn't prevent writing back (half-close semantics)
     # Writing should still work unless the local side is closed
-    await serverStream.write(@[4'u8, 5'u8, 6'u8])
+    await serverStream.write(newData(3, 0xBB))
 
     # But after we close our side, writing should fail
     await serverStream.close()
     expect QuicError:
-      await serverStream.write(@[7'u8, 8'u8, 9'u8])
+      await serverStream.write(newData(3, 0xCC))
 
     await simulation.cancelAndWait()
 
@@ -158,7 +158,7 @@ suite "streams":
     let simulation = simulateNetwork(client, server)
 
     let clientStream = await client.openStream()
-    await clientStream.write(@[1'u8, 2'u8, 3'u8])
+    await clientStream.write(newData(3))
 
     let serverStream = await server.incomingStream()
     discard await serverStream.read()
@@ -172,7 +172,7 @@ suite "streams":
 
   asyncTest "reads last bytes from stream that is closed by peer":
     let simulation = simulateNetwork(client, server)
-    let message = @[1'u8, 2'u8, 3'u8]
+    let message = newData(3)
 
     let clientStream = await client.openStream()
     await clientStream.write(message)
@@ -192,7 +192,7 @@ suite "streams":
     await clientStream.write(newData(5))
     await clientStream.closeWrite()
     expect ClosedStreamError:
-      await clientStream.write(@[1'u8, 2'u8, 3'u8])
+      await clientStream.write(newData(3))
 
     let serverStream = await server.incomingStream()
     check (await serverStream.read()) == newData(5)
@@ -233,8 +233,8 @@ suite "streams":
 
   asyncTest "closeWrite() sends FIN but allows server to write back":
     let simulation = simulateNetwork(client, server)
-    let clientMessage = @[1'u8, 2'u8, 3'u8]
-    let serverMessage = @[4'u8, 5'u8, 6'u8]
+    let clientMessage = newData(3, 0xAA)
+    let serverMessage = newData(3, 0xBB)
 
     # Client writes and closes write side
     let clientStream = await client.openStream()
@@ -267,11 +267,11 @@ suite "streams":
     let simulation = simulateNetwork(client, server)
 
     let clientStream = await client.openStream()
-    await clientStream.write(@[1'u8, 2'u8, 3'u8])
+    await clientStream.write(newData(3, 0xAA))
     await clientStream.close()
 
     expect QuicError:
-      await clientStream.write(@[4'u8, 5'u8, 6'u8])
+      await clientStream.write(newData(3, 0xBB))
 
     await simulation.cancelAndWait()
 
@@ -286,7 +286,7 @@ suite "streams":
 
   asyncTest "empty write + data + closeWrite (libp2p pattern) works":
     let simulation = simulateNetwork(client, server)
-    var uploadData = @[1'u8, 2'u8, 3'u8, 4'u8, 5'u8]
+    let uploadData = newData(5, 0xAA)
 
     let clientStream = await client.openStream()
     await clientStream.write(@[])
@@ -318,7 +318,7 @@ suite "streams":
 
   asyncTest "perf-like upload/download pattern works":
     let simulation = simulateNetwork(client, server)
-    var uploadData = @[6'u8, 7'u8, 8'u8, 9'u8, 10'u8]
+    let uploadData = newData(5, 0xAA)
 
     let clientStream = await client.openStream()
     await clientStream.write(@[])
@@ -329,7 +329,7 @@ suite "streams":
     check (await serverStream.read()) == uploadData
 
     # Server sends response back
-    var downloadData = @[11'u8, 12'u8, 13'u8, 14'u8, 15'u8]
+    let downloadData = newData(5, 0xBB)
     await serverStream.write(downloadData)
     await serverStream.closeWrite()
 
@@ -432,13 +432,13 @@ suite "streams":
     check not clientStream.isUnidirectional
 
     # Client sends data and fully closes stream
-    let clientData = @[1'u8, 2, 3, 4, 5]
+    let clientData = newData(5)
     await clientStream.write(clientData)
     await clientStream.close() # Full close
 
     # After close() client should NOT be able to write or read
     expect QuicError:
-      await clientStream.write(@[6'u8, 7, 8])
+      await clientStream.write(newData(3))
 
     let serverStream = await server.incomingStream()
 
@@ -456,8 +456,8 @@ suite "streams":
     ## Test RFC 9000 bidirectional half-close semantics
     let simulation = simulateNetwork(client, server)
 
-    let clientData = @[1'u8, 2, 3]
-    let serverData = @[4'u8, 5, 6]
+    let clientData = newData(3, 0xAA)
+    let serverData = newData(3, 0xBB)
 
     # Both send data
 
@@ -473,9 +473,9 @@ suite "streams":
 
     # Neither can write
     expect QuicError:
-      await clientStream.write(@[7'u8])
+      await clientStream.write(newData(3, 0xCC))
     expect QuicError:
-      await serverStream.write(@[8'u8])
+      await serverStream.write(newData(3, 0xDD))
 
     # But both can read each other's data
     check (await clientStream.read()) == serverData
@@ -492,14 +492,14 @@ suite "streams":
 
     let
       clientStream = await client.openStream()
-      clientData = @[1'u8, 2, 3]
+      clientData = newData(3, 0xAA)
 
     await clientStream.write(clientData)
     await clientStream.closeWrite() # First half-close
 
     let
       serverStream = await server.incomingStream()
-      serverData = @[4'u8, 5, 6]
+      serverData = newData(3, 0xBB)
 
     # Server sends response
     await serverStream.write(serverData)
@@ -518,13 +518,13 @@ suite "streams":
 
     let
       clientStream = await client.openStream()
-      clientData = @[1'u8, 2, 3]
+      clientData = newData(3, 0xAA)
 
     await clientStream.write(clientData)
 
     let
       serverStream = await server.incomingStream()
-      serverData = @[4'u8, 5, 6]
+      serverData = newData(3, 0xBB)
 
     await serverStream.write(serverData)
 
@@ -549,7 +549,7 @@ suite "streams":
     let simulation = simulateNetwork(client, server)
 
     let clientStream = await client.openStream()
-    await clientStream.write(@[1'u8, 2'u8, 3'u8])
+    await clientStream.write(newData(3, 0xAA))
 
     let serverStream = await server.incomingStream()
 
@@ -576,7 +576,7 @@ suite "streams":
   asyncTest "simple 10MB write test":
     let simulation = simulateNetwork(client, server)
     let dataSize = 10 * 1024 * 1024 # 10 MB
-    var testData = newData(dataSize, uint8(0xAA))
+    var testData = newData(dataSize, 0xAA)
 
     let clientStream = await client.openStream()
     let clientWriteTask = proc() {.async.} =
@@ -603,8 +603,8 @@ suite "streams":
   asyncTest "bidirectional 10MB + 10MB closeWrite test":
     let simulation = simulateNetwork(client, server)
     let dataSize = 10 * 1024 * 1024 # 10 MB each direction
-    var clientData = newData(dataSize, uint8(0xAA))
-    var serverData = newData(dataSize, uint8(0xBB))
+    var clientData = newData(dataSize, 0xAA)
+    var serverData = newData(dataSize, 0xBB)
 
     let clientStream = await client.openStream()
     # Client writes 10MB and closes write side
@@ -644,8 +644,8 @@ suite "streams":
     let simulation = simulateNetwork(client, server)
     let dataSize = 10 * 1024 * 1024 # 10 MB
 
-    var clientData = newData(dataSize, uint8(0xCC))
-    var serverData = newData(dataSize, uint8(0xDD))
+    var clientData = newData(dataSize, 0xCC)
+    var serverData = newData(dataSize, 0xDD)
 
     let clientStream = await client.openStream()
     # Client writes 10MB and does closeWrite() (half-close)
@@ -684,7 +684,7 @@ suite "streams":
   asyncTest "reverse order: client starts writing first, server reads parallel":
     let simulation = simulateNetwork(client, server)
     let dataSize = 10 * 1024 * 1024 # 10 MB
-    var testData = newData(dataSize, uint8(0xEE))
+    var testData = newData(dataSize, 0xEE)
 
     let clientStream = await client.openStream()
 
