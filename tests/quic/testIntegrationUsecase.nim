@@ -1,3 +1,4 @@
+import sequtils
 import results
 import pkg/unittest2
 import pkg/quic
@@ -23,26 +24,24 @@ template deferStop(listener: Listener) =
     listener.destroy()
 
 suite "Quic integration usecases":
-  test "client to server send and receive message":
+  asyncTest "client to server send and receive message":
     let message = newData(1024 * 1024)
     let address = initTAddress("127.0.0.1:12345")
 
-    proc outgoing() {.async.} =
-      let client = makeClient()
-      let connection = await client.dial(address)
-      check connection.certificates().len == 1
+    let
+      client = makeClient()
+      server = makeServer()
+      listener = server.listen(address)
+      dialing = client.dial(address)
+      accepting = listener.accept()
 
+    proc outgoing(connection: Connection) {.async.} =
+      check connection.certificates().len == 1
       let stream = await connection.openStream()
       await stream.write(message)
       await stream.close()
-      await connection.close()
 
-    proc incoming() {.async.} =
-      let server = makeServer()
-      let listener = server.listen(address)
-      listener.deferStop()
-
-      let connection = await listener.accept()
+    proc incoming(connection: Connection) {.async.} =
       check connection.certificates().len == 1
 
       let stream = await connection.incomingStream()
@@ -50,9 +49,17 @@ suite "Quic integration usecases":
       checkEqual(message, receivedData)
 
       await stream.close()
-      await connection.close()
 
-    waitFor allFutures(incoming(), outgoing())
+    let clientConn = await dialing
+    let serverConn = await accepting
+
+    await allFutures(serverConn.incoming(), clientConn.outgoing())
+
+    # closing connections after server and client finished work, because if we 
+    # closed earlier data sent via connection may not be received by other end 
+    # fully in time
+    await allFutures(clientConn.close(), serverConn.close())
+    await listener.stop()
 
   asyncTest "connect many clients to single server":
     const connectionsCount = 20
@@ -72,28 +79,25 @@ suite "Quic integration usecases":
       checkEqual(message, receivedData)
 
       await stream.close()
-      await connection.close()
       serverWg.done()
 
-    proc runClient() {.async.} =
-      let client = makeClient()
-      let connection = await client.dial(address)
+    asyncSpawn accept(listener, handleServerConn)
 
+    proc handleClientConn(connection: Connection) {.async.} =
       let stream = await connection.openStream()
       await stream.write(message)
       await stream.close()
-
-      # client needs to wait some time before closing connections. 
-      # because if connection is closed too early data will not be transmitted to server.
-      await sleepAsync(300.milliseconds)
-      await connection.close()
-
       clientWg.done()
 
-    asyncSpawn accept(listener, handleServerConn)
+    var clientConnections: seq[Connection] = @[]
     for i in 0 ..< connectionsCount:
-      asyncSpawn runClient()
-    waitFor allFutures(serverWg.wait(), clientWg.wait())
+      let client = makeClient()
+      let connection = await client.dial(address)
+      clientConnections.add(connection)
+      asyncSpawn handleClientConn(connection)
+
+    await allFutures(serverWg.wait(), clientWg.wait())
+    await allFutures(clientConnections.mapIt(it.close()))
 
   asyncTest "connections with many streams":
     const connectionsCount = 3

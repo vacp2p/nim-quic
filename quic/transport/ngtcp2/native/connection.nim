@@ -126,8 +126,9 @@ proc trySend(
   )
 
   if length.int == NGTCP2_ERR_STREAM_DATA_BLOCKED:
-    connection.blockedStreams[streamId] =
-      Future[void].Raising([CancelledError]).init("StreamLatch")
+    if not connection.blockedStreams.hasKey(streamId):
+      connection.blockedStreams[streamId] =
+        Future[void].Raising([CancelledError]).init("StreamLatch")
     return Datagram()
 
   checkResult length.cint
@@ -159,33 +160,32 @@ proc send(
     messageLen: uint,
     isFin: bool = false,
 ): Future[int] {.async: (raises: [CancelledError, QuicError]).} =
-  # Stream might be blocked, waiting in case there are multiple 
-  # async ops trying to write to same stream
-  await connection.waitUntilUnblocked(streamId)
-
-  var written: int
-  var buffer = newSeqUninit[byte](writeBufferSize)
-  var datagram =
-    connection.trySend(buffer, streamId, messagePtr, messageLen, addr written, isFin)
-
-  # For empty writes without FIN, treat as no-op
-  # Return 0 bytes written since there was nothing to write
   if messageLen == 0 and not isFin:
     connection.updateExpiryTimer()
     return 0
 
-  # Normal flow control for data packets
-  while datagram.data.len == 0:
-    connection.flowing.clear()
-    await connection.flowing.wait()
+  var written: int
+  var buffer = newSeqUninit[byte](writeBufferSize)
+  var datagram = Datagram()
+
+  while true:
+    # Stream might be blocked, waiting in case there are multiple 
+    # async ops trying to write to same stream
     await connection.waitUntilUnblocked(streamId)
     datagram =
       connection.trySend(buffer, streamId, messagePtr, messageLen, addr written, isFin)
+    if datagram.data.len != 0:
+      connection.onSend(datagram)
+      connection.updateExpiryTimer()
+      return written
 
-  connection.onSend(datagram)
-  connection.updateExpiryTimer()
-
-  return written
+    # It's possible that trySend returns an empty datagram
+    # because congestion or flow control, meaning that we
+    # cannot send pkts yet. We have to wait to retry until 
+    # we are unblocked wither by ngtcp expiry handler or by
+    # having received a pkt 
+    connection.flowing.clear()
+    await connection.flowing.wait()
 
 template pendingAckQueue*(
     connection: Ngtcp2Connection, stream_id: int64
@@ -259,6 +259,7 @@ proc handleTimeout(connection: Ngtcp2Connection) =
     else:
       checkResult ret
       connection.send()
+      connection.flowing.fire()
   except QuicError as e:
     error "handleTimeout unexpected error", msg = e.msg
 
