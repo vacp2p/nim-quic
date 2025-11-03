@@ -35,6 +35,9 @@ suite "Quic integration usecases":
       dialing = client.dial(address)
       accepting = listener.accept()
 
+    defer:
+      listener.deferStop()
+
     proc outgoing(connection: Connection) {.async.} =
       check connection.certificates().len == 1
       let stream = await connection.openStream()
@@ -59,7 +62,6 @@ suite "Quic integration usecases":
     # closed earlier data sent via connection may not be received by other end 
     # fully in time
     await allFutures(clientConn.close(), serverConn.close())
-    await listener.stop()
 
   asyncTest "connect many clients to single server":
     const connectionsCount = 20
